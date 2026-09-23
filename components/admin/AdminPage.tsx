@@ -1,0 +1,450 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useCallback, useEffect, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { ArrowLeft, Loader2, LogOut, Plus, Save, Trash2, Upload, ShieldCheck } from 'lucide-react';
+import { supabase } from '../../services/supabaseClient';
+import {
+  deleteRow,
+  isCurrentUserAdmin,
+  listRows,
+  upsertRow,
+  uploadAsset
+} from '../../services/catalogService';
+import { ENTITIES, EntitySpec, FieldSpec } from './entityConfig';
+
+type Row = Record<string, unknown>;
+
+interface AdminPageProps {
+  onBack: () => void;
+  /** Called after any successful write so the configurator reloads the catalogue. */
+  onCatalogChanged: () => void;
+}
+
+const inputCls =
+  'w-full bg-[#0d0d0d] border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF5500]';
+
+export const AdminPage: React.FC<AdminPageProps> = ({ onBack, onCatalogChanged }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    setIsAdmin(null);
+    if (session) isCurrentUserAdmin(session.user.email).then(setIsAdmin);
+  }, [session]);
+
+  return (
+    <div className="absolute inset-0 overflow-y-auto bg-black text-neutral-200 select-text">
+      <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/90 backdrop-blur">
+        <button onClick={onBack} className="flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-400 hover:text-white">
+          <ArrowLeft className="w-4 h-4" /> Back to studio
+        </button>
+        <div className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase">
+          <ShieldCheck className="w-4 h-4 text-[#FF5500]" /> Apex Forged Admin
+        </div>
+        {session ? (
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-400 hover:text-white"
+          >
+            <LogOut className="w-4 h-4" /> Sign out
+          </button>
+        ) : <span className="w-24" />}
+      </header>
+
+      {!authChecked ? (
+        <Centered><Loader2 className="w-6 h-6 animate-spin text-[#FF5500]" /></Centered>
+      ) : !session ? (
+        <LoginForm />
+      ) : isAdmin === null ? (
+        <Centered><Loader2 className="w-6 h-6 animate-spin text-[#FF5500]" /></Centered>
+      ) : !isAdmin ? (
+        <Centered>
+          <p className="text-sm text-neutral-400 text-center max-w-sm">
+            {session.user.email} is signed in but is not on the admin allowlist.
+          </p>
+        </Centered>
+      ) : (
+        <CatalogEditor onCatalogChanged={onCatalogChanged} />
+      )}
+    </div>
+  );
+};
+
+const Centered: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="flex items-center justify-center min-h-[70vh] px-4">{children}</div>
+);
+
+const LoginForm: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) setError(err.message);
+    setBusy(false);
+  };
+
+  return (
+    <Centered>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 p-6 rounded-xl border border-white/10 bg-[#080808]">
+        <div>
+          <h1 className="text-lg font-bold text-white">Admin sign in</h1>
+          <p className="text-xs text-neutral-500 mt-1">Manage cars, wheels, finishes, paints and 3D assets.</p>
+        </div>
+        <label className="block space-y-1">
+          <span className="text-xs text-neutral-400">Email</span>
+          <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs text-neutral-400">Password</span>
+          <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
+        </label>
+        {error && <p className="text-xs text-red-400">{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full flex items-center justify-center gap-2 bg-[#FF5500] hover:bg-[#FF6600] disabled:opacity-60 text-black font-bold text-sm rounded-md py-2"
+        >
+          {busy && <Loader2 className="w-4 h-4 animate-spin" />} Sign in
+        </button>
+      </form>
+    </Centered>
+  );
+};
+
+const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogChanged }) => {
+  const [entity, setEntity] = useState<EntitySpec>(ENTITIES[0]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [finishIds, setFinishIds] = useState<string[]>([]);
+  const [draft, setDraft] = useState<Row | null>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+  const load = useCallback(async (spec: EntitySpec) => {
+    setLoading(true);
+    try {
+      const [data, finishes] = await Promise.all([listRows(spec.table), listRows('wheel_finishes')]);
+      setRows(data);
+      setFinishIds(finishes.map((f) => String(f.id)));
+    } catch (e) {
+      setMessage({ kind: 'error', text: (e as Error).message });
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    setDraft(null);
+    setMessage(null);
+    load(entity);
+  }, [entity, load]);
+
+  const handleSave = async () => {
+    if (!draft) return;
+    if (!String(draft.id || '').trim() || !String(draft.name || '').trim()) {
+      setMessage({ kind: 'error', text: 'ID and name are required.' });
+      return;
+    }
+    if (isNew && rows.some((r) => r.id === draft.id)) {
+      setMessage({ kind: 'error', text: `ID "${draft.id}" already exists.` });
+      return;
+    }
+    setSaving(true);
+    try {
+      await upsertRow(entity.table, draft);
+      setMessage({ kind: 'ok', text: `Saved ${draft.name}.` });
+      setIsNew(false);
+      await load(entity);
+      onCatalogChanged();
+    } catch (e) {
+      setMessage({ kind: 'error', text: (e as Error).message });
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!draft || isNew) return;
+    if (!window.confirm(`Delete "${draft.name}"? This cannot be undone. Untick "Visible" to hide it instead.`)) return;
+    try {
+      await deleteRow(entity.table, String(draft.id));
+      setDraft(null);
+      setMessage({ kind: 'ok', text: 'Deleted.' });
+      await load(entity);
+      onCatalogChanged();
+    } catch (e) {
+      setMessage({ kind: 'error', text: (e as Error).message });
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <nav className="flex flex-wrap gap-2 mb-6">
+        {ENTITIES.map((spec) => (
+          <button
+            key={spec.table}
+            onClick={() => setEntity(spec)}
+            className={`px-4 py-2 rounded-md text-xs font-bold uppercase tracking-widest border ${
+              spec.table === entity.table
+                ? 'bg-[#FF5500] text-black border-[#FF5500]'
+                : 'border-white/10 text-neutral-400 hover:text-white hover:border-white/30'
+            }`}
+          >
+            {spec.label}
+          </button>
+        ))}
+      </nav>
+
+      {message && (
+        <p className={`mb-4 text-xs ${message.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>{message.text}</p>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-[280px_1fr]">
+        <aside className="space-y-2">
+          <button
+            onClick={() => { setDraft({ ...entity.defaults }); setIsNew(true); setMessage(null); }}
+            className="w-full flex items-center justify-center gap-2 border border-dashed border-white/20 hover:border-[#FF5500] rounded-md py-2 text-xs uppercase tracking-widest"
+          >
+            <Plus className="w-4 h-4" /> New {entity.label.replace(/s$/, '').toLowerCase()}
+          </button>
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-[#FF5500] mx-auto mt-6" />
+          ) : (
+            rows.map((row) => (
+              <button
+                key={String(row.id)}
+                onClick={() => { setDraft({ ...row }); setIsNew(false); setMessage(null); }}
+                className={`w-full text-left px-3 py-2 rounded-md border text-sm ${
+                  draft && !isNew && draft.id === row.id ? 'border-[#FF5500] bg-white/5' : 'border-white/10 hover:border-white/30'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {typeof row.hex === 'string' && <span className="w-3 h-3 rounded-full border border-white/20" style={{ background: row.hex }} />}
+                  <span className="truncate text-white">{String(row.name)}</span>
+                </div>
+                <div className="text-[11px] text-neutral-500 truncate">
+                  {String(row.id)}{row.active === false ? ' · hidden' : ''}
+                  {row.model_url || row.image_url ? ' · asset' : ''}
+                </div>
+              </button>
+            ))
+          )}
+        </aside>
+
+        <section>
+          {!draft ? (
+            <p className="text-sm text-neutral-500 mt-2">Select an item to edit, or create a new one.</p>
+          ) : (
+            <div className="space-y-4 p-5 rounded-xl border border-white/10 bg-[#080808]">
+              {entity.fields.map((field) => (
+                <FieldInput
+                  key={field.key}
+                  field={field}
+                  value={draft[field.key]}
+                  folder={String(draft.id || 'unsorted')}
+                  finishIds={finishIds}
+                  readOnly={field.key === 'id' && !isNew}
+                  onError={(text) => setMessage({ kind: 'error', text })}
+                  onChange={(v) => setDraft((d) => (d ? { ...d, [field.key]: v } : d))}
+                />
+              ))}
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={handleDelete}
+                  disabled={isNew}
+                  className="flex items-center gap-2 text-xs uppercase tracking-widest text-red-400 hover:text-red-300 disabled:opacity-30"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 bg-[#FF5500] hover:bg-[#FF6600] disabled:opacity-60 text-black font-bold text-sm rounded-md px-5 py-2"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+};
+
+interface FieldInputProps {
+  field: FieldSpec;
+  value: unknown;
+  folder: string;
+  finishIds: string[];
+  readOnly: boolean;
+  onChange: (v: unknown) => void;
+  onError: (text: string) => void;
+}
+
+const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds, readOnly, onChange, onError }) => {
+  const [uploading, setUploading] = useState(false);
+  let control: React.ReactNode;
+
+  switch (field.type) {
+    case 'textarea':
+      control = <textarea rows={3} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className={inputCls} />;
+      break;
+    case 'number':
+      control = (
+        <input
+          type="number"
+          step={field.step ?? 'any'}
+          value={value === null || value === undefined ? '' : Number(value)}
+          onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+          className={inputCls}
+        />
+      );
+      break;
+    case 'color':
+      control = (
+        <div className="flex gap-2">
+          <input type="color" value={String(value || '#000000')} onChange={(e) => onChange(e.target.value)} className="h-9 w-12 bg-transparent border border-white/10 rounded" />
+          <input type="text" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className={inputCls} />
+        </div>
+      );
+      break;
+    case 'bool':
+      control = (
+        <input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} className="w-4 h-4 accent-[#FF5500]" />
+      );
+      break;
+    case 'select':
+      control = (
+        <select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+          {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      );
+      break;
+    case 'list':
+      control = (
+        <textarea
+          rows={3}
+          value={Array.isArray(value) ? value.join('\n') : ''}
+          onChange={(e) => onChange(e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))}
+          className={inputCls}
+        />
+      );
+      break;
+    case 'finishes': {
+      const selected = Array.isArray(value) ? (value as string[]) : [];
+      control = (
+        <div className="flex flex-wrap gap-2">
+          {finishIds.map((id) => (
+            <label key={id} className="flex items-center gap-1.5 text-xs border border-white/10 rounded px-2 py-1">
+              <input
+                type="checkbox"
+                className="accent-[#FF5500]"
+                checked={selected.includes(id)}
+                onChange={(e) => onChange(e.target.checked ? [...selected, id] : selected.filter((s) => s !== id))}
+              />
+              {id}
+            </label>
+          ))}
+        </div>
+      );
+      break;
+    }
+    case 'fitment': {
+      const fit = (value as Record<string, string>) || {};
+      control = (
+        <div className="grid grid-cols-2 gap-2">
+          {(['front', 'rear', 'pcd', 'cb'] as const).map((k) => (
+            <input
+              key={k}
+              placeholder={k.toUpperCase()}
+              value={fit[k] ?? ''}
+              onChange={(e) => onChange({ ...fit, [k]: e.target.value })}
+              className={inputCls}
+            />
+          ))}
+        </div>
+      );
+      break;
+    }
+    case 'asset': {
+      const url = typeof value === 'string' ? value : '';
+      control = (
+        <div className="space-y-2">
+          {url && field.bucket === 'rim-images' && (
+            <img src={url} alt="" className="w-28 h-28 object-contain rounded border border-white/10 bg-neutral-900" />
+          )}
+          {url && <a href={url} target="_blank" rel="noreferrer" className="block text-[11px] text-[#FF7722] break-all">{url}</a>}
+          <div className="flex gap-2">
+            <label className="flex items-center gap-2 cursor-pointer border border-white/10 hover:border-[#FF5500] rounded-md px-3 py-2 text-xs uppercase tracking-widest">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {url ? 'Replace' : 'Upload'}
+              <input
+                type="file"
+                accept={field.accept}
+                className="hidden"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  setUploading(true);
+                  try {
+                    onChange(await uploadAsset(field.bucket, folder, file));
+                  } catch (err) {
+                    onError(`Upload failed: ${(err as Error).message}`);
+                  }
+                  setUploading(false);
+                }}
+              />
+            </label>
+            {url && (
+              <button onClick={() => onChange(null)} className="text-xs uppercase tracking-widest text-neutral-400 hover:text-white px-2">
+                Remove
+              </button>
+            )}
+          </div>
+          {url && <p className="text-[11px] text-neutral-500">Click Save to apply the new file.</p>}
+        </div>
+      );
+      break;
+    }
+    default:
+      control = (
+        <input
+          type="text"
+          value={String(value ?? '')}
+          readOnly={readOnly}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${inputCls} ${readOnly ? 'opacity-60' : ''}`}
+        />
+      );
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-neutral-400">{field.label}</div>
+      {control}
+      {field.hint && <p className="text-[11px] text-neutral-600">{field.hint}</p>}
+    </div>
+  );
+};

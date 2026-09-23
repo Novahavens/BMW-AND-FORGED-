@@ -10,7 +10,6 @@ import {
   FinishVariantKey,
   CarModel 
 } from '../types';
-import { WHEEL_FINISHES } from '../data/configuratorData';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -33,6 +32,7 @@ import { TechnicalTooltip } from './TechnicalTooltip';
 
 interface WheelDrawerProps {
   wheels: WheelDesign[];
+  finishes: Record<string, WheelFinish>;
   selectedWheel: WheelDesign;
   selectedFinish: WheelFinish;
   selectedSize: string;
@@ -49,6 +49,7 @@ interface WheelDrawerProps {
 
 export const WheelDrawer: React.FC<WheelDrawerProps> = ({
   wheels,
+  finishes,
   selectedWheel,
   selectedFinish,
   selectedSize,
@@ -161,7 +162,7 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
                 const isSelected = selectedWheel.id === wheel.id;
                 const displayFinishHex = isSelected 
                   ? selectedFinish.hex 
-                  : (WHEEL_FINISHES[wheel.defaultVariant]?.hex || '#d6dde3');
+                  : (finishes[wheel.defaultVariant]?.hex || '#d6dde3');
 
                 return (
                   <div
@@ -372,7 +373,7 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
                           {/* Finish Variant Buttons with Mini Rendered Mag Wheel & Technical Hover Tooltips */}
                           <div className="grid grid-cols-2 gap-2">
                             {wheel.availableVariants.map((variantKey: FinishVariantKey, idx: number) => {
-                              const finishObj = WHEEL_FINISHES[variantKey];
+                              const finishObj = finishes[variantKey];
                               if (!finishObj) return null;
                               const isFinishActive = selectedFinish.id === finishObj.id;
 

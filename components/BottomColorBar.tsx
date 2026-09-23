@@ -9,7 +9,6 @@ import {
   PaintColor, 
   CaliperColor 
 } from '../types';
-import { BMW_MODELS, BMW_PAINTS, CALIPER_COLORS } from '../data/configuratorData';
 import { 
   Palette, 
   Disc, 
@@ -27,6 +26,9 @@ import {
 } from 'lucide-react';
 
 interface BottomColorBarProps {
+  cars: CarModel[];
+  paints: PaintColor[];
+  calipers: CaliperColor[];
   selectedCar: CarModel;
   selectedPaint: PaintColor;
   selectedCaliper: CaliperColor;
@@ -41,6 +43,9 @@ interface BottomColorBarProps {
 }
 
 export const BottomColorBar: React.FC<BottomColorBarProps> = ({
+  cars,
+  paints,
+  calipers,
   selectedCar,
   selectedPaint,
   selectedCaliper,
@@ -56,7 +61,7 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
   const [activeCategory, setActiveCategory] = useState<'all' | 'paint' | 'model' | 'stance'>('all');
   const [paintFilter, setPaintFilter] = useState<'all' | 'Metallic' | 'Frozen Satin' | 'Individual'>('all');
 
-  const filteredPaints = BMW_PAINTS.filter((p) => {
+  const filteredPaints = paints.filter((p) => {
     if (paintFilter === 'all') return true;
     if (paintFilter === 'Individual') return p.name.includes('Frozen') || p.name.includes('Isle of Man') || p.name.includes('São Paulo');
     return p.type === paintFilter;
@@ -184,7 +189,7 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
               </div>
 
               <div className="grid grid-cols-1 gap-2.5">
-                {BMW_MODELS.map((car) => {
+                {cars.map((car) => {
                   const isSelected = selectedCar.id === car.id;
                   return (
                     <div
@@ -337,7 +342,7 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  {CALIPER_COLORS.map((caliper) => {
+                  {calipers.map((caliper) => {
                     const isSelected = selectedCaliper.id === caliper.id;
                     return (
                       <button

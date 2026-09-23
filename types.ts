@@ -20,6 +20,14 @@ export interface CarModel {
     cb: string;
   };
   bodyStyle: 'coupe' | 'sedan';
+  /** Uploaded GLB; the procedural body is used when absent. */
+  modelUrl?: string | null;
+  modelRotationDeg?: number;
+  modelLengthM?: number;
+  /** Regex (case-insensitive) matched against mesh/material names to receive the paint. */
+  paintMeshMatch?: string;
+  /** Regex for the GLB's own wheels/brakes, hidden so the configurable wheels replace them. */
+  hideMeshMatch?: string;
 }
 
 export interface PaintColor {
@@ -34,7 +42,8 @@ export interface PaintColor {
   clearcoatRoughness: number;
 }
 
-export type FinishVariantKey = 'liquid_metal' | 'bronze' | 'black' | 'titanium' | 'champagne_gold' | 'rose_gold';
+// Finishes are editable in the admin, so any id is allowed; these are the seeded ones.
+export type FinishVariantKey = 'liquid_metal' | 'bronze' | 'black' | 'titanium' | 'champagne_gold' | 'rose_gold' | (string & {});
 
 export interface WheelFinish {
   id: FinishVariantKey;
@@ -65,6 +74,8 @@ export interface WheelDesign {
   highlights: string[];
   availableVariants: FinishVariantKey[];
   defaultVariant: FinishVariantKey;
+  /** Uploaded front-on rim PNG (transparent background); replaces the procedural spokes. */
+  imageUrl?: string | null;
 }
 
 export interface CaliperColor {

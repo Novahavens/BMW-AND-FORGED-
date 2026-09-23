@@ -1,0 +1,123 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { supabase } from './supabaseClient';
+import {
+  BMW_MODELS,
+  BMW_PAINTS,
+  WHEEL_DESIGNS,
+  WHEEL_FINISHES,
+  CALIPER_COLORS
+} from '../data/configuratorData';
+import { CarModel, PaintColor, WheelDesign, WheelFinish, CaliperColor } from '../types';
+
+export interface Catalog {
+  cars: CarModel[];
+  paints: PaintColor[];
+  wheels: WheelDesign[];
+  finishes: Record<string, WheelFinish>;
+  calipers: CaliperColor[];
+}
+
+export type CatalogTable = 'cars' | 'paints' | 'wheels' | 'wheel_finishes' | 'calipers';
+
+/** Bundled catalogue, used when Supabase is unreachable so the demo never renders empty. */
+export const STATIC_CATALOG: Catalog = {
+  cars: BMW_MODELS,
+  paints: BMW_PAINTS,
+  wheels: WHEEL_DESIGNS,
+  finishes: WHEEL_FINISHES,
+  calipers: CALIPER_COLORS
+};
+
+// Rows are snake_case in Postgres and camelCase in the app; only top-level keys are converted
+// (recommended_wheel_fitment's inner keys are already single words).
+const toCamel = (k: string) => k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+const toSnake = (k: string) => k.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
+
+export const rowToApp = <T,>(row: Record<string, unknown>): T =>
+  Object.fromEntries(Object.entries(row).map(([k, v]) => [toCamel(k), v])) as T;
+
+export const appToRow = (obj: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(obj).map(([k, v]) => [toSnake(k), v]));
+
+async function selectTable<T>(table: CatalogTable): Promise<T[] | null> {
+  const { data, error } = await supabase.from(table).select('*').order('sort_order');
+  if (error || !data || data.length === 0) {
+    if (error) console.warn(`Catalog: falling back to bundled ${table}`, error.message);
+    return null;
+  }
+  return data.map((r) => rowToApp<T>(r));
+}
+
+export async function fetchCatalog(): Promise<{ catalog: Catalog; source: 'supabase' | 'static' }> {
+  try {
+    const [cars, paints, wheels, finishes, calipers] = await Promise.all([
+      selectTable<CarModel>('cars'),
+      selectTable<PaintColor>('paints'),
+      selectTable<WheelDesign>('wheels'),
+      selectTable<WheelFinish>('wheel_finishes'),
+      selectTable<CaliperColor>('calipers')
+    ]);
+    const catalog: Catalog = {
+      cars: cars ?? STATIC_CATALOG.cars,
+      paints: paints ?? STATIC_CATALOG.paints,
+      wheels: wheels ?? STATIC_CATALOG.wheels,
+      finishes: finishes
+        ? Object.fromEntries(finishes.map((f) => [f.id, f]))
+        : STATIC_CATALOG.finishes,
+      calipers: calipers ?? STATIC_CATALOG.calipers
+    };
+    const allRemote = [cars, paints, wheels, finishes, calipers].every(Boolean);
+    return { catalog, source: allRemote ? 'supabase' : 'static' };
+  } catch (e) {
+    console.warn('Catalog: Supabase unavailable, using bundled catalogue', e);
+    return { catalog: STATIC_CATALOG, source: 'static' };
+  }
+}
+
+// ----------------------------------------------------
+// ADMIN OPERATIONS (require an allowlisted, signed-in admin; enforced by RLS)
+// ----------------------------------------------------
+
+export async function listRows(table: CatalogTable): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase.from(table).select('*').order('sort_order');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertRow(table: CatalogTable, row: Record<string, unknown>) {
+  const { updated_at: _ignored, ...payload } = row;
+  const { error } = await supabase.from(table).upsert(payload);
+  if (error) throw error;
+}
+
+export async function deleteRow(table: CatalogTable, id: string) {
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** Uploads to a public bucket and returns the file's public URL. */
+export async function uploadAsset(bucket: string, folder: string, file: File): Promise<string> {
+  const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
+  const path = `${folder}/${Date.now()}-${safeName}`;
+  const contentType = file.name.toLowerCase().endsWith('.glb')
+    ? 'model/gltf-binary'
+    : file.type || 'application/octet-stream';
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType, upsert: false });
+  if (error) throw error;
+  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+}
+
+/** True when the signed-in user's email is on the admin allowlist (RLS hides it from everyone else). */
+export async function isCurrentUserAdmin(email: string | undefined): Promise<boolean> {
+  if (!email) return false;
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('email')
+    .eq('email', email.toLowerCase())
+    .maybeSingle();
+  return !error && !!data;
+}

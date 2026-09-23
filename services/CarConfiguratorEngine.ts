@@ -8,6 +8,9 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { 
   CarModel, 
   PaintColor, 
@@ -83,8 +86,16 @@ export class CarConfiguratorEngine {
   private spherical = { radius: 5.5, theta: 0.8, phi: 1.25 };
   private targetSpherical = { radius: 5.5, theta: 0.8, phi: 1.25 };
 
-  // 2D Custom Texture Cache
-  private customWheelTexture: THREE.Texture | null = null;
+  // 2D rim textures (uploaded PNGs and the 2D guide), cached by URL
+  private wheelTextureCache = new Map<string, THREE.Texture>();
+  private customFaceMaterials: THREE.MeshPhysicalMaterial[] = [];
+  private wheelDesignToken = 0;
+
+  // Uploaded GLB car models
+  private gltfLoader: GLTFLoader | null = null;
+  private carLoadToken = 0;
+  private dracoLoader: DRACOLoader | null = null;
+  private defaultWheelLayout: { x: number; y: number; z: number }[] = [];
 
   // Event Listeners for cleanup
   private boundOnPointerDown?: (e: MouseEvent | TouchEvent) => void;
@@ -417,9 +428,7 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   public buildBMWCarBody(bodyStyle: 'coupe' | 'sedan' = 'coupe') {
     // Clear existing car body
-    while (this.bodyMeshGroup.children.length > 0) {
-      this.bodyMeshGroup.remove(this.bodyMeshGroup.children[0]);
-    }
+    this.disposeBody();
 
     const mainBody = new THREE.Group();
 
@@ -649,6 +658,152 @@ export class CarConfiguratorEngine {
   }
 
   // ----------------------------------------------------
+  // UPLOADED GLB CAR MODELS
+  // ----------------------------------------------------
+
+  /**
+   * Shows the car's uploaded GLB, or the procedural body when it has none (or it fails to load).
+   * Resolves to which one ended up on screen.
+   */
+  public async loadCar(car: CarModel): Promise<'model' | 'procedural'> {
+    const token = ++this.carLoadToken;
+    if (car.modelUrl) {
+      try {
+        const gltf = await this.getGltfLoader().loadAsync(car.modelUrl);
+        if (token === this.carLoadToken) this.mountCarModel(gltf.scene, car);
+        return 'model';
+      } catch (err) {
+        console.warn(`Failed to load 3D model for ${car.name}; using procedural body.`, err);
+      }
+    }
+    if (token === this.carLoadToken) {
+      this.buildBMWCarBody(car.bodyStyle);
+      this.resetWheelLayout();
+    }
+    return 'procedural';
+  }
+
+  private getGltfLoader(): GLTFLoader {
+    if (!this.gltfLoader) {
+      this.dracoLoader = new DRACOLoader();
+      this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+      this.gltfLoader = new GLTFLoader();
+      this.gltfLoader.setDRACOLoader(this.dracoLoader);
+      this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+    }
+    return this.gltfLoader;
+  }
+
+  private static safeRegex(pattern: string | undefined, fallback: string): RegExp {
+    try {
+      return new RegExp(pattern?.trim() || fallback, 'i');
+    } catch {
+      return new RegExp(fallback, 'i');
+    }
+  }
+
+  private mountCarModel(model: THREE.Object3D, car: CarModel) {
+    // Orient: this scene drives along Z, so turn models authored along X first.
+    model.updateMatrixWorld(true);
+    const rawSize = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+    const autoTurn = rawSize.x > rawSize.z ? Math.PI / 2 : 0;
+    model.rotation.y += autoTurn + THREE.MathUtils.degToRad(car.modelRotationDeg ?? 0);
+
+    // Scale to the real car length, centre on the turntable, sit the tyres on the floor.
+    model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    model.scale.multiplyScalar((car.modelLengthM || 4.7) / (Math.max(size.x, size.z) || 1));
+    model.updateMatrixWorld(true);
+    box.setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+    model.position.y -= box.min.y;
+    model.updateMatrixWorld(true);
+
+    const paintRe = CarConfiguratorEngine.safeRegex(car.paintMeshMatch, 'paint|body|carpaint|exterior');
+    const hideRe = CarConfiguratorEngine.safeRegex(car.hideMeshMatch, 'wheel|rim|tyre|tire|brake|caliper|rotor');
+    const notPaintRe = /glass|window|light|lamp|chrome|trim|rubber|interior|carbon|grille|badge|logo|plastic/i;
+    const notWheelRe = /steer|arch|well|house|liner|mudguard|fender/i;
+    const wheelRe = /wheel|rim|tyre|tire/i;
+
+    // Wheel bounds per corner, keyed by side of the car's centre line: front/rear + left/right.
+    const corners = new Map<string, THREE.Box3>();
+    const unmatched: string[] = [];
+
+    model.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      const materialNames = materials.map((m) => m.name).join(' ');
+      const ancestry: string[] = [];
+      for (let o: THREE.Object3D | null = mesh; o && o !== model.parent; o = o.parent) ancestry.push(o.name);
+      const partNames = `${ancestry.join(' ')} ${materialNames}`;
+
+      if (hideRe.test(partNames) && !notWheelRe.test(partNames)) {
+        if (wheelRe.test(partNames)) {
+          const meshBox = new THREE.Box3().setFromObject(mesh);
+          const c = meshBox.getCenter(new THREE.Vector3());
+          const key = `${c.z >= 0 ? 'front' : 'rear'}-${c.x >= 0 ? 'right' : 'left'}`;
+          corners.set(key, corners.get(key)?.union(meshBox) ?? meshBox);
+        }
+        mesh.visible = false;
+        return;
+      }
+
+      const ownNames = `${mesh.name} ${materialNames}`;
+      if (paintRe.test(ownNames) && !notPaintRe.test(ownNames)) {
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map(() => this.carBodyMaterial)
+          : this.carBodyMaterial;
+      } else {
+        unmatched.push(mesh.name || '(unnamed)');
+      }
+    });
+
+    this.disposeBody();
+    this.bodyMeshGroup.add(model);
+
+    if (corners.size === 4) {
+      this.wheelAssemblies.forEach((a) => {
+        const key = `${a.isFront ? 'front' : 'rear'}-${a.isRight ? 'right' : 'left'}`;
+        const cornerBox = corners.get(key)!;
+        const c = cornerBox.getCenter(new THREE.Vector3());
+        const tyreRadius = cornerBox.getSize(new THREE.Vector3()).y / 2;
+        a.group.position.set(c.x, c.y, c.z);
+        a.group.scale.setScalar(tyreRadius / 0.35); // procedural tyre radius
+      });
+    } else {
+      this.resetWheelLayout();
+      console.warn(
+        `${car.name}: found ${corners.size}/4 wheels by name, so default wheel positions are used. ` +
+        'Adjust "Hide mesh names" in the admin. Unpainted meshes:', unmatched.slice(0, 40)
+      );
+    }
+  }
+
+  private resetWheelLayout() {
+    this.wheelAssemblies.forEach((a, i) => {
+      const p = this.defaultWheelLayout[i];
+      if (p) a.group.position.set(p.x, p.y, p.z);
+      a.group.scale.setScalar(1);
+    });
+  }
+
+  /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
+  private disposeBody() {
+    this.bodyMeshGroup.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh) mesh.geometry?.dispose();
+    });
+    this.bodyMeshGroup.clear();
+  }
+
+  // ----------------------------------------------------
   // HIGH-DETAIL FORGED WHEEL ASSEMBLIES
   // ----------------------------------------------------
   private buildWheels() {
@@ -665,6 +820,8 @@ export class CarConfiguratorEngine {
       { x: -0.94, y: 0.35, z: -1.38, isFront: false, isRight: false }, // Rear Left (wider track)
       { x: 0.94, y: 0.35, z: -1.38, isFront: false, isRight: true }    // Rear Right (wider track)
     ];
+
+    this.defaultWheelLayout = wheelPositions.map(({ x, y, z }) => ({ x, y, z }));
 
     wheelPositions.forEach((wp) => {
       const assemblyGroup = new THREE.Group();
@@ -786,15 +943,24 @@ export class CarConfiguratorEngine {
   // PROCEDURAL SPOKE GENERATION FOR FORGED WHEEL DESIGNS
   // ----------------------------------------------------
   public applyWheelDesign(wheel: WheelDesign, custom2DConfig?: Custom2DWheelConfig) {
+    const token = ++this.wheelDesignToken;
+    this.customFaceMaterials = [];
+
+    // A 2D guide image wins; otherwise an uploaded rim PNG replaces the procedural spokes.
+    const imageConfig: Custom2DWheelConfig | null = custom2DConfig?.imageUrl
+      ? custom2DConfig
+      : wheel.imageUrl
+        ? { imageUrl: wheel.imageUrl, name: wheel.name, bumpScale: 0.006, invertAlpha: false, spokeThreshold: 0.15 }
+        : null;
+
     this.wheelAssemblies.forEach((assembly) => {
       // Clear spokes
       while (assembly.spokeMeshGroup.children.length > 0) {
         assembly.spokeMeshGroup.remove(assembly.spokeMeshGroup.children[0]);
       }
 
-      // If custom 2D image texture is provided and active:
-      if (custom2DConfig && custom2DConfig.imageUrl) {
-        this.applyCustom2DSpokeTexture(assembly.spokeMeshGroup, custom2DConfig, assembly.isFront);
+      if (imageConfig) {
+        this.applyCustom2DSpokeTexture(assembly.spokeMeshGroup, imageConfig, assembly.isFront, token);
         return;
       }
 
@@ -992,13 +1158,22 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   // 2D-TO-3D WHEEL IMAGE PROJECTION PIPELINE
   // ----------------------------------------------------
-  private applyCustom2DSpokeTexture(parent: THREE.Group, config: Custom2DWheelConfig, isFront: boolean) {
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      config.imageUrl,
+  private loadWheelTexture(url: string): Promise<THREE.Texture> {
+    const cached = this.wheelTextureCache.get(url);
+    if (cached) return Promise.resolve(cached);
+    return new THREE.TextureLoader().loadAsync(url).then((texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+      this.wheelTextureCache.set(url, texture);
+      return texture;
+    });
+  }
+
+  private applyCustom2DSpokeTexture(parent: THREE.Group, config: Custom2DWheelConfig, isFront: boolean, token: number) {
+    this.loadWheelTexture(config.imageUrl).then(
       (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        this.customWheelTexture = texture;
+        // A newer design was selected while this image loaded.
+        if (token !== this.wheelDesignToken) return;
 
         const outerR = 0.245;
         const concavity = isFront ? 0.025 : 0.055;
@@ -1020,6 +1195,7 @@ export class CarConfiguratorEngine {
           side: THREE.DoubleSide
         });
 
+        this.customFaceMaterials.push(customMat);
         const faceMesh = new THREE.Mesh(faceGeo, customMat);
         faceMesh.position.x = -concavity * 0.5;
         parent.add(faceMesh);
@@ -1033,7 +1209,6 @@ export class CarConfiguratorEngine {
         supportRing.rotation.y = Math.PI / 2;
         parent.add(supportRing);
       },
-      undefined,
       (err) => {
         console.warn('Failed to load custom 2D wheel texture:', err);
       }
@@ -1062,6 +1237,15 @@ export class CarConfiguratorEngine {
     // Also update barrel meshes
     this.wheelAssemblies.forEach((a) => {
       a.barrelMesh.material = this.wheelMaterial;
+    });
+
+    // Image-based rim faces tint with the finish too
+    this.customFaceMaterials.forEach((m) => {
+      m.color.copy(this.wheelMaterial.color);
+      m.roughness = finish.roughness;
+      m.metalness = finish.metalness;
+      m.clearcoat = finish.clearcoat;
+      m.needsUpdate = true;
     });
   }
 
@@ -1241,8 +1425,8 @@ export class CarConfiguratorEngine {
     // Wheel spin animation
     if (this.isSpinningWheels) {
       this.wheelAssemblies.forEach((assembly) => {
-        // Spin around Z axis in local space
-        assembly.spinGroup.rotation.z += this.spinSpeed * delta * (assembly.isRight ? -1 : 1);
+        // Spin around the axle (local X; the tyre cylinder is rotated onto X)
+        assembly.spinGroup.rotation.x += this.spinSpeed * delta * (assembly.isRight ? -1 : 1);
       });
     }
 
@@ -1289,9 +1473,9 @@ export class CarConfiguratorEngine {
       }
       this.renderer.dispose();
     }
-    if (this.customWheelTexture) {
-      this.customWheelTexture.dispose();
-    }
+    this.wheelTextureCache.forEach((t) => t.dispose());
+    this.wheelTextureCache.clear();
+    this.dracoLoader?.dispose();
   }
 
   // ----------------------------------------------------

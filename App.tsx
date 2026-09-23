@@ -13,13 +13,8 @@ import { BrochureModal } from './components/BrochureModal';
 import { TwoDToThreeDGuideModal } from './components/TwoDToThreeDGuideModal';
 import { LeadsManagerModal } from './components/LeadsManagerModal';
 import { ForgedPage } from './components/ForgedPage';
-import { 
-  BMW_MODELS, 
-  BMW_PAINTS, 
-  WHEEL_DESIGNS, 
-  WHEEL_FINISHES, 
-  CALIPER_COLORS 
-} from './data/configuratorData';
+import { AdminPage } from './components/admin/AdminPage';
+import { Catalog, STATIC_CATALOG, fetchCatalog } from './services/catalogService';
 import { 
   CarModel, 
   PaintColor, 
@@ -33,17 +28,40 @@ import {
 } from './types';
 import { Sparkles, Loader2 } from 'lucide-react';
 
+type Route = 'studio' | 'forged' | 'admin';
+
+const routeFromLocation = (): Route => {
+  if (typeof window === 'undefined') return 'studio';
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+  const hash = window.location.hash.toLowerCase();
+  if (path === '/forged' || hash === '#/forged' || hash === '#forged') return 'forged';
+  if (path === '/admin' || hash === '#/admin' || hash === '#admin') return 'admin';
+  return 'studio';
+};
+
+// Car fields that change what the engine renders for the body.
+const carModelKey = (car: CarModel) =>
+  JSON.stringify([car.id, car.modelUrl, car.modelRotationDeg, car.modelLengthM, car.paintMeshMatch, car.hideMeshMatch, car.bodyStyle]);
+
 export const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<CarConfiguratorEngine | null>(null);
+  const loadedCarKeyRef = useRef<string | null>(null);
+
+  // Catalogue: bundled data first, replaced by the Supabase catalogue once it loads
+  const [catalog, setCatalog] = useState<Catalog>(STATIC_CATALOG);
+  const reloadCatalog = useCallback(() => {
+    fetchCatalog().then(({ catalog: next }) => setCatalog(next));
+  }, []);
+  useEffect(() => { reloadCatalog(); }, [reloadCatalog]);
 
   // Core Configuration State
-  const [selectedCar, setSelectedCar] = useState<CarModel>(BMW_MODELS[0]); // M4 Competition
-  const [selectedPaint, setSelectedPaint] = useState<PaintColor>(BMW_PAINTS[0]); // Isle of Man Green
-  const [selectedWheel, setSelectedWheel] = useState<WheelDesign>(WHEEL_DESIGNS[0]); // FW-01 Monoblock GT3
-  const [selectedFinish, setSelectedFinish] = useState<WheelFinish>(WHEEL_FINISHES.liquid_metal); // Liquid Metal
+  const [selectedCar, setSelectedCar] = useState<CarModel>(STATIC_CATALOG.cars[0]); // M4 Competition
+  const [selectedPaint, setSelectedPaint] = useState<PaintColor>(STATIC_CATALOG.paints[0]); // Isle of Man Green
+  const [selectedWheel, setSelectedWheel] = useState<WheelDesign>(STATIC_CATALOG.wheels[0]); // FW-01 Monoblock GT3
+  const [selectedFinish, setSelectedFinish] = useState<WheelFinish>(STATIC_CATALOG.finishes.liquid_metal); // Liquid Metal
   const [selectedSize, setSelectedSize] = useState<string>('20"');
-  const [selectedCaliper, setSelectedCaliper] = useState<CaliperColor>(CALIPER_COLORS[0]); // M Blue
+  const [selectedCaliper, setSelectedCaliper] = useState<CaliperColor>(STATIC_CATALOG.calipers[0]); // M Blue
   const [rideHeight, setRideHeight] = useState<number>(0);
 
   // Custom 2D image projection state
@@ -63,29 +81,12 @@ export const App: React.FC = () => {
   const [is2DGuideModalOpen, setIs2DGuideModalOpen] = useState<boolean>(false);
   const [isLeadsModalOpen, setIsLeadsModalOpen] = useState<boolean>(false);
 
-  // Route State: 'studio' (3D Configurator) or 'forged' (Forged Monoblock Showcase Page)
-  const [currentRoute, setCurrentRoute] = useState<'studio' | 'forged'>(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      if (path === '/forged' || hash === '#/forged' || hash === '#forged') {
-        return 'forged';
-      }
-    }
-    return 'studio';
-  });
+  // Route State: 'studio' (3D Configurator), 'forged' (Forged Monoblock Showcase Page) or 'admin'
+  const [currentRoute, setCurrentRoute] = useState<Route>(routeFromLocation);
 
   // Keep route synced with browser back/forward buttons & URL hash/path
   useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      if (path === '/forged' || hash === '#/forged' || hash === '#forged') {
-        setCurrentRoute('forged');
-      } else {
-        setCurrentRoute('studio');
-      }
-    };
+    const handlePopState = () => setCurrentRoute(routeFromLocation());
 
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handlePopState);
@@ -95,14 +96,14 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const navigateTo = useCallback((route: 'studio' | 'forged') => {
+  const navigateTo = useCallback((route: Route) => {
     setCurrentRoute(route);
     if (typeof window !== 'undefined') {
-      const targetPath = route === 'forged' ? '/forged' : '/';
+      const targetPath = route === 'studio' ? '/' : `/${route}`;
       try {
         window.history.pushState({ route }, '', targetPath);
       } catch {
-        window.location.hash = route === 'forged' ? '#/forged' : '#/';
+        window.location.hash = `#${targetPath}`;
       }
     }
   }, []);
@@ -130,6 +131,8 @@ export const App: React.FC = () => {
     engineRef.current = engine;
 
     // Apply initial config
+    loadedCarKeyRef.current = carModelKey(selectedCar);
+    engine.loadCar(selectedCar);
     engine.applyPaintColor(selectedPaint);
     engine.applyWheelDesign(selectedWheel);
     engine.applyWheelFinish(selectedFinish);
@@ -147,6 +150,38 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // After a catalogue load or admin edit, point selections at the fresh rows (prices, assets)
+  // and push them to the engine. Runs on catalogue changes only; reads the current selections.
+  useEffect(() => {
+    const car = catalog.cars.find((c) => c.id === selectedCar.id) ?? catalog.cars[0];
+    const paint = catalog.paints.find((p) => p.id === selectedPaint.id) ?? catalog.paints[0];
+    const wheel = catalog.wheels.find((w) => w.id === selectedWheel.id) ?? catalog.wheels[0];
+    const finish =
+      (wheel.availableVariants.includes(selectedFinish.id) && catalog.finishes[selectedFinish.id]) ||
+      catalog.finishes[wheel.defaultVariant] ||
+      Object.values(catalog.finishes)[0];
+    const caliper = catalog.calipers.find((c) => c.id === selectedCaliper.id) ?? catalog.calipers[0];
+    if (!car || !paint || !wheel || !finish || !caliper) return;
+
+    setSelectedCar(car);
+    setSelectedPaint(paint);
+    setSelectedWheel(wheel);
+    setSelectedFinish(finish);
+    setSelectedCaliper(caliper);
+
+    const engine = engineRef.current;
+    if (!engine) return;
+    const key = carModelKey(car);
+    if (key !== loadedCarKeyRef.current) {
+      loadedCarKeyRef.current = key;
+      engine.loadCar(car);
+    }
+    engine.applyPaintColor(paint);
+    engine.applyWheelDesign(wheel, custom2DConfig || undefined);
+    engine.applyWheelFinish(finish);
+    engine.applyCaliperColor(caliper);
+  }, [catalog]);
+
   // Update Paint on 3D Car
   const handleSelectPaint = useCallback((paint: PaintColor) => {
     setSelectedPaint(paint);
@@ -157,7 +192,8 @@ export const App: React.FC = () => {
   const handleSelectCar = useCallback((car: CarModel) => {
     setSelectedCar(car);
     if (engineRef.current) {
-      engineRef.current.buildBMWCarBody(car.bodyStyle);
+      loadedCarKeyRef.current = carModelKey(car);
+      engineRef.current.loadCar(car);
       // Re-apply paint and ride height
       engineRef.current.applyPaintColor(selectedPaint);
       engineRef.current.setRideHeight(rideHeight);
@@ -172,7 +208,7 @@ export const App: React.FC = () => {
     const isCurrentFinishAvailable = wheel.availableVariants.includes(selectedFinish.id);
     const newFinish = isCurrentFinishAvailable 
       ? selectedFinish 
-      : (WHEEL_FINISHES[wheel.defaultVariant] || WHEEL_FINISHES.liquid_metal);
+      : (catalog.finishes[wheel.defaultVariant] || Object.values(catalog.finishes)[0]);
 
     setSelectedFinish(newFinish);
     setCustom2DConfig(null); // Return to 3D procedural wheel
@@ -181,7 +217,7 @@ export const App: React.FC = () => {
       engineRef.current.applyWheelDesign(wheel);
       engineRef.current.applyWheelFinish(newFinish);
     }
-  }, [selectedFinish]);
+  }, [selectedFinish, catalog]);
 
   // Update Finish Variant ('bronze', 'liquid metal', 'black', etc.)
   const handleSelectFinish = useCallback((finish: WheelFinish) => {
@@ -332,6 +368,9 @@ export const App: React.FC = () => {
 
       {/* Vehicle Specification & Colour Side Drawer (Right Side) */}
       <BottomColorBar
+        cars={catalog.cars}
+        paints={catalog.paints}
+        calipers={catalog.calipers}
         selectedCar={selectedCar}
         selectedPaint={selectedPaint}
         selectedCaliper={selectedCaliper}
@@ -356,7 +395,8 @@ export const App: React.FC = () => {
 
       {/* Right-Hand Side Sliding Wheel & Variants Drawer */}
       <WheelDrawer
-        wheels={WHEEL_DESIGNS}
+        wheels={catalog.wheels}
+        finishes={catalog.finishes}
         selectedWheel={selectedWheel}
         selectedFinish={selectedFinish}
         selectedSize={selectedSize}
@@ -410,6 +450,13 @@ export const App: React.FC = () => {
       {currentRoute === 'forged' && (
         <div className="absolute inset-0 z-50 animate-fadeIn">
           <ForgedPage onBackToStudio={() => navigateTo('studio')} />
+        </div>
+      )}
+
+      {/* Route: Admin sign-in & catalogue / asset manager */}
+      {currentRoute === 'admin' && (
+        <div className="absolute inset-0 z-[60] animate-fadeIn">
+          <AdminPage onBack={() => navigateTo('studio')} onCatalogChanged={reloadCatalog} />
         </div>
       )}
     </div>

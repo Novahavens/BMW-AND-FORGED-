@@ -198,6 +198,18 @@ export const WheelVisual: React.FC<WheelVisualProps> = ({
     }
   };
 
+  if (wheel.imageUrl) {
+    return (
+      <div
+        className={`relative flex items-center justify-center shrink-0 select-none ${className}`}
+        style={{ width: size, height: size }}
+        title={`${wheel.name} – ${finishName}`}
+      >
+        <img src={wheel.imageUrl} alt={wheel.name} className="w-full h-full object-contain" draggable={false} />
+      </div>
+    );
+  }
+
   return (
     <div 
       className={`relative flex items-center justify-center shrink-0 select-none ${className}`}
