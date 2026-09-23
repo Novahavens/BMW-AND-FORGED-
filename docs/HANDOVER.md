@@ -51,6 +51,8 @@ If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't ma
 
 ### 2a. Car models (.glb)
 
+> **No Blender?** See `NO_BLENDER_AND_UI_PLAN.md`, section 1: check names in the browser, rename in the free three.js editor, compress at gltf.report.
+
 **Prepare the file (Blender, free):**
 1. `File → Import` your model. If it's already .glb, import it anyway to check it.
 2. **Name the parts.** The app finds parts by name (case doesn't matter):
