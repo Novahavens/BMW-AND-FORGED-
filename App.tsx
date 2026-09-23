@@ -10,38 +10,51 @@ import { WheelDrawer } from './components/WheelDrawer';
 import { BottomColorBar } from './components/BottomColorBar';
 import { StudioControls } from './components/StudioControls';
 import { BrochureModal } from './components/BrochureModal';
-import { TwoDToThreeDGuideModal } from './components/TwoDToThreeDGuideModal';
-import { LeadsManagerModal } from './components/LeadsManagerModal';
 import { ForgedPage } from './components/ForgedPage';
+import { RimDetailPage } from './components/RimDetailPage';
 import { AdminPage } from './components/admin/AdminPage';
 import { Catalog, STATIC_CATALOG, fetchCatalog } from './services/catalogService';
-import { 
-  CarModel, 
-  PaintColor, 
-  WheelDesign, 
-  WheelFinish, 
-  CaliperColor, 
-  CameraViewPreset, 
-  StudioTheme, 
-  BrochureLead,
-  Custom2DWheelConfig 
+import { nearestRimSize, rimPrice } from './services/pricing';
+import {
+  CarModel,
+  PaintColor,
+  WheelDesign,
+  WheelFinish,
+  CameraViewPreset,
+  BrochureLead
 } from './types';
 import { Sparkles, Loader2 } from 'lucide-react';
 
-type Route = 'studio' | 'forged' | 'admin';
+// The configurator offers five choices: car, paint, rim design, rim size, rim colour (finish).
+
+type Route =
+  | { name: 'studio' }
+  | { name: 'forged' }
+  | { name: 'admin' }
+  | { name: 'rim'; rimId: string };
 
 const routeFromLocation = (): Route => {
-  if (typeof window === 'undefined') return 'studio';
-  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '');
-  const hash = window.location.hash.toLowerCase();
-  if (path === '/forged' || hash === '#/forged' || hash === '#forged') return 'forged';
-  if (path === '/admin' || hash === '#/admin' || hash === '#admin') return 'admin';
-  return 'studio';
+  if (typeof window === 'undefined') return { name: 'studio' };
+  const hash = window.location.hash.replace(/^#/, '');
+  const path = (hash.startsWith('/') ? hash : window.location.pathname).toLowerCase().replace(/\/+$/, '');
+  if (path === '/forged' || hash === 'forged') return { name: 'forged' };
+  if (path === '/admin' || hash === 'admin') return { name: 'admin' };
+  const rim = path.match(/^\/rims\/([^/]+)$/);
+  if (rim) return { name: 'rim', rimId: decodeURIComponent(rim[1]) };
+  return { name: 'studio' };
 };
+
+const routePath = (route: Route) =>
+  route.name === 'studio' ? '/' : route.name === 'rim' ? `/rims/${encodeURIComponent(route.rimId)}` : `/${route.name}`;
 
 // Car fields that change what the engine renders for the body.
 const carModelKey = (car: CarModel) =>
   JSON.stringify([car.id, car.modelUrl, car.modelRotationDeg, car.modelLengthM, car.paintMeshMatch, car.hideMeshMatch, car.bodyStyle]);
+
+const pickFinish = (catalog: Catalog, wheel: WheelDesign, current?: WheelFinish) =>
+  (current && wheel.availableVariants.includes(current.id) && catalog.finishes[current.id]) ||
+  catalog.finishes[wheel.defaultVariant] ||
+  Object.values(catalog.finishes)[0];
 
 export const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,39 +68,26 @@ export const App: React.FC = () => {
   }, []);
   useEffect(() => { reloadCatalog(); }, [reloadCatalog]);
 
-  // Core Configuration State
-  const [selectedCar, setSelectedCar] = useState<CarModel>(STATIC_CATALOG.cars[0]); // M4 Competition
-  const [selectedPaint, setSelectedPaint] = useState<PaintColor>(STATIC_CATALOG.paints[0]); // Isle of Man Green
-  const [selectedWheel, setSelectedWheel] = useState<WheelDesign>(STATIC_CATALOG.wheels[0]); // FW-01 Monoblock GT3
-  const [selectedFinish, setSelectedFinish] = useState<WheelFinish>(STATIC_CATALOG.finishes.liquid_metal); // Liquid Metal
+  // The five configuration choices
+  const [selectedCar, setSelectedCar] = useState<CarModel>(STATIC_CATALOG.cars[0]);
+  const [selectedPaint, setSelectedPaint] = useState<PaintColor>(STATIC_CATALOG.paints[0]);
+  const [selectedWheel, setSelectedWheel] = useState<WheelDesign>(STATIC_CATALOG.wheels[0]);
+  const [selectedFinish, setSelectedFinish] = useState<WheelFinish>(STATIC_CATALOG.finishes.liquid_metal);
   const [selectedSize, setSelectedSize] = useState<string>('20"');
-  const [selectedCaliper, setSelectedCaliper] = useState<CaliperColor>(STATIC_CATALOG.calipers[0]); // M Blue
-  const [rideHeight, setRideHeight] = useState<number>(0);
-
-  // Custom 2D image projection state
-  const [custom2DConfig, setCustom2DConfig] = useState<Custom2DWheelConfig | null>(null);
 
   // UI & Drawer state
   const [isVehicleDrawerOpen, setIsVehicleDrawerOpen] = useState<boolean>(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [currentCameraView, setCurrentCameraView] = useState<CameraViewPreset>('frontThreeQuarter');
   const [isAutoRotate, setIsAutoRotate] = useState<boolean>(false);
-  const [isSpinningWheels, setIsSpinningWheels] = useState<boolean>(false);
-  const [isBloomEnabled, setIsBloomEnabled] = useState<boolean>(true);
-  const [studioTheme, setStudioTheme] = useState<StudioTheme>('studio_dark');
-
-  // Modals state
   const [isBrochureModalOpen, setIsBrochureModalOpen] = useState<boolean>(false);
-  const [is2DGuideModalOpen, setIs2DGuideModalOpen] = useState<boolean>(false);
-  const [isLeadsModalOpen, setIsLeadsModalOpen] = useState<boolean>(false);
+  const [isEngineReady, setIsEngineReady] = useState<boolean>(false);
 
-  // Route State: 'studio' (3D Configurator), 'forged' (Forged Monoblock Showcase Page) or 'admin'
-  const [currentRoute, setCurrentRoute] = useState<Route>(routeFromLocation);
+  // Routing: studio (/), /forged, /admin, /rims/:id
+  const [route, setRoute] = useState<Route>(routeFromLocation);
 
-  // Keep route synced with browser back/forward buttons & URL hash/path
   useEffect(() => {
-    const handlePopState = () => setCurrentRoute(routeFromLocation());
-
+    const handlePopState = () => setRoute(routeFromLocation());
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handlePopState);
     return () => {
@@ -96,30 +96,20 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const navigateTo = useCallback((route: Route) => {
-    setCurrentRoute(route);
-    if (typeof window !== 'undefined') {
-      const targetPath = route === 'studio' ? '/' : `/${route}`;
-      try {
-        window.history.pushState({ route }, '', targetPath);
-      } catch {
-        window.location.hash = `#${targetPath}`;
-      }
+  const navigateTo = useCallback((next: Route) => {
+    setRoute(next);
+    const path = routePath(next);
+    try {
+      window.history.pushState({}, '', path);
+    } catch {
+      window.location.hash = `#${path}`;
     }
   }, []);
 
-  // Loading state
-  const [isEngineReady, setIsEngineReady] = useState<boolean>(false);
-
-  // Collected Brochure Leads (Stored in localStorage)
-  const [leads, setLeads] = useState<BrochureLead[]>(() => {
-    try {
-      const saved = localStorage.getItem('apex_forged_brochure_leads');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Pause the studio render loop while another page covers it (the rim page runs its own 3D view)
+  useEffect(() => {
+    engineRef.current?.setPaused(route.name !== 'studio');
+  }, [route]);
 
   // Initialize Three.js Engine
   useEffect(() => {
@@ -130,17 +120,15 @@ export const App: React.FC = () => {
     });
     engineRef.current = engine;
 
-    // Apply initial config
     loadedCarKeyRef.current = carModelKey(selectedCar);
     engine.loadCar(selectedCar);
     engine.applyPaintColor(selectedPaint);
     engine.applyWheelDesign(selectedWheel);
     engine.applyWheelFinish(selectedFinish);
-    engine.applyCaliperColor(selectedCaliper);
+    engine.setRimSize(selectedSize);
+    engine.setPaused(route.name !== 'studio');
 
-    const handleResize = () => {
-      engine.handleResize();
-    };
+    const handleResize = () => engine.handleResize();
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -156,18 +144,16 @@ export const App: React.FC = () => {
     const car = catalog.cars.find((c) => c.id === selectedCar.id) ?? catalog.cars[0];
     const paint = catalog.paints.find((p) => p.id === selectedPaint.id) ?? catalog.paints[0];
     const wheel = catalog.wheels.find((w) => w.id === selectedWheel.id) ?? catalog.wheels[0];
-    const finish =
-      (wheel.availableVariants.includes(selectedFinish.id) && catalog.finishes[selectedFinish.id]) ||
-      catalog.finishes[wheel.defaultVariant] ||
-      Object.values(catalog.finishes)[0];
-    const caliper = catalog.calipers.find((c) => c.id === selectedCaliper.id) ?? catalog.calipers[0];
-    if (!car || !paint || !wheel || !finish || !caliper) return;
+    if (!car || !paint || !wheel) return;
+    const finish = pickFinish(catalog, wheel, selectedFinish);
+    if (!finish) return;
+    const size = nearestRimSize(wheel, selectedSize);
 
     setSelectedCar(car);
     setSelectedPaint(paint);
     setSelectedWheel(wheel);
     setSelectedFinish(finish);
-    setSelectedCaliper(caliper);
+    setSelectedSize(size);
 
     const engine = engineRef.current;
     if (!engine) return;
@@ -177,79 +163,56 @@ export const App: React.FC = () => {
       engine.loadCar(car);
     }
     engine.applyPaintColor(paint);
-    engine.applyWheelDesign(wheel, custom2DConfig || undefined);
+    engine.applyWheelDesign(wheel);
     engine.applyWheelFinish(finish);
-    engine.applyCaliperColor(caliper);
+    engine.setRimSize(size);
   }, [catalog]);
 
-  // Update Paint on 3D Car
+  const handleSelectCar = useCallback((car: CarModel) => {
+    setSelectedCar(car);
+    loadedCarKeyRef.current = carModelKey(car);
+    engineRef.current?.loadCar(car);
+  }, []);
+
   const handleSelectPaint = useCallback((paint: PaintColor) => {
     setSelectedPaint(paint);
     engineRef.current?.applyPaintColor(paint);
   }, []);
 
-  // Update Car Model on 3D Car
-  const handleSelectCar = useCallback((car: CarModel) => {
-    setSelectedCar(car);
-    if (engineRef.current) {
-      loadedCarKeyRef.current = carModelKey(car);
-      engineRef.current.loadCar(car);
-      // Re-apply paint and ride height
-      engineRef.current.applyPaintColor(selectedPaint);
-      engineRef.current.setRideHeight(rideHeight);
-      engineRef.current.applyWheelDesign(selectedWheel, custom2DConfig || undefined);
-    }
-  }, [selectedPaint, rideHeight, selectedWheel, custom2DConfig]);
-
-  // Update Wheel Model
-  const handleSelectWheel = useCallback((wheel: WheelDesign) => {
+  /** Rim design, colour and size together; keeps the colour/size when the new rim offers them. */
+  const applyRim = useCallback((wheel: WheelDesign, finish?: WheelFinish, size?: string) => {
+    const nextFinish = finish ?? pickFinish(catalog, wheel, selectedFinish);
+    const nextSize = nearestRimSize(wheel, size ?? selectedSize);
     setSelectedWheel(wheel);
-    // Auto select default variant if current finish not available for this wheel
-    const isCurrentFinishAvailable = wheel.availableVariants.includes(selectedFinish.id);
-    const newFinish = isCurrentFinishAvailable 
-      ? selectedFinish 
-      : (catalog.finishes[wheel.defaultVariant] || Object.values(catalog.finishes)[0]);
-
-    setSelectedFinish(newFinish);
-    setCustom2DConfig(null); // Return to 3D procedural wheel
-
-    if (engineRef.current) {
-      engineRef.current.applyWheelDesign(wheel);
-      engineRef.current.applyWheelFinish(newFinish);
+    setSelectedFinish(nextFinish);
+    setSelectedSize(nextSize);
+    const engine = engineRef.current;
+    if (engine) {
+      engine.applyWheelDesign(wheel);
+      engine.applyWheelFinish(nextFinish);
+      engine.setRimSize(nextSize);
     }
-  }, [selectedFinish, catalog]);
+  }, [catalog, selectedFinish, selectedSize]);
 
-  // Update Finish Variant ('bronze', 'liquid metal', 'black', etc.)
+  const handleSelectWheel = useCallback((wheel: WheelDesign) => applyRim(wheel), [applyRim]);
+
   const handleSelectFinish = useCallback((finish: WheelFinish) => {
     setSelectedFinish(finish);
     engineRef.current?.applyWheelFinish(finish);
   }, []);
 
-  // Update Caliper Color
-  const handleSelectCaliper = useCallback((caliper: CaliperColor) => {
-    setSelectedCaliper(caliper);
-    engineRef.current?.applyCaliperColor(caliper);
+  const handleSelectSize = useCallback((size: string) => {
+    setSelectedSize(size);
+    engineRef.current?.setRimSize(size);
   }, []);
 
-  // Update Stance / Ride Height
-  const handleSelectRideHeight = useCallback((height: number) => {
-    setRideHeight(height);
-    engineRef.current?.setRideHeight(height);
-  }, []);
-
-  // Camera Presets
   const handleSelectCameraView = useCallback((view: CameraViewPreset) => {
     setCurrentCameraView(view);
     engineRef.current?.setCameraPreset(view);
   }, []);
 
-  // Focus directly onto front wheel macro
-  const handleFocusWheelCamera = useCallback(() => {
-    setCurrentCameraView('frontWheel');
-    engineRef.current?.setCameraPreset('frontWheel');
-  }, []);
+  const handleFocusWheelCamera = useCallback(() => handleSelectCameraView('frontWheel'), [handleSelectCameraView]);
 
-  // Turntable Auto-rotate
   const handleToggleAutoRotate = useCallback(() => {
     setIsAutoRotate((prev) => {
       const next = !prev;
@@ -258,67 +221,30 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Spin Wheels (Dyno / Drive mode)
-  const handleToggleWheelSpin = useCallback(() => {
-    setIsSpinningWheels((prev) => {
-      const next = !prev;
-      engineRef.current?.setSpinningWheels(next, 60);
-      return next;
-    });
-  }, []);
+  // From a rim detail page: put that rim on the car and show it up close
+  const handleConfigureFromRimPage = useCallback((wheel: WheelDesign, finish: WheelFinish, size: string) => {
+    applyRim(wheel, finish, size);
+    navigateTo({ name: 'studio' });
+    setIsVehicleDrawerOpen(false);
+    setIsDrawerOpen(true);
+    handleSelectCameraView('frontWheel');
+  }, [applyRim, navigateTo, handleSelectCameraView]);
 
-  // Post-Processing Bloom Pass Toggle
-  const handleToggleBloom = useCallback(() => {
-    setIsBloomEnabled((prev) => {
-      const next = !prev;
-      engineRef.current?.setBloomEnabled(next);
-      return next;
-    });
-  }, []);
-
-  // Studio Theme
-  const handleChangeStudioTheme = useCallback((theme: StudioTheme) => {
-    setStudioTheme(theme);
-    engineRef.current?.setupStudioLighting(theme);
-  }, []);
-
-  // Custom 2D Wheel apply
-  const handleApplyCustom2DWheel = useCallback((config: Custom2DWheelConfig | null) => {
-    setCustom2DConfig(config);
-    if (config && engineRef.current) {
-      engineRef.current.applyWheelDesign(selectedWheel, config);
-      setCurrentCameraView('frontWheel');
-      engineRef.current.setCameraPreset('frontWheel');
-    } else if (!config && engineRef.current) {
-      engineRef.current.applyWheelDesign(selectedWheel);
-    }
-  }, [selectedWheel]);
-
-  // Lead Collection
+  // Brochure leads are kept in this browser only (see docs/HANDOVER.md)
   const handleSaveLead = useCallback((newLead: BrochureLead) => {
-    setLeads((prev) => {
-      const updated = [newLead, ...prev];
-      try {
-        localStorage.setItem('apex_forged_brochure_leads', JSON.stringify(updated));
-      } catch (e) {
-        console.error('Failed to save lead to localStorage', e);
-      }
-      return updated;
-    });
-  }, []);
-
-  const handleClearLeads = useCallback(() => {
-    setLeads([]);
     try {
-      localStorage.removeItem('apex_forged_brochure_leads');
-    } catch {}
+      const saved = JSON.parse(localStorage.getItem('apex_forged_brochure_leads') || '[]');
+      localStorage.setItem('apex_forged_brochure_leads', JSON.stringify([newLead, ...saved]));
+    } catch (e) {
+      console.error('Failed to save lead to localStorage', e);
+    }
   }, []);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#0a0b0d] select-none">
       {/* 3D WebGL Canvas Container */}
-      <div 
-        ref={containerRef} 
+      <div
+        ref={containerRef}
         className="w-full h-full cursor-grab active:cursor-grabbing"
       />
 
@@ -334,47 +260,36 @@ export const App: React.FC = () => {
               APEX FORGED 3D STUDIO
             </div>
             <p className="text-neutral-500 text-xs mt-1 font-mono">
-              Loading BMW M Chassis & Photorealistic Forged Wheel Shaders...
+              Loading your car and forged wheels...
             </p>
           </div>
         </div>
       )}
 
-      {/* Vercel Geometric Header */}
       <ConfiguratorHeader
         car={selectedCar}
         wheel={selectedWheel}
         finish={selectedFinish}
         paint={selectedPaint}
         onOpenBrochure={() => setIsBrochureModalOpen(true)}
-        onOpen2DGuide={() => setIs2DGuideModalOpen(true)}
-        onNavigateToForged={() => navigateTo('forged')}
+        onNavigateToForged={() => navigateTo({ name: 'forged' })}
       />
 
-      {/* Camera & Studio Controls HUD */}
+      {/* Camera views & turntable */}
       <StudioControls
         currentView={currentCameraView}
         isAutoRotate={isAutoRotate}
-        isSpinningWheels={isSpinningWheels}
-        studioTheme={studioTheme}
-        isBloomEnabled={isBloomEnabled}
         isDrawerOpen={isVehicleDrawerOpen || isDrawerOpen}
         onSelectView={handleSelectCameraView}
         onToggleAutoRotate={handleToggleAutoRotate}
-        onToggleWheelSpin={handleToggleWheelSpin}
-        onChangeStudioTheme={handleChangeStudioTheme}
-        onToggleBloom={handleToggleBloom}
       />
 
-      {/* Vehicle Specification & Colour Side Drawer (Right Side) */}
+      {/* Car & paint drawer */}
       <BottomColorBar
         cars={catalog.cars}
         paints={catalog.paints}
-        calipers={catalog.calipers}
         selectedCar={selectedCar}
         selectedPaint={selectedPaint}
-        selectedCaliper={selectedCaliper}
-        rideHeight={rideHeight}
         isOpen={isVehicleDrawerOpen}
         onToggleOpen={() => {
           setIsVehicleDrawerOpen((prev) => {
@@ -385,15 +300,13 @@ export const App: React.FC = () => {
         }}
         onSelectCar={handleSelectCar}
         onSelectPaint={handleSelectPaint}
-        onSelectCaliper={handleSelectCaliper}
-        onSelectRideHeight={handleSelectRideHeight}
         onOpenWheelDrawer={() => {
           setIsVehicleDrawerOpen(false);
           setIsDrawerOpen(true);
         }}
       />
 
-      {/* Right-Hand Side Sliding Wheel & Variants Drawer */}
+      {/* Rim design, size & colour drawer */}
       <WheelDrawer
         wheels={catalog.wheels}
         finishes={catalog.finishes}
@@ -411,13 +324,12 @@ export const App: React.FC = () => {
         }}
         onSelectWheel={handleSelectWheel}
         onSelectFinish={handleSelectFinish}
-        onSelectSize={setSelectedSize}
+        onSelectSize={handleSelectSize}
         onFocusWheelCamera={handleFocusWheelCamera}
         onOpenBrochure={() => setIsBrochureModalOpen(true)}
-        onOpen2DGuide={() => setIs2DGuideModalOpen(true)}
+        onViewRim={(wheel) => navigateTo({ name: 'rim', rimId: wheel.id })}
       />
 
-      {/* Brochure Request & Lead Capture Modal */}
       <BrochureModal
         isOpen={isBrochureModalOpen}
         onClose={() => setIsBrochureModalOpen(false)}
@@ -425,38 +337,36 @@ export const App: React.FC = () => {
         paint={selectedPaint}
         wheel={selectedWheel}
         finish={selectedFinish}
-        caliper={selectedCaliper}
         wheelSize={selectedSize}
+        price={rimPrice(selectedWheel, selectedSize)}
         onSaveLead={handleSaveLead}
       />
 
-      {/* 2D to 3D Wheel Conversion Guide & Live Image Projection Modal */}
-      <TwoDToThreeDGuideModal
-        isOpen={is2DGuideModalOpen}
-        onClose={() => setIs2DGuideModalOpen(false)}
-        onApplyCustom2DWheel={handleApplyCustom2DWheel}
-        activeCustomConfig={custom2DConfig}
-      />
-
-      {/* Collected Leads / Business Inquiry Records Modal */}
-      <LeadsManagerModal
-        isOpen={isLeadsModalOpen}
-        onClose={() => setIsLeadsModalOpen(false)}
-        leads={leads}
-        onClearLeads={handleClearLeads}
-      />
-
-      {/* Route: Forged Page Showcase with Neon Orange Gradient Beams */}
-      {currentRoute === 'forged' && (
+      {route.name === 'forged' && (
         <div className="absolute inset-0 z-50 animate-fadeIn">
-          <ForgedPage onBackToStudio={() => navigateTo('studio')} />
+          <ForgedPage onBackToStudio={() => navigateTo({ name: 'studio' })} />
         </div>
       )}
 
-      {/* Route: Admin sign-in & catalogue / asset manager */}
-      {currentRoute === 'admin' && (
+      {route.name === 'rim' && (
+        <div className="absolute inset-0 z-50 animate-fadeIn">
+          <RimDetailPage
+            key={route.rimId}
+            wheels={catalog.wheels}
+            finishes={catalog.finishes}
+            wheelId={route.rimId}
+            initialFinishId={selectedFinish.id}
+            initialSize={selectedSize}
+            onBack={() => navigateTo({ name: 'studio' })}
+            onOpenRim={(rimId) => navigateTo({ name: 'rim', rimId })}
+            onConfigure={handleConfigureFromRimPage}
+          />
+        </div>
+      )}
+
+      {route.name === 'admin' && (
         <div className="absolute inset-0 z-[60] animate-fadeIn">
-          <AdminPage onBack={() => navigateTo('studio')} onCatalogChanged={reloadCatalog} />
+          <AdminPage onBack={() => navigateTo({ name: 'studio' })} onCatalogChanged={reloadCatalog} />
         </div>
       )}
     </div>

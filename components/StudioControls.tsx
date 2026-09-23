@@ -4,14 +4,9 @@
  */
 
 import React from 'react';
-import { CameraViewPreset, StudioTheme } from '../types';
+import { CameraViewPreset } from '../types';
 import { 
   Rotate3d, 
-  Gauge, 
-  Sun, 
-  Moon, 
-  Zap,
-  Sparkles,
   ArrowUpRight,
   Car,
   ArrowDownRight,
@@ -22,31 +17,19 @@ import {
 interface StudioControlsProps {
   currentView: CameraViewPreset;
   isAutoRotate: boolean;
-  isSpinningWheels: boolean;
-  studioTheme: StudioTheme;
-  isBloomEnabled: boolean;
   isLeftDrawerOpen?: boolean;
   isDrawerOpen?: boolean;
   onSelectView: (view: CameraViewPreset) => void;
   onToggleAutoRotate: () => void;
-  onToggleWheelSpin: () => void;
-  onChangeStudioTheme: (theme: StudioTheme) => void;
-  onToggleBloom: () => void;
 }
 
 export const StudioControls: React.FC<StudioControlsProps> = ({
   currentView,
   isAutoRotate,
-  isSpinningWheels,
-  studioTheme,
-  isBloomEnabled,
   isLeftDrawerOpen,
   isDrawerOpen = false,
   onSelectView,
-  onToggleAutoRotate,
-  onToggleWheelSpin,
-  onChangeStudioTheme,
-  onToggleBloom
+  onToggleAutoRotate
 }) => {
   const cameraFiveIcons: { 
     id: CameraViewPreset; 
@@ -106,12 +89,12 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
         </div>
       </div>
 
-      {/* 2nd Child: Studio Simulation & Lighting HUD (Top Left) */}
+      {/* 2nd Child: Turntable toggle (Top Left) */}
       <div 
         id="studio-tools-hud"
         className="absolute top-20 md:top-24 left-3 md:left-5 z-10 pointer-events-none flex flex-col gap-2"
       >
-        {/* Interactive Feature Toggles: Turntable & Dyno Wheel Spin */}
+        {/* Turntable rotation */}
         <div className="pointer-events-auto bg-black/85 backdrop-blur-2xl border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-1.5 shadow-2xl flex flex-col gap-1 w-[136px] md:w-[150px] transition-colors">
           {/* 360 Turntable */}
           <button
@@ -128,79 +111,6 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
               <span>Turntable</span>
             </div>
             <span className={`w-1.5 h-1.5 rounded-full ${isAutoRotate ? 'bg-[#FF5500] animate-pulse shadow-[0_0_6px_#FF5500]' : 'bg-neutral-600'}`} />
-          </button>
-
-          {/* Spin Wheels / Dyno Drive Mode */}
-          <button
-            onClick={onToggleWheelSpin}
-            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-all ${
-              isSpinningWheels
-                ? 'bg-[#FF5500]/15 text-[#FF5500] border border-[#FF5500]/40 font-bold shadow-[0_0_12px_rgba(255,85,0,0.2)]'
-                : 'text-neutral-300 hover:text-white hover:bg-white/[0.06]'
-            }`}
-            title="Simulate 60 km/h Dyno Wheel Rotation"
-          >
-            <div className="flex items-center gap-2">
-              <Gauge className={`w-3.5 h-3.5 ${isSpinningWheels ? 'text-[#FF5500]' : 'text-neutral-400'}`} />
-              <span>Spin Wheels</span>
-            </div>
-            <span className={`w-1.5 h-1.5 rounded-full ${isSpinningWheels ? 'bg-[#FF5500] animate-pulse shadow-[0_0_6px_#FF5500]' : 'bg-neutral-600'}`} />
-          </button>
-
-          {/* Specular Bloom Glow on Forged Wheels */}
-          <button
-            onClick={onToggleBloom}
-            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-all ${
-              isBloomEnabled
-                ? 'bg-[#FF5500]/15 text-[#FF5500] border border-[#FF5500]/40 font-bold shadow-[0_0_12px_rgba(255,85,0,0.2)]'
-                : 'text-neutral-300 hover:text-white hover:bg-white/[0.06]'
-            }`}
-            title="Toggle Post-Processing Bloom Pass for realistic metallic wheel reflection glow"
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className={`w-3.5 h-3.5 ${isBloomEnabled ? 'text-[#FF5500]' : 'text-neutral-400'}`} />
-              <span>Bloom Glow</span>
-            </div>
-            <span className={`w-1.5 h-1.5 rounded-full ${isBloomEnabled ? 'bg-[#FF5500] animate-pulse shadow-[0_0_6px_#FF5500]' : 'bg-neutral-600'}`} />
-          </button>
-        </div>
-
-        {/* Studio Lighting Themes with Vercel Tactile Feedback */}
-        <div className="pointer-events-auto bg-black/85 backdrop-blur-2xl border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-1 shadow-2xl flex items-center justify-around w-[136px] md:w-[150px] transition-colors">
-          <button
-            onClick={() => onChangeStudioTheme('studio_dark')}
-            className={`flex-1 py-1.5 rounded-lg flex justify-center items-center transition-all ${
-              studioTheme === 'studio_dark'
-                ? 'bg-neutral-900 text-[#FF5500] border border-white/[0.12] shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-            title="Obsidian Dark Studio"
-          >
-            <Moon className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={() => onChangeStudioTheme('studio_pure')}
-            className={`flex-1 py-1.5 rounded-lg flex justify-center items-center transition-all ${
-              studioTheme === 'studio_pure'
-                ? 'bg-neutral-900 text-[#FF5500] border border-white/[0.12] shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-            title="Pure Studio Lighting"
-          >
-            <Sun className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={() => onChangeStudioTheme('night_runway')}
-            className={`flex-1 py-1.5 rounded-lg flex justify-center items-center transition-all ${
-              studioTheme === 'night_runway'
-                ? 'bg-neutral-900 text-[#FF5500] border border-white/[0.12] shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-            title="Night Runway Dynamic Lighting"
-          >
-            <Zap className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

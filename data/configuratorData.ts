@@ -77,6 +77,25 @@ export const BMW_MODELS: CarModel[] = [
       cb: '66.6mm'
     },
     bodyStyle: 'sedan'
+  },
+  {
+    id: 'x5m_f95',
+    name: 'BMW X5 M Competition',
+    badge: 'X5 M F95',
+    generation: 'F95 LCI',
+    chassisCode: 'F95 X5 M',
+    engine: '4.4L S68 Twin-Turbo V8 Mild Hybrid',
+    power: '617 HP / 625 PS',
+    torque: '750 Nm (553 lb-ft)',
+    acceleration: '0-100 km/h in 3.8s',
+    recommendedWheelFitment: {
+      front: '21 x 10.5J',
+      rear: '22 x 11.5J',
+      pcd: '5x112',
+      cb: '66.6mm'
+    },
+    bodyStyle: 'suv',
+    modelLengthM: 4.94
   }
 ];
 
@@ -252,8 +271,9 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     weightFrontKg: 7.8,
     weightRearKg: 8.3,
     weightSavingsKg: 4.8,
-    standardSizes: ['19"', '20"', '21"'],
+    standardSizes: ['19"', '20"', '21"', '22"'],
     pricePerSet: 7800,
+    priceBySize: { '19"': 7200, '20"': 7800, '21"': 8500, '22"': 9300 },
     description: 'Forged from a single solid billet of 6061-T6 magnesium-aluminum aerospace alloy with hollow pocket spoke milling to cut unsprung rotational mass by up to 19.2 kg across all 4 corners.',
     highlights: [
       '7.8 kg front wheel mass',
@@ -275,8 +295,9 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     weightFrontKg: 8.2,
     weightRearKg: 8.7,
     weightSavingsKg: 4.1,
-    standardSizes: ['20"', '21"'],
+    standardSizes: ['19"', '20"', '21"', '22"'],
     pricePerSet: 8600,
+    priceBySize: { '19"': 8000, '20"': 8600, '21"': 9300, '22"': 10100 },
     description: 'Directly derived from endurance GT3 racecars. Features functional aero evacuation channels that actively draw cooling air through the brake caliper assembly at speeds over 120 km/h.',
     highlights: [
       'Bespoke carbon fiber turbofan extraction ring',
@@ -298,8 +319,9 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     weightFrontKg: 7.6,
     weightRearKg: 8.1,
     weightSavingsKg: 5.2,
-    standardSizes: ['19"', '20"', '21"'],
+    standardSizes: ['19"', '20"', '21"', '22"'],
     pricePerSet: 7400,
+    priceBySize: { '19"': 6800, '20"': 7400, '21"': 8100, '22"': 8900 },
     description: 'A homage to legendary BMW M heritage wheels re-imagined with extreme deep concave rear profile and thin, chiseled spoke faces that accentuate aggressive BMW M wheel arches.',
     highlights: [
       'Extreme 85mm deep concave rear wheel drop',
@@ -321,8 +343,9 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     weightFrontKg: 8.0,
     weightRearKg: 8.5,
     weightSavingsKg: 4.4,
-    standardSizes: ['20"', '21"'],
+    standardSizes: ['19"', '20"', '21"', '22"'],
     pricePerSet: 8200,
+    priceBySize: { '19"': 7600, '20"': 8200, '21"': 8900, '22"': 9700 },
     description: 'Left and right vehicle side dedicated directional blade profiles. Machined with complex 5-axis CNC passes to sculpt a sculptural turbine vortex effect that rotates forward on both sides.',
     highlights: [
       'Left/Right dedicated side asymmetric tooling',
@@ -344,8 +367,9 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     weightFrontKg: 7.9,
     weightRearKg: 8.4,
     weightSavingsKg: 4.7,
-    standardSizes: ['19"', '20"'],
+    standardSizes: ['19"', '20"', '21"', '22"'],
     pricePerSet: 7600,
+    priceBySize: { '19"': 7000, '20"': 7600, '21"': 8300, '22"': 9100 },
     description: 'Inspired by European touring car championships. Provides uniform stress distribution across 15 radiating spokes, allowing paper-thin walls and remarkable structural rigidity.',
     highlights: [
       'Maximum structural rigidity for curb striking on race tracks',
@@ -367,8 +391,9 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     weightFrontKg: 8.4,
     weightRearKg: 8.9,
     weightSavingsKg: 3.8,
-    standardSizes: ['20"', '21"'],
+    standardSizes: ['19"', '20"', '21"', '22"'],
     pricePerSet: 9200,
+    priceBySize: { '19"': 8600, '20"': 9200, '21"': 9900, '22"': 10700 },
     description: 'Two-piece forged modular construction pairing a forged magnesium center face with a spun 6061-T6 aircraft aluminum stepped outer barrel joined by ARP aerospace titanium bolts.',
     highlights: [
       'Genuine 2-Piece modular architecture with 90mm stepped lip',

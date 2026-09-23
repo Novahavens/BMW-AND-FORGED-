@@ -14,6 +14,7 @@ export type FieldSpec =
   | { key: string; label: string; type: 'list'; hint?: string }
   | { key: string; label: string; type: 'finishes'; hint?: string }
   | { key: string; label: string; type: 'fitment'; hint?: string }
+  | { key: string; label: string; type: 'sizePrices'; hint?: string }
   | { key: string; label: string; type: 'asset'; bucket: string; accept: string; hint?: string };
 
 export interface EntitySpec {
@@ -43,7 +44,7 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'torque', label: 'Torque', type: 'text' },
       { key: 'acceleration', label: 'Acceleration', type: 'text' },
       { key: 'recommended_wheel_fitment', label: 'Recommended fitment', type: 'fitment' },
-      { key: 'body_style', label: 'Fallback body style', type: 'select', options: ['coupe', 'sedan'], hint: 'Used when no 3D model is uploaded.' },
+      { key: 'body_style', label: 'Fallback body style', type: 'select', options: ['coupe', 'sedan', 'suv'], hint: 'Used when no 3D model is uploaded.' },
       { key: 'model_url', label: '3D model (.glb)', type: 'asset', bucket: ASSET_BUCKETS.carModels, accept: '.glb,model/gltf-binary', hint: 'Max 50 MB. Compress with gltf-transform for fast loading.' },
       { key: 'model_rotation_deg', label: 'Model rotation (°)', type: 'number', step: 90, hint: 'Rotate until the nose faces the camera in the front 3/4 view.' },
       { key: 'model_length_m', label: 'Real car length (m)', type: 'number', step: 0.01, hint: 'The model is scaled to this length.' },
@@ -71,8 +72,7 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'image_url', label: 'Rim image (.png)', type: 'asset', bucket: ASSET_BUCKETS.rimImages, accept: 'image/png,image/webp', hint: 'Front-on shot, transparent background, rim edge touching the image edge. Replaces the 3D spokes.' },
       { key: 'spoke_type', label: 'Procedural spokes (no image)', type: 'select', options: ['multi', 'y_spoke', 'directional', 'mesh', 'aerodisc', 'clubsport'] },
       { key: 'spoke_count', label: 'Spoke count', type: 'number', step: 1 },
-      { key: 'price_per_set', label: 'Price per set (USD)', type: 'number', step: 50 },
-      { key: 'standard_sizes', label: 'Sizes', type: 'list', hint: 'One per line, e.g. 20"' },
+      { key: 'price_by_size', label: 'Sizes & set prices (USD, 4 wheels)', type: 'sizePrices', hint: 'Only sizes listed here are offered. The size visibly changes the rim on the car.' },
       { key: 'available_variants', label: 'Available finishes', type: 'finishes' },
       { key: 'default_variant', label: 'Default finish ID', type: 'text' },
       { key: 'weight_front_kg', label: 'Front weight (kg)', type: 'number', step: 0.1 },
@@ -84,7 +84,7 @@ export const ENTITIES: EntitySpec[] = [
     ],
     defaults: {
       id: '', code: '', name: '', subtitle: '', style: '', image_url: null, spoke_type: 'multi', spoke_count: 10,
-      price_per_set: 0, standard_sizes: ['19"', '20"'], available_variants: ['liquid_metal'], default_variant: 'liquid_metal',
+      price_by_size: { '19"': 0, '20"': 0, '21"': 0, '22"': 0 }, available_variants: ['liquid_metal'], default_variant: 'liquid_metal',
       weight_front_kg: 0, weight_rear_kg: 0, weight_savings_kg: 0, description: '', highlights: [],
       sort_order: 99, active: true
     }
@@ -128,17 +128,5 @@ export const ENTITIES: EntitySpec[] = [
       id: '', name: '', code: '', hex: '#888888', type: 'Metallic', metalness: 0.7, roughness: 0.2,
       clearcoat: 0.9, clearcoat_roughness: 0.1, sort_order: 99, active: true
     }
-  },
-  {
-    table: 'calipers',
-    label: 'Calipers',
-    fields: [
-      { key: 'id', label: 'ID (slug)', type: 'text' },
-      { key: 'name', label: 'Name', type: 'text' },
-      { key: 'hex', label: 'Colour', type: 'color' },
-      { key: 'logo', label: 'Logo text', type: 'text' },
-      ...common
-    ],
-    defaults: { id: '', name: '', hex: '#0055b8', logo: '', sort_order: 99, active: true }
   }
 ];

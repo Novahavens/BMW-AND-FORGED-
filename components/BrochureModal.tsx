@@ -9,7 +9,6 @@ import {
   PaintColor, 
   WheelDesign, 
   WheelFinish, 
-  CaliperColor,
   BrochureLead 
 } from '../types';
 import confetti from 'canvas-confetti';
@@ -35,7 +34,7 @@ interface BrochureModalProps {
   paint: PaintColor;
   wheel: WheelDesign;
   finish: WheelFinish;
-  caliper: CaliperColor;
+  price: number;
   wheelSize: string;
   onSaveLead: (lead: BrochureLead) => void;
 }
@@ -47,7 +46,7 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({
   paint,
   wheel,
   finish,
-  caliper,
+  price,
   wheelSize,
   onSaveLead
 }) => {
@@ -82,7 +81,7 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({
       wheelModel: `${wheel.name} (${wheel.code})`,
       wheelFinish: finish.name,
       wheelSize: wheelSize,
-      caliperColor: caliper.name,
+      caliperColor: '',
       requestFitmentConsultation: requestConsultation,
       notes: notes.trim(),
       timestamp: new Date().toISOString()
@@ -352,7 +351,7 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({
                   Lifetime Structural Warranty • 6061-T6 Forged Monoblock
                 </span>
                 <span className="font-mono text-[#FF5500] font-bold">
-                  Est: ${wheel.pricePerSet.toLocaleString()} USD
+                  Est: ${price.toLocaleString()} USD
                 </span>
               </div>
             </div>

@@ -19,7 +19,7 @@ export interface CarModel {
     pcd: string;
     cb: string;
   };
-  bodyStyle: 'coupe' | 'sedan';
+  bodyStyle: 'coupe' | 'sedan' | 'suv';
   /** Uploaded GLB; the procedural body is used when absent. */
   modelUrl?: string | null;
   modelRotationDeg?: number;
@@ -70,6 +70,8 @@ export interface WheelDesign {
   weightSavingsKg: number;
   standardSizes: string[];
   pricePerSet: number;
+  /** Set price per rim size, e.g. { '20"': 7800 }. Keys are the sizes offered. */
+  priceBySize?: Record<string, number>;
   description: string;
   highlights: string[];
   availableVariants: FinishVariantKey[];

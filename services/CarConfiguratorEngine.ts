@@ -47,6 +47,9 @@ export class CarConfiguratorEngine {
     discMesh: THREE.Mesh;
     tireMesh: THREE.Mesh;
     barrelMesh: THREE.Mesh;
+    lipMesh: THREE.Mesh;
+    sidewalls: THREE.Mesh[];
+    tireWidth: number;
     isFront: boolean;
     isRight: boolean;
   }[] = [];
@@ -96,6 +99,16 @@ export class CarConfiguratorEngine {
   private carLoadToken = 0;
   private dracoLoader: DRACOLoader | null = null;
   private defaultWheelLayout: { x: number; y: number; z: number }[] = [];
+  /** Procedural-body wheel scale (SUVs run taller tyres). */
+  private proceduralWheelScale = 1;
+  /** Rim diameter relative to the 20" base geometry; the tyre's outer size stays fixed. */
+  private rimScale = 1;
+
+  // Showcase mode: one wheel on the turntable, no car (rim detail pages)
+  private isShowcase = false;
+  private showcaseSwayTime = 0;
+  private isPaused = false;
+  private zoomRange = { min: 1.0, max: 9.0 };
 
   // Event Listeners for cleanup
   private boundOnPointerDown?: (e: MouseEvent | TouchEvent) => void;
@@ -106,8 +119,9 @@ export class CarConfiguratorEngine {
   // Callbacks
   private onReady?: () => void;
 
-  constructor(container: HTMLElement, onReady?: () => void) {
+  constructor(container: HTMLElement, onReady?: () => void, options: { showcase?: boolean } = {}) {
     this.container = container;
+    this.isShowcase = !!options.showcase;
     this.onReady = onReady;
     this.clock = new THREE.Clock();
 
@@ -153,8 +167,12 @@ export class CarConfiguratorEngine {
     this.setupMaterials();
     this.setupStudioEnvironment();
     this.setupStudioLighting('studio_dark');
-    this.buildBMWCarBody('coupe');
-    this.buildWheels();
+    if (this.isShowcase) {
+      this.setupShowcase();
+    } else {
+      this.buildBMWCarBody('coupe');
+      this.buildWheels();
+    }
     this.setupInputHandlers();
 
     // Generate procedural studio environment reflection
@@ -426,7 +444,7 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   // PROCEDURAL BMW M PERFORMANCE 3D MODEL
   // ----------------------------------------------------
-  public buildBMWCarBody(bodyStyle: 'coupe' | 'sedan' = 'coupe') {
+  public buildBMWCarBody(bodyStyle: CarModel['bodyStyle'] = 'coupe') {
     // Clear existing car body
     this.disposeBody();
 
@@ -549,7 +567,7 @@ export class CarConfiguratorEngine {
 
     // 9. Aerodynamic Greenhouse (Cabin, Windows, Windshield)
     // Cabin Pillar Structure
-    const cabinLength = bodyStyle === 'coupe' ? 2.1 : 2.3;
+    const cabinLength = bodyStyle === 'coupe' ? 2.1 : 2.3; // sedan & SUV share the long cabin
     const cabinGeo = new THREE.BoxGeometry(1.52, 0.46, cabinLength);
     const cabin = new THREE.Mesh(cabinGeo, this.glassMaterial);
     cabin.position.set(0, carYBase + 0.68, bodyStyle === 'coupe' ? -0.12 : -0.05);
@@ -654,6 +672,10 @@ export class CarConfiguratorEngine {
     exhaust4.position.set(0.52, carYBase + 0.10, -2.32);
     mainBody.add(exhaust1, exhaust2, exhaust3, exhaust4);
 
+    // SUV placeholder until a GLB is uploaded: the sedan body raised and bulked up, on taller wheels.
+    if (bodyStyle === 'suv') mainBody.scale.set(1.05, 1.32, 1.04);
+    this.proceduralWheelScale = bodyStyle === 'suv' ? 1.14 : 1;
+
     this.bodyMeshGroup.add(mainBody);
   }
 
@@ -667,6 +689,7 @@ export class CarConfiguratorEngine {
    */
   public async loadCar(car: CarModel): Promise<'model' | 'procedural'> {
     const token = ++this.carLoadToken;
+    this.proceduralWheelScale = car.bodyStyle === 'suv' ? 1.14 : 1;
     if (car.modelUrl) {
       try {
         const gltf = await this.getGltfLoader().loadAsync(car.modelUrl);
@@ -787,11 +810,37 @@ export class CarConfiguratorEngine {
   }
 
   private resetWheelLayout() {
+    if (this.isShowcase) return;
+    const k = this.proceduralWheelScale;
     this.wheelAssemblies.forEach((a, i) => {
       const p = this.defaultWheelLayout[i];
-      if (p) a.group.position.set(p.x, p.y, p.z);
-      a.group.scale.setScalar(1);
+      if (p) a.group.position.set(p.x * (1 + (k - 1) * 0.5), p.y * k, p.z);
+      a.group.scale.setScalar(k);
     });
+  }
+
+  // ----------------------------------------------------
+  // SHOWCASE MODE (single rim detail page)
+  // ----------------------------------------------------
+  private setupShowcase() {
+    this.buildWheels();
+    // Keep one right-hand wheel (its face points at +X, towards the camera) and centre it.
+    const keep = this.wheelAssemblies.find((a) => a.isFront && a.isRight)!;
+    this.wheelAssemblies
+      .filter((a) => a !== keep)
+      .forEach((a) => this.wheelsGroup.remove(a.group));
+    this.wheelAssemblies = [keep];
+    keep.group.position.set(0, 0.35, 0);
+    this.zoomRange = { min: 0.6, max: 3.0 };
+    this.targetLookAt.set(0, 0.35, 0);
+    this.currentLookAt.set(0, 0.35, 0);
+    this.spherical = { radius: 1.5, theta: Math.PI / 2, phi: 1.42 };
+    this.targetSpherical = { ...this.spherical };
+  }
+
+  /** Stops rendering while the canvas is hidden (e.g. another page is on top). */
+  public setPaused(paused: boolean) {
+    this.isPaused = paused;
   }
 
   /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
@@ -852,7 +901,7 @@ export class CarConfiguratorEngine {
       // Tire sidewall bevels
       const sidewallGeo1 = new THREE.RingGeometry(rimRadius, tireRadius, 48);
       sidewallGeo1.rotateY(Math.PI / 2);
-      const sidewallOuter = new THREE.Mesh(sidewallGeo1, this.tireMaterial);
+      const sidewallOuter = new THREE.Mesh(sidewallGeo1.clone(), this.tireMaterial);
       sidewallOuter.position.x = tireWidth / 2;
       const sidewallInner = new THREE.Mesh(sidewallGeo1, this.tireMaterial);
       sidewallInner.position.x = -tireWidth / 2;
@@ -933,8 +982,37 @@ export class CarConfiguratorEngine {
         discMesh,
         tireMesh,
         barrelMesh,
+        lipMesh,
+        sidewalls: [sidewallOuter, sidewallInner],
+        tireWidth,
         isFront: wp.isFront,
         isRight: wp.isRight
+      });
+    });
+
+    this.applyRimScale();
+  }
+
+  /** Resizes the rim inside a fixed tyre, e.g. '21"'. Bigger rim = thinner sidewall, like a real upgrade. */
+  public setRimSize(size: string) {
+    const inches = parseFloat(size);
+    this.rimScale = THREE.MathUtils.clamp(Number.isFinite(inches) ? inches / 20 : 1, 0.8, 1.2);
+    this.applyRimScale();
+  }
+
+  private applyRimScale() {
+    const s = this.rimScale;
+    const rimRadius = 0.26 * s; // 20" base rim radius
+    const tireRadius = 0.35;
+    this.wheelAssemblies.forEach((a) => {
+      a.spokeMeshGroup.scale.set(1, s, s);
+      a.barrelMesh.scale.set(1, s, s);
+      a.lipMesh.scale.set(1, s, s); // ring geometry is baked into the YZ plane
+      a.sidewalls.forEach((wall) => {
+        wall.geometry.dispose();
+        const g = new THREE.RingGeometry(rimRadius, tireRadius, 48);
+        g.rotateY(Math.PI / 2);
+        wall.geometry = g;
       });
     });
   }
@@ -1276,16 +1354,15 @@ export class CarConfiguratorEngine {
         break;
 
       case 'frontWheel':
-        // Close-up on Front Left forged wheel
-        this.targetCameraPos.set(2.2, 0.48, 1.8);
-        this.targetLookAt.set(0.92, 0.35, 1.45);
+      case 'rearWheel': {
+        // Close-up on the right-hand wheel, wherever the current car's wheels sit
+        const isFront = view === 'frontWheel';
+        const wheel = this.wheelAssemblies.find((a) => a.isRight && a.isFront === isFront);
+        const c = wheel ? wheel.group.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0.92, 0.35, isFront ? 1.45 : -1.38);
+        this.targetLookAt.copy(c);
+        this.targetCameraPos.set(c.x + 1.3, c.y + 0.13, c.z + (isFront ? 0.35 : 0.18));
         break;
-
-      case 'rearWheel':
-        // Close-up on Rear Left deep concave wheel
-        this.targetCameraPos.set(2.3, 0.48, -1.2);
-        this.targetLookAt.set(0.94, 0.35, -1.38);
-        break;
+      }
 
       case 'rearThreeQuarter':
         this.targetCameraPos.set(3.6, 1.30, -3.5);
@@ -1358,8 +1435,8 @@ export class CarConfiguratorEngine {
       e.preventDefault();
       this.targetSpherical.radius = THREE.MathUtils.clamp(
         this.targetSpherical.radius + e.deltaY * 0.0035,
-        2.0,
-        9.0
+        this.zoomRange.min,
+        this.zoomRange.max
       );
     };
 
@@ -1396,10 +1473,17 @@ export class CarConfiguratorEngine {
   private animate() {
     this.animationFrameId = requestAnimationFrame(this.animate);
     const delta = this.clock.getDelta();
+    if (this.isPaused) return;
 
-    // Auto turntable rotation if idle
+    // Auto turntable rotation if idle. The rim showcase sways in front of the rim face
+    // rather than orbiting, so the spokes stay in view.
     if (this.isAutoRotate && !this.isUserInteracting) {
-      this.targetSpherical.theta += 0.25 * delta;
+      if (this.isShowcase) {
+        this.showcaseSwayTime += delta;
+        this.targetSpherical.theta = Math.PI / 2 + Math.sin(this.showcaseSwayTime * 0.45) * 0.7;
+      } else {
+        this.targetSpherical.theta += 0.25 * delta;
+      }
     }
 
     // Smooth lerp spherical to target

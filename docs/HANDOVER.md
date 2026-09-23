@@ -18,7 +18,11 @@ Follow the sections in order. Each step has a **Check** line; do not move on unt
 |---|---|
 | `/` | 3D studio configurator (landing page today) |
 | `/forged` | Marketing / showcase page |
-| `/admin` | Admin sign-in, then edit cars, wheels, finishes, paints, calipers, and upload GLBs and rim PNGs |
+| `/rims/<rim-id>` | 3D detail page for one rim: turntable, zoom, colour and size with price, "See it on my car" |
+| `/admin` | Admin sign-in, then edit cars, wheels, finishes and paints, and upload GLBs and rim PNGs |
+
+**Customer choices (only these five):** car, paint colour, rim design, rim size, rim colour (finish).
+Rim size visibly changes the rim on the car (bigger rim, thinner tyre sidewall) and has its own price.
 
 Visitors can only **read** the catalogue. Only emails in the `admin_users` table can change anything
 (enforced in the database by row-level security, not just hidden in the UI).
@@ -42,7 +46,7 @@ If Supabase is ever unreachable, the app falls back to the bundled catalogue in
    ```
    To remove someone: `delete from public.admin_users where email = '...';`
 
-**Check:** go to `/admin`, sign in, and you should see the Cars / Wheels / Finishes / Paints / Calipers tabs.
+**Check:** go to `/admin`, sign in, and you should see the Cars / Wheels / Finishes / Paints tabs.
 If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't match the login email.
 
 ---
@@ -109,13 +113,17 @@ Everything in the drawers comes from the admin tabs. Edit → **Save** → the s
 - **Hide instead of delete**: untick *Visible in configurator*.
 - **Order**: *Sort order* (lower = first).
 - A wheel only offers the finishes ticked in *Available finishes*; *Default finish ID* must be one of them.
+- **Sizes & prices**: each wheel has a list of sizes with a set price (4 wheels) per size. Only listed sizes
+  are offered; remove a size with the bin icon, add one with the **+ 22"** style buttons. Starting prices are
+  placeholders (20" = the old set price, 19" −$600, 21" +$700, 22" +$1,500): **set the real ones**.
 
 ---
 
 ## 3. Landing page & user journey
 
-**Current journey:** `/` opens straight into the 3D studio → vehicle drawer (car, paint, calipers,
-ride height) → wheel drawer (design, finish, size, price) → **Get Brochure** (lead form) →
+**Current journey:** `/` opens straight into the 3D studio → **car & paint** drawer → **Next: forged wheels**
+→ rim design, colour and size (price per size) → optional **Rim detail** page per rim (3D turntable,
+"See it on my car" returns to the studio zoomed on the wheel) → **Get Brochure** (lead form).
 `/forged` is a separate showcase page linked from the header.
 
 | To change… | Edit |
@@ -135,7 +143,6 @@ ride height) → wheel drawer (design, finish, size, price) → **Get Brochure**
 - `ForgedPage.tsx` social links point to the generic facebook.com / instagram.com / tiktok.com homepages
   (around lines 388–415): put in the real profile URLs or delete them.
 - `ForgedPage.tsx` logo is a Vercel-style triangle (around line 103): swap in the client's logo.
-- Header button **"2D → 3D AI"** (`ConfiguratorHeader.tsx` line 87) is a manual image tool, not AI: rename it.
 - The brochure form saves leads **only in that visitor's browser** (localStorage). No one receives them.
   Either tell the client it's a demo, or ask for it to be wired to Supabase + email (about 1–2 h of work).
 

@@ -6,8 +6,7 @@
 import React, { useState } from 'react';
 import { 
   CarModel, 
-  PaintColor, 
-  CaliperColor 
+  PaintColor
 } from '../types';
 import { 
   Palette, 
@@ -28,37 +27,27 @@ import {
 interface BottomColorBarProps {
   cars: CarModel[];
   paints: PaintColor[];
-  calipers: CaliperColor[];
   selectedCar: CarModel;
   selectedPaint: PaintColor;
-  selectedCaliper: CaliperColor;
-  rideHeight: number;
   isOpen?: boolean;
   onToggleOpen?: () => void;
   onSelectCar: (car: CarModel) => void;
   onSelectPaint: (paint: PaintColor) => void;
-  onSelectCaliper: (caliper: CaliperColor) => void;
-  onSelectRideHeight: (height: number) => void;
   onOpenWheelDrawer?: () => void;
 }
 
 export const BottomColorBar: React.FC<BottomColorBarProps> = ({
   cars,
   paints,
-  calipers,
   selectedCar,
   selectedPaint,
-  selectedCaliper,
-  rideHeight,
   isOpen = true,
   onToggleOpen,
   onSelectCar,
   onSelectPaint,
-  onSelectCaliper,
-  onSelectRideHeight,
   onOpenWheelDrawer
 }) => {
-  const [activeCategory, setActiveCategory] = useState<'all' | 'paint' | 'model' | 'stance'>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | 'paint' | 'model'>('all');
   const [paintFilter, setPaintFilter] = useState<'all' | 'Metallic' | 'Frozen Satin' | 'Individual'>('all');
 
   const filteredPaints = paints.filter((p) => {
@@ -113,7 +102,7 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-neutral-400 font-mono mt-0.5">
-                Chassis, Paint, Calipers & Stance
+                Car &amp; Paint
               </p>
             </div>
           </div>
@@ -129,7 +118,7 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
 
         {/* Vercel Segmented Control Navigation Filter */}
         <div className="p-2.5 bg-black border-b border-white/[0.08]">
-          <div className="grid grid-cols-4 gap-1 bg-neutral-950 p-1 rounded-xl border border-white/[0.08] font-mono text-[10px]">
+          <div className="grid grid-cols-3 gap-1 bg-neutral-950 p-1 rounded-xl border border-white/[0.08] font-mono text-[10px]">
             <button
               onClick={() => setActiveCategory('all')}
               className={`py-1.5 rounded-lg font-semibold tracking-wide uppercase transition-all text-center ${
@@ -159,16 +148,6 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
               }`}
             >
               Paint
-            </button>
-            <button
-              onClick={() => setActiveCategory('stance')}
-              className={`py-1.5 rounded-lg font-semibold tracking-wide uppercase transition-all text-center ${
-                activeCategory === 'stance'
-                  ? 'bg-neutral-900 text-[#FF5500] border border-white/[0.12] shadow-sm font-bold'
-                  : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              Stance
             </button>
           </div>
         </div>
@@ -321,103 +300,6 @@ export const BottomColorBar: React.FC<BottomColorBarProps> = ({
                 <div className="text-right">
                   <span className="text-neutral-500 block text-[10px] uppercase">Finish:</span>
                   <span className="text-[#FF5500] font-semibold">{selectedPaint.type}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECTION 3: M Performance Brakes & Stance */}
-          {(activeCategory === 'all' || activeCategory === 'stance') && (
-            <div className="space-y-4 pt-2">
-              {/* Brake Calipers */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
-                    <Disc className="w-3.5 h-3.5 text-[#FF5500]" />
-                    <span>M Performance Brake Calipers</span>
-                  </div>
-                  <span className="text-[10px] text-[#FF5500] font-mono font-semibold">
-                    {selectedCaliper.name}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  {calipers.map((caliper) => {
-                    const isSelected = selectedCaliper.id === caliper.id;
-                    return (
-                      <button
-                        key={caliper.id}
-                        onClick={() => onSelectCaliper(caliper)}
-                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? 'bg-neutral-950 border-[#FF5500] ring-1 ring-[#FF5500]/50 shadow-[0_0_12px_rgba(255,85,0,0.18)]'
-                            : 'bg-neutral-950/80 hover:bg-neutral-900 border-white/[0.08]'
-                        }`}
-                      >
-                        <div
-                          className={`w-6 h-6 rounded-full shrink-0 border relative shadow-sm ${
-                            isSelected ? 'border-[#FF5500] ring-1 ring-[#FF5500]/50' : 'border-white/20'
-                          }`}
-                          style={{ backgroundColor: caliper.hex }}
-                        >
-                          {isSelected && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Check className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs font-medium text-white truncate font-mono">
-                          {caliper.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Track Stance Suspension */}
-              <div className="space-y-2.5 pt-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
-                    <Sliders className="w-3.5 h-3.5 text-[#FF5500]" />
-                    <span>Suspension Track Stance</span>
-                  </div>
-                  <span className="text-[10px] text-[#FF5500] font-mono font-semibold">
-                    {rideHeight === 0 ? 'OEM Factory (0mm)' : rideHeight === -0.025 ? '-25mm Track' : '-50mm Low'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-1.5 bg-neutral-950 p-1.5 rounded-xl border border-white/[0.08] font-mono">
-                  <button
-                    onClick={() => onSelectRideHeight(0)}
-                    className={`py-2 px-2 rounded-lg text-xs font-medium transition-all text-center ${
-                      rideHeight === 0
-                        ? 'bg-neutral-900 text-white font-bold border border-white/[0.12] shadow-sm'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    Stock
-                  </button>
-                  <button
-                    onClick={() => onSelectRideHeight(-0.025)}
-                    className={`py-2 px-2 rounded-lg text-xs font-medium transition-all text-center ${
-                      rideHeight === -0.025
-                        ? 'bg-[#FF5500] text-black font-bold shadow-[0_0_15px_rgba(255,85,0,0.35)]'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    -25mm Track
-                  </button>
-                  <button
-                    onClick={() => onSelectRideHeight(-0.05)}
-                    className={`py-2 px-2 rounded-lg text-xs font-medium transition-all text-center ${
-                      rideHeight === -0.05
-                        ? 'bg-[#FF5500] text-black font-bold shadow-[0_0_15px_rgba(255,85,0,0.35)]'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    -50mm Low
-                  </button>
                 </div>
               </div>
             </div>

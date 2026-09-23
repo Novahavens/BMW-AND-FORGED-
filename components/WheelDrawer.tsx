@@ -24,10 +24,10 @@ import {
   Zap,
   CheckCircle2,
   FileText,
-  HelpCircle,
   Eye
 } from 'lucide-react';
 import { WheelVisual } from './WheelVisual';
+import { rimSizes, rimPrice, rimFromPrice, formatPrice } from '../services/pricing';
 import { TechnicalTooltip } from './TechnicalTooltip';
 
 interface WheelDrawerProps {
@@ -44,7 +44,8 @@ interface WheelDrawerProps {
   onSelectSize: (size: string) => void;
   onFocusWheelCamera: () => void;
   onOpenBrochure?: () => void;
-  onOpen2DGuide?: () => void;
+  /** Opens the rim's 3D detail page. */
+  onViewRim?: (wheel: WheelDesign) => void;
 }
 
 export const WheelDrawer: React.FC<WheelDrawerProps> = ({
@@ -61,7 +62,7 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
   onSelectSize,
   onFocusWheelCamera,
   onOpenBrochure,
-  onOpen2DGuide
+  onViewRim
 }) => {
   const [activeTab, setActiveTab] = useState<'collection' | 'specs'>('collection');
 
@@ -285,13 +286,13 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
                             title="Complete Forged Set Investment"
                             badge="Set of 4"
                             badgeColor="orange"
-                            subtitle={`$${wheel.pricePerSet.toLocaleString()} USD MSRP`}
+                            subtitle={`From ${formatPrice(rimFromPrice(wheel))} USD (set of 4)`}
                             description="Includes 4 CNC-machined monoblock wheels engineered to bespoke BMW hub specs, titanium valve stems, and laser-engraved hub caps."
                             position="top-right"
                             width="w-68"
                           >
                             <span className="ml-auto text-[#FF5500] font-bold shrink-0 hover:text-[#FF7722] transition-colors cursor-help">
-                              ${wheel.pricePerSet.toLocaleString()}
+                              from {formatPrice(rimFromPrice(wheel))}
                             </span>
                           </TechnicalTooltip>
                         </div>
@@ -335,17 +336,17 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
                                 Current Configuration
                               </span>
                               <TechnicalTooltip
-                                title="Macro 3D Camera Orbit"
-                                description="Locks the studio camera into a 0.8m macro close-up view of the front wheel to inspect CNC spoke bevels and surface reflections."
+                                title="Rim Detail Page"
+                                description="Opens this rim on its own 3D turntable: rotate, zoom, and try every finish and size."
                                 position="bottom-right"
                                 width="w-60"
                               >
                                 <button
-                                  onClick={onFocusWheelCamera}
+                                  onClick={(e) => { e.stopPropagation(); onViewRim ? onViewRim(wheel) : onFocusWheelCamera(); }}
                                   className="text-[10px] text-[#FF5500] hover:text-[#FF7722] flex items-center gap-1 font-mono font-medium"
                                 >
                                   <Eye className="w-3 h-3" />
-                                  3D View
+                                  Rim detail
                                 </button>
                               </TechnicalTooltip>
                             </div>
@@ -434,49 +435,27 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
                         {/* Diameter Size selector with Fitment Tooltips */}
                         <div>
                           <span className="text-xs font-bold text-neutral-200 uppercase tracking-wider block mb-1.5 font-mono">
-                            Staggered Diameter:
+                            Rim Size:
                           </span>
                           <div className="flex gap-2">
-                            {wheel.standardSizes.map((size) => {
+                            {rimSizes(wheel).map((size) => {
                               const isSizeSelected = selectedSize === size;
-                              const sizeSpecs = size === '19"' 
-                                ? {
-                                    title: '19" Track Attack Fitment',
-                                    badge: 'Max Compliance',
-                                    badgeColor: 'emerald' as const,
-                                    subtitle: '19 x 9.5J ET20 / 19 x 10.5J ET24',
-                                    desc: 'Maximum tire sidewall deflection and lowest rotational inertia. Recommended for rough track curbs and autocross.',
-                                    metrics: [
-                                      { label: 'Rotational Inertia', value: 'Minimum', highlight: true },
-                                      { label: 'Ride Compliance', value: 'Highest' }
-                                    ],
-                                    pos: 'top-left' as const
-                                  }
-                                : size === '20"'
-                                ? {
-                                    title: '20" M-Performance Staggered',
-                                    badge: 'Factory Standard',
-                                    badgeColor: 'orange' as const,
-                                    subtitle: '20 x 9.5J ET20 / 20 x 10.5J ET24',
-                                    desc: 'The benchmark factory balance. Delivers razor-sharp steering turn-in velocity with optimal clearance for 400mm CCB rotors.',
-                                    metrics: [
-                                      { label: 'Chassis Balance', value: 'Optimized', highlight: true },
-                                      { label: 'Brake Cooling', value: 'High Flow' }
-                                    ],
-                                    pos: 'top-center' as const
-                                  }
-                                : {
-                                    title: '21" Concave Show & Stance',
-                                    badge: 'Flush Arch',
-                                    badgeColor: 'cyan' as const,
-                                    subtitle: '21 x 10.0J ET18 / 21 x 11.0J ET22',
-                                    desc: 'Exaggerated deep-dish spoke concavity, flush with fender arches for an imposing, muscular supercar stance.',
-                                    metrics: [
-                                      { label: 'Spoke Concavity', value: 'Maximum', highlight: true },
-                                      { label: 'Arch Gap', value: 'Flush Fit' }
-                                    ],
-                                    pos: 'top-right' as const
-                                  };
+                              const inches = parseFloat(size);
+                              const sizeSpecs = {
+                                title: `${size} Forged Set`,
+                                badge: formatPrice(rimPrice(wheel, size)),
+                                badgeColor: 'orange' as const,
+                                subtitle: `Set of 4 • ${car.name}`,
+                                desc: inches <= 19
+                                  ? 'More tyre sidewall: the most comfortable ride and the lightest wheel.'
+                                  : inches >= 21
+                                  ? 'Larger rim with a thinner sidewall: the boldest, most filled-out arch look.'
+                                  : 'The balanced choice between ride comfort and visual presence.',
+                                metrics: [
+                                  { label: 'Set price', value: formatPrice(rimPrice(wheel, size)), highlight: true }
+                                ],
+                                pos: 'top-center' as const
+                              };
 
                               return (
                                 <TechnicalTooltip
@@ -503,6 +482,9 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
                                     }`}
                                   >
                                     {size}
+                                    <span className={`block text-[9px] font-normal ${isSizeSelected ? 'text-black/70' : 'text-neutral-500'}`}>
+                                      {formatPrice(rimPrice(wheel, size))}
+                                    </span>
                                   </button>
                                 </TechnicalTooltip>
                               );
@@ -675,7 +657,8 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
             <div>
               <span className="text-[11px] text-neutral-400 block uppercase">Set Price (4 Wheels)</span>
               <div className="text-white font-extrabold text-base tracking-tight">
-                ${selectedWheel.pricePerSet.toLocaleString()} USD
+                {formatPrice(rimPrice(selectedWheel, selectedSize))} USD
+                <span className="block text-[10px] text-neutral-500 font-normal">{selectedSize} • {selectedFinish.name}</span>
               </div>
             </div>
             <div className="text-right">
@@ -687,17 +670,6 @@ export const WheelDrawer: React.FC<WheelDrawerProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {onOpen2DGuide && (
-              <button
-                onClick={onOpen2DGuide}
-                className="flex items-center justify-center gap-1.5 bg-neutral-950 hover:bg-neutral-900 text-neutral-300 hover:text-white border border-white/[0.1] rounded-xl px-3 py-2.5 text-xs font-mono transition-all"
-                title="2D Rim Images to 3D Pipeline Guide"
-              >
-                <HelpCircle className="w-3.5 h-3.5 text-[#FF5500]" />
-                <span className="hidden sm:inline">2D Guide</span>
-              </button>
-            )}
-
             {onOpenBrochure && (
               <button
                 onClick={onOpenBrochure}

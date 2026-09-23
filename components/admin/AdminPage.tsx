@@ -169,9 +169,20 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
       setMessage({ kind: 'error', text: `ID "${draft.id}" already exists.` });
       return;
     }
+    let row = draft;
+    if (entity.table === 'wheels') {
+      // Sizes and the "from" price are derived from the per-size price list
+      const prices = (draft.price_by_size as Record<string, number>) || {};
+      const sizes = Object.keys(prices).sort((a, b) => parseFloat(a) - parseFloat(b));
+      if (sizes.length === 0) {
+        setMessage({ kind: 'error', text: 'Add at least one size with a price.' });
+        return;
+      }
+      row = { ...draft, standard_sizes: sizes, price_per_set: Math.min(...sizes.map((s) => prices[s])) };
+    }
     setSaving(true);
     try {
-      await upsertRow(entity.table, draft);
+      await upsertRow(entity.table, row);
       setMessage({ kind: 'ok', text: `Saved ${draft.name}.` });
       setIsNew(false);
       await load(entity);
@@ -382,6 +393,46 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
               className={inputCls}
             />
           ))}
+        </div>
+      );
+      break;
+    }
+    case 'sizePrices': {
+      const prices = (value as Record<string, number>) || {};
+      const sizes = Object.keys(prices).sort((a, b) => parseFloat(a) - parseFloat(b));
+      const setPrices = (next: Record<string, number>) => onChange(next);
+      control = (
+        <div className="space-y-2">
+          {sizes.map((size) => (
+            <div key={size} className="flex items-center gap-2">
+              <span className="w-12 text-sm text-white font-bold">{size}</span>
+              <input
+                type="number"
+                step={50}
+                value={prices[size]}
+                onChange={(e) => setPrices({ ...prices, [size]: Number(e.target.value) || 0 })}
+                className={inputCls}
+              />
+              <button
+                onClick={() => { const { [size]: _removed, ...rest } = prices; setPrices(rest); }}
+                className="text-neutral-500 hover:text-red-400 px-2"
+                title={`Remove ${size}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            {['18"', '19"', '20"', '21"', '22"', '23"'].filter((s) => !(s in prices)).map((s) => (
+              <button
+                key={s}
+                onClick={() => setPrices({ ...prices, [s]: 0 })}
+                className="text-xs border border-dashed border-white/20 hover:border-[#FF5500] rounded px-2 py-1"
+              >
+                + {s}
+              </button>
+            ))}
+          </div>
         </div>
       );
       break;
