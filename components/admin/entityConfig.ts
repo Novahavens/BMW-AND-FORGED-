@@ -69,7 +69,10 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'name', label: 'Name', type: 'text' },
       { key: 'subtitle', label: 'Subtitle', type: 'text' },
       { key: 'style', label: 'Style', type: 'text' },
-      { key: 'image_url', label: 'Rim image (.png)', type: 'asset', bucket: ASSET_BUCKETS.rimImages, accept: 'image/png,image/webp', hint: 'Front-on shot, transparent background, rim edge touching the image edge. Replaces the 3D spokes.' },
+      { key: 'image_url', label: 'Rim image (.png)', type: 'asset', bucket: ASSET_BUCKETS.rimImages, accept: 'image/png,image/webp', hint: 'Front-on shot, transparent background AND transparent gaps between spokes, rim edge touching the image edge. Automatically turned into 3D spokes.' },
+      { key: 'image_extrude', label: 'Build 3D spokes from the image', type: 'bool', hint: 'Untick to show the image flat (e.g. if the background could not be removed cleanly).' },
+      { key: 'model_url', label: 'Rim 3D model (.glb) – optional', type: 'asset', bucket: ASSET_BUCKETS.rimModels, accept: '.glb,model/gltf-binary', hint: 'From CAD, an AI image-to-3D tool or a modeller. Replaces the image on the car. Rim only (no tyre); size and orientation are fitted automatically.' },
+      { key: 'model_flip', label: 'Flip 3D rim', type: 'bool', hint: 'Tick if the rim face points into the car.' },
       { key: 'spoke_type', label: 'Procedural spokes (no image)', type: 'select', options: ['multi', 'y_spoke', 'directional', 'mesh', 'aerodisc', 'clubsport'] },
       { key: 'spoke_count', label: 'Spoke count', type: 'number', step: 1 },
       { key: 'price_by_size', label: 'Sizes & set prices (USD, 4 wheels)', type: 'sizePrices', hint: 'Only sizes listed here are offered. The size visibly changes the rim on the car.' },
@@ -83,7 +86,7 @@ export const ENTITIES: EntitySpec[] = [
       ...common
     ],
     defaults: {
-      id: '', code: '', name: '', subtitle: '', style: '', image_url: null, spoke_type: 'multi', spoke_count: 10,
+      id: '', code: '', name: '', subtitle: '', style: '', image_url: null, image_extrude: true, model_url: null, model_flip: false, spoke_type: 'multi', spoke_count: 10,
       price_by_size: { '19"': 0, '20"': 0, '21"': 0, '22"': 0 }, available_variants: ['liquid_metal'], default_variant: 'liquid_metal',
       weight_front_kg: 0, weight_rear_kg: 0, weight_savings_kg: 0, description: '', highlights: [],
       sort_order: 99, active: true

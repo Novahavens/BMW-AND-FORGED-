@@ -90,22 +90,29 @@ If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't ma
 | Original wheels still showing / forged wheels in the wrong place | *Hide mesh names*: add the wheel objects' names. Wheels are placed correctly only when **4** wheels are found. In the browser press F12 → Console to see what was found. |
 | Model doesn't appear at all | File failed to load, so the procedural body is shown. Re-export as .glb, check it opens at <https://gltf-viewer.donmccurdy.com> |
 
-### 2b. Rim images (.png)
+### 2b. Rims: PNG (automatic 3D) or GLB
 
-**Prepare each image:**
+Each wheel can have a **rim image**, a **rim 3D model**, or both (the model wins on the car).
+
+**Rim PNG → automatic 3D spokes** (no 3D software needed)
 - Straight-on, face view of the rim (not at an angle).
-- **Transparent background** (remove.bg or Photoshop). Transparent areas show the brake behind.
+- **Transparent background _and_ transparent gaps between the spokes** (remove.bg or Canva).
+  The app traces the see-through areas and builds solid, bevelled spokes with a concave dish, wrapped in
+  your photo. If the gaps aren't transparent, it can't find the spokes and shows the image flat instead.
 - Crop square, with the outer rim edge **touching all four edges** of the image.
 - 1024×1024 to 2048×2048 px, PNG or WebP, under 10 MB.
+- Upload: `/admin` → **Wheels** → the wheel → **Rim image → Upload** → **Save**.
+- *Build 3D spokes from the image* is ticked by default; untick it to show the image flat.
 
-**Upload:** `/admin` → **Wheels** → pick a wheel (or **New wheel**) → **Rim image → Upload** → **Save**.
-The image replaces the 3D spokes on the car and the thumbnails in the wheel drawer. The finish colour
-(Liquid Metal, Gloss Black…) tints it.
+**Rim GLB (best quality)**: from the client's CAD files, an AI image-to-3D tool (Tripo, Meshy, Hunyuan3D)
+or a 3D modeller. See `NO_BLENDER_AND_UI_PLAN.md` section 2b.
+- The rim only, **without a tyre**. Under 15 MB is ideal (compress at gltf.report).
+- Upload: `/admin` → **Wheels** → the wheel → **Rim 3D model (.glb) → Upload** → **Save**.
+- It's turned, sized to the rim diameter and centred automatically, and takes the finish colour.
+  If the face points into the car, tick **Flip 3D rim** → Save.
 
-**Check:** Studio → open the wheel drawer → select that wheel → **Zoom to Wheel**.
-
-> Image rims look best from the front, side and 3/4 views. Seen from steep angles they look flat. That's the
-> trade-off of using 2D images; true 3D rims would need wheel GLBs.
+**Check:** Studio → wheel drawer → select the wheel → **Zoom to Wheel**, and open **Rim detail**
+(the 3D turntable page).
 
 ### 2c. Prices, names, finishes, paints
 

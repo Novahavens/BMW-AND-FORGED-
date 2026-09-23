@@ -76,8 +76,14 @@ export interface WheelDesign {
   highlights: string[];
   availableVariants: FinishVariantKey[];
   defaultVariant: FinishVariantKey;
-  /** Uploaded front-on rim PNG (transparent background); replaces the procedural spokes. */
+  /** Uploaded front-on rim PNG (transparent background); turned into 3D spokes on the car. */
   imageUrl?: string | null;
+  /** false = show the PNG as a flat disc instead of extruding it into 3D spokes. */
+  imageExtrude?: boolean;
+  /** Uploaded 3D rim (.glb): wins over the image. */
+  modelUrl?: string | null;
+  /** Turn the GLB rim around when its face points into the car. */
+  modelFlip?: boolean;
 }
 
 export interface CaliperColor {
@@ -120,4 +126,6 @@ export interface Custom2DWheelConfig {
   bumpScale: number;
   invertAlpha: boolean;
   spokeThreshold: number;
+  /** Trace the cut-out and build solid 3D spokes (default); false shows a flat textured disc. */
+  extrude?: boolean;
 }

@@ -14,4 +14,5 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 export const ASSET_BUCKETS = {
   carModels: 'car-models',
   rimImages: 'rim-images',
+  rimModels: 'rim-models',
 } as const;

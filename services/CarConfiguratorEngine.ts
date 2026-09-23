@@ -11,6 +11,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { traceRimShapes, buildRimFaceGeometry } from './rimExtrusion';
 import { 
   CarModel, 
   PaintColor, 
@@ -48,6 +49,8 @@ export class CarConfiguratorEngine {
     tireMesh: THREE.Mesh;
     barrelMesh: THREE.Mesh;
     lipMesh: THREE.Mesh;
+    /** Generic centre cap + bolts; hidden when a real rim (image or GLB) brings its own. */
+    hubParts: THREE.Object3D[];
     sidewalls: THREE.Mesh[];
     tireWidth: number;
     isFront: boolean;
@@ -91,6 +94,9 @@ export class CarConfiguratorEngine {
 
   // 2D rim textures (uploaded PNGs and the 2D guide), cached by URL
   private wheelTextureCache = new Map<string, THREE.Texture>();
+  private rimShapeCache = new Map<string, THREE.Shape[] | null>();
+  private rimFaceGeometryCache = new Map<string, THREE.BufferGeometry>();
+  private rimModelCache = new Map<string, Promise<THREE.Object3D>>();
   private customFaceMaterials: THREE.MeshPhysicalMaterial[] = [];
   private wheelDesignToken = 0;
 
@@ -937,6 +943,7 @@ export class CarConfiguratorEngine {
       const centerCap = new THREE.Mesh(centerCapGeo, centerCapMat);
       centerCap.position.x = tireWidth / 2 - 0.015;
       spinGroup.add(centerCap);
+      const hubParts: THREE.Object3D[] = [centerCap];
 
       // 5 Lug Bolts (Titanium star pattern)
       for (let l = 0; l < 5; l++) {
@@ -946,6 +953,7 @@ export class CarConfiguratorEngine {
         const bolt = new THREE.Mesh(boltGeo, this.chromeMaterial);
         bolt.position.set(tireWidth / 2 - 0.02, Math.cos(angle) * 0.075, Math.sin(angle) * 0.075);
         spinGroup.add(bolt);
+        hubParts.push(bolt);
       }
 
       assemblyGroup.add(spinGroup);
@@ -983,6 +991,7 @@ export class CarConfiguratorEngine {
         tireMesh,
         barrelMesh,
         lipMesh,
+        hubParts,
         sidewalls: [sidewallOuter, sidewallInner],
         tireWidth,
         isFront: wp.isFront,
@@ -1028,15 +1037,37 @@ export class CarConfiguratorEngine {
     const imageConfig: Custom2DWheelConfig | null = custom2DConfig?.imageUrl
       ? custom2DConfig
       : wheel.imageUrl
-        ? { imageUrl: wheel.imageUrl, name: wheel.name, bumpScale: 0.006, invertAlpha: false, spokeThreshold: 0.15 }
+        ? { imageUrl: wheel.imageUrl, name: wheel.name, bumpScale: 0.006, invertAlpha: false, spokeThreshold: 0.15, extrude: wheel.imageExtrude !== false }
         : null;
+    const modelUrl = custom2DConfig?.imageUrl ? null : wheel.modelUrl;
+    const mode = modelUrl ? 'model' : imageConfig ? 'image' : 'procedural';
 
     this.wheelAssemblies.forEach((assembly) => {
       // Clear spokes
       while (assembly.spokeMeshGroup.children.length > 0) {
         assembly.spokeMeshGroup.remove(assembly.spokeMeshGroup.children[0]);
       }
+      // A GLB rim brings its own barrel and lip; any real rim brings its own centre cap.
+      assembly.barrelMesh.visible = mode !== 'model';
+      assembly.lipMesh.visible = mode !== 'model';
+      assembly.hubParts.forEach((p) => (p.visible = mode === 'procedural'));
+    });
 
+    if (modelUrl) {
+      this.loadRimModel(modelUrl).then(
+        (template) => {
+          if (token !== this.wheelDesignToken) return;
+          this.wheelAssemblies.forEach((a) => this.mountRimModel(a.spokeMeshGroup, template, !!wheel.modelFlip));
+        },
+        (err) => {
+          console.warn(`Failed to load 3D rim for ${wheel.name}; falling back.`, err);
+          if (token === this.wheelDesignToken) this.applyWheelDesign({ ...wheel, modelUrl: null });
+        }
+      );
+      return;
+    }
+
+    this.wheelAssemblies.forEach((assembly) => {
       if (imageConfig) {
         this.applyCustom2DSpokeTexture(assembly.spokeMeshGroup, imageConfig, assembly.isFront, token);
         return;
@@ -1247,6 +1278,82 @@ export class CarConfiguratorEngine {
     });
   }
 
+  /** Solid spokes traced from the image's transparency; null if it has none (or can't be read). */
+  private getRimFaceGeometry(url: string, texture: THREE.Texture, dish: number): THREE.BufferGeometry | null {
+    if (!this.rimShapeCache.has(url)) {
+      let shapes: THREE.Shape[] | null = null;
+      try {
+        shapes = traceRimShapes(texture.image as HTMLImageElement, 0.5);
+      } catch (err) {
+        console.warn('Could not read rim image pixels (CORS?); showing it flat.', err);
+      }
+      this.rimShapeCache.set(url, shapes);
+    }
+    const shapes = this.rimShapeCache.get(url);
+    if (!shapes) return null;
+    const key = `${url}|${dish}`;
+    let geo = this.rimFaceGeometryCache.get(key);
+    if (!geo) {
+      geo = buildRimFaceGeometry(shapes, { radius: 0.245, depth: 0.03, dish });
+      this.rimFaceGeometryCache.set(key, geo);
+    }
+    return geo;
+  }
+
+  private loadRimModel(url: string): Promise<THREE.Object3D> {
+    let p = this.rimModelCache.get(url);
+    if (!p) {
+      p = this.getGltfLoader().loadAsync(url).then((g) => g.scene);
+      p.catch(() => this.rimModelCache.delete(url));
+      this.rimModelCache.set(url, p);
+    }
+    return p;
+  }
+
+  /**
+   * Fits a GLB rim into the wheel: its thinnest axis becomes the axle, it is scaled to the rim
+   * diameter, centred, and its face placed at the outer face of the tyre. Materials take the finish.
+   */
+  private mountRimModel(parent: THREE.Group, template: THREE.Object3D, flip: boolean) {
+    const rim = template.clone(true);
+    const align = new THREE.Group();
+    align.add(rim);
+    const raw = new THREE.Box3().setFromObject(rim).getSize(new THREE.Vector3());
+    if (raw.y <= raw.x && raw.y <= raw.z) align.rotation.z = Math.PI / 2; // thin along Y -> X
+    else if (raw.z <= raw.x && raw.z <= raw.y) align.rotation.y = Math.PI / 2; // thin along Z -> X
+    const holder = new THREE.Group();
+    holder.add(align);
+    // Left-hand assemblies are already turned 180°, so +X is outward on both sides of the car.
+    if (flip) holder.rotation.y = Math.PI;
+
+    holder.updateMatrixWorld(true);
+    let box = new THREE.Box3().setFromObject(holder);
+    const size = box.getSize(new THREE.Vector3());
+    holder.scale.setScalar((2 * 0.26) / (Math.max(size.y, size.z) || 1)); // 20" base rim diameter
+    holder.updateMatrixWorld(true);
+    box = new THREE.Box3().setFromObject(holder);
+    const c = box.getCenter(new THREE.Vector3());
+    holder.position.set(-box.max.x + 0.01, -c.y, -c.z);
+
+    rim.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true;
+      const old = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: this.wheelMaterial.color.clone(),
+        metalness: this.wheelMaterial.metalness,
+        roughness: this.wheelMaterial.roughness,
+        clearcoat: this.wheelMaterial.clearcoat,
+        map: old?.map ?? null,
+        normalMap: old?.normalMap ?? null
+      });
+      this.customFaceMaterials.push(mat);
+      mesh.material = mat;
+    });
+    parent.add(holder);
+  }
+
   private applyCustom2DSpokeTexture(parent: THREE.Group, config: Custom2DWheelConfig, isFront: boolean, token: number) {
     this.loadWheelTexture(config.imageUrl).then(
       (texture) => {
@@ -1256,7 +1363,26 @@ export class CarConfiguratorEngine {
         const outerR = 0.245;
         const concavity = isFront ? 0.025 : 0.055;
 
-        // Create dual-sided circular face disc with alpha cutout
+        const solid = config.extrude !== false ? this.getRimFaceGeometry(config.imageUrl, texture, concavity) : null;
+        if (solid) {
+          const mat = new THREE.MeshPhysicalMaterial({
+            map: texture,
+            metalness: this.wheelMaterial.metalness,
+            roughness: this.wheelMaterial.roughness,
+            clearcoat: this.wheelMaterial.clearcoat,
+            color: this.wheelMaterial.color.clone(),
+            bumpMap: texture,
+            bumpScale: 0.002
+          });
+          this.customFaceMaterials.push(mat);
+          const face = new THREE.Mesh(solid, mat);
+          face.castShadow = true;
+          face.receiveShadow = true;
+          parent.add(face);
+          return;
+        }
+
+        // No usable cut-out (or extrusion off): dual-sided circular face disc with alpha cutout
         const faceGeo = new THREE.CircleGeometry(outerR, 64);
         faceGeo.rotateY(Math.PI / 2);
 
@@ -1559,6 +1685,8 @@ export class CarConfiguratorEngine {
     }
     this.wheelTextureCache.forEach((t) => t.dispose());
     this.wheelTextureCache.clear();
+    this.rimFaceGeometryCache.forEach((g) => g.dispose());
+    this.rimFaceGeometryCache.clear();
     this.dracoLoader?.dispose();
   }
 

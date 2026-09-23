@@ -105,6 +105,19 @@ To-dos:
 
 ---
 
+### 2b. Rims in full 3D (no Blender)
+
+A PNG is already turned into solid 3D spokes automatically (section 2 prep is all it needs). For a true
+3D rim, upload a **GLB** under Admin → Wheels → *Rim 3D model*. Ways to get one, best first:
+
+| Source | Quality | Cost / time | Notes |
+|---|---|---|---|
+| **Client's CAD files** (STEP/STL, the file the wheel was machined from) | exact | free, same day | Convert to GLB with an online converter (e.g. CAD Exchanger), or send them to me. Ask the client first: forged-wheel makers always have these. |
+| **3D modeller** (Fiverr / Upwork) | near-exact | about $30–150 per rim, 1–3 days | Send front photo + side photo + dimensions |
+| **AI image-to-3D**: Tripo, Meshy (use its symmetry setting), Hunyuan3D | variable | minutes, pay per model | Upload several angles. Check spokes and bolt holes closely; hidden sides are guessed. Can be automated with n8n via their APIs. |
+
+After upload: if the rim faces into the car, tick **Flip 3D rim**.
+
 ## 3. Where OpenRouter, n8n and Firecrawl fit
 
 | Tool | Best use here | Effort |
