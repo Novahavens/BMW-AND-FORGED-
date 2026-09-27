@@ -1,9 +1,13 @@
-// Receives a processed rim PNG plus its catalogue data from the n8n wheel pipeline, checks it will
-// extrude into 3D spokes, uploads it to the rim-images bucket and creates/updates the wheel row.
-// Auth: the caller sends the shared secret in `x-ingest-secret` (Supabase secret INGEST_SECRET).
+// Receives a rim cut-out plus its catalogue data from the wheel pipeline, normalizes it (rim circle
+// only, 2048px square, neutral grey), checks it will extrude into 3D spokes, uploads it to the
+// rim-images bucket and creates/updates the wheel row.
+// Auth: the caller sends a key in `x-ingest-secret`; it must match the INGEST_SECRET function secret
+// or a SHA-256 hash stored in public.ingest_keys (a table only the service role can read).
 import UPNG from 'npm:upng-js@2.1.0';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { checkRim } from './validate.ts';
+import { normalizeRim } from './normalize.ts';
+import { encodeGreyAlphaPng } from './png.ts';
 
 // The six placeholder designs shipped with the app; removed once a real wheel is live.
 const GENERIC_WHEEL_IDS = [
@@ -61,9 +65,20 @@ const normSize = (s: string | number) => `${String(s).replace(/["”″\s]|inch(
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
-  const secret = Deno.env.get('INGEST_SECRET') ?? '';
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+    auth: { persistSession: false },
+  });
+
   const given = req.headers.get('x-ingest-secret') ?? '';
-  if (!secret || !safeEqual(given, secret)) return json(401, { error: 'unauthorized' });
+  const secret = Deno.env.get('INGEST_SECRET') ?? '';
+  let authorized = !!secret && safeEqual(given, secret);
+  if (!authorized && given.length >= 32) {
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(given)));
+    const hash = [...digest].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const { data } = await supabase.from('ingest_keys').select('key_hash').eq('key_hash', hash).maybeSingle();
+    authorized = !!data;
+  }
+  if (!authorized) return json(401, { error: 'unauthorized' });
 
   let body: IngestRequest;
   try {
@@ -82,17 +97,17 @@ Deno.serve(async (req) => {
   if (bytes[0] !== 0x89 || bytes[1] !== 0x50) return json(400, { error: 'file is not a PNG' });
 
   let rim;
+  let finalPng: Uint8Array;
   try {
     const img = UPNG.decode(bytes.buffer);
     const rgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
-    rim = checkRim(rgba, img.width, img.height);
+    const norm = normalizeRim(rgba, img.width, img.height);
+    if (!norm) return json(400, { error: 'no rim found in the image (it is empty or fully transparent)' });
+    rim = checkRim(norm.rgba, norm.side, norm.side);
+    finalPng = await encodeGreyAlphaPng(norm.rgba, norm.side, norm.side);
   } catch (e) {
     return json(400, { error: `could not read PNG: ${(e as Error).message}` });
   }
-
-  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-    auth: { persistSession: false },
-  });
 
   const dataIssues: string[] = [];
   const sizes = (w.sizes ?? []).map(normSize);
@@ -126,7 +141,7 @@ Deno.serve(async (req) => {
 
   const id = `forged_${slug(w.code || name)}`;
   const path = `pipeline/${id}-${Date.now()}.png`;
-  const { error: upErr } = await supabase.storage.from('rim-images').upload(path, bytes, { contentType: 'image/png', upsert: false });
+  const { error: upErr } = await supabase.storage.from('rim-images').upload(path, finalPng, { contentType: 'image/png', upsert: false });
   if (upErr) return json(500, { error: `upload failed: ${upErr.message}` });
   const imageUrl = supabase.storage.from('rim-images').getPublicUrl(path).data.publicUrl;
 
