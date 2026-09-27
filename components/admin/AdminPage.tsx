@@ -16,6 +16,8 @@ import {
 } from '../../services/catalogService';
 import { ENTITIES, EntitySpec, FieldSpec } from './entityConfig';
 import { EnquiriesPanel } from './EnquiriesPanel';
+import { ASSET_BUCKETS } from '../../services/supabaseClient';
+import { CAD_EXTENSIONS, convertCadFile, isCadFile } from '../../services/cadToGlb';
 
 type Row = Record<string, unknown>;
 
@@ -368,6 +370,7 @@ const MultiPick: React.FC<{ options: PickOption[]; value: unknown; onChange: (v:
 
 const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds, paintOptions, readOnly, onChange, onError }) => {
   const [uploading, setUploading] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   let control: React.ReactNode;
 
   switch (field.type) {
@@ -492,7 +495,7 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
               {url ? 'Replace' : 'Upload'}
               <input
                 type="file"
-                accept={field.accept}
+                accept={field.bucket === ASSET_BUCKETS.rimModels ? `${field.accept},${CAD_EXTENSIONS.join(',')}` : field.accept}
                 className="hidden"
                 disabled={uploading}
                 onChange={async (e) => {
@@ -500,9 +503,18 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
                   e.target.value = '';
                   if (!file) return;
                   setUploading(true);
+                  setStatus(null);
                   try {
-                    onChange(await uploadAsset(field.bucket, folder, file));
+                    let upload = file;
+                    // Manufacturer CAD (STEP/IGES/STL/OBJ) is converted to a web-ready rim GLB first, in the browser.
+                    if (field.bucket === ASSET_BUCKETS.rimModels && isCadFile(file)) {
+                      upload = await convertCadFile(file, (msg) => setStatus(msg));
+                      setStatus(`Converted ${file.name} → ${upload.name} (${(upload.size / 1048576).toFixed(1)} MB). Uploading…`);
+                    }
+                    onChange(await uploadAsset(field.bucket, folder, upload));
+                    setStatus(upload === file ? null : `Converted and uploaded ${upload.name}. Click Save to apply.`);
                   } catch (err) {
+                    setStatus(null);
                     onError(`Upload failed: ${(err as Error).message}`);
                   }
                   setUploading(false);
@@ -515,7 +527,8 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
               </button>
             )}
           </div>
-          {url && <p className="text-[11px] text-neutral-500">Click Save to apply the new file.</p>}
+          {status && <p className="text-[11px] text-[#E8C37D] break-words">{status}</p>}
+          {url && !status && <p className="text-[11px] text-neutral-500">Click Save to apply the new file.</p>}
         </div>
       );
       break;
