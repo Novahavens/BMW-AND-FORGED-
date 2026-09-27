@@ -703,18 +703,20 @@ export class CarConfiguratorEngine {
 
     // 7. Muscular Flared Wheel Arches (Fenders)
     // Front Fenders (flared wide for wide forged stance)
-    const fenderGeo = new THREE.BoxGeometry(0.18, 0.38, 0.95);
+    // They sit above the tyres (bottom edge at y 0.72, just over a 0.35 m tyre) as arch lips;
+    // centred on the wheels they used to hide the upper half of every wheel behind a flat slab.
+    const fenderGeo = new THREE.BoxGeometry(0.18, 0.16, 0.95);
     const fenderFL = new THREE.Mesh(fenderGeo, this.carBodyMaterial);
-    fenderFL.position.set(-0.95, carYBase + 0.35, 1.45);
+    fenderFL.position.set(-0.95, carYBase + 0.52, 1.45);
     const fenderFR = new THREE.Mesh(fenderGeo, this.carBodyMaterial);
-    fenderFR.position.set(0.95, carYBase + 0.35, 1.45);
+    fenderFR.position.set(0.95, carYBase + 0.52, 1.45);
 
     // Rear Fenders (extreme widebody hips for deep concave wheel fitment)
-    const rearFenderGeo = new THREE.BoxGeometry(0.22, 0.40, 1.05);
+    const rearFenderGeo = new THREE.BoxGeometry(0.22, 0.18, 1.05);
     const fenderRL = new THREE.Mesh(rearFenderGeo, this.carBodyMaterial);
-    fenderRL.position.set(-0.98, carYBase + 0.38, -1.35);
+    fenderRL.position.set(-0.98, carYBase + 0.53, -1.35);
     const fenderRR = new THREE.Mesh(rearFenderGeo, this.carBodyMaterial);
-    fenderRR.position.set(0.98, carYBase + 0.38, -1.35);
+    fenderRR.position.set(0.98, carYBase + 0.53, -1.35);
 
     mainBody.add(fenderFL, fenderFR, fenderRL, fenderRR);
 

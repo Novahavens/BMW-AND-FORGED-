@@ -16,7 +16,7 @@ update public.cars c set
   hide_mesh_match = v.hide_mesh_match
 from (values
   ('m2_g87', '/models/bmw-m2-competition.glb', 0, 4.58, 'm2g87undg_paint', '(^|[^a-z])(rimslaw|tire_01|calliper|caliper|brakedisc|rotor)'),
-  ('m3_g80', '/models/bmw-m3-competition.glb', 180, 4.79, 'merged_materials', '(^|[^a-z])(wheelcolor1mtl|lugs1mtl|calliperpaintrl1mtl)'),
+  ('m3_g80', '/models/bmw-m3-competition.glb', 180, 4.79, 'merged_materials', '(^|[^a-z])(wheelcolor1mtl|lugs1mtl|calliperpaintrl1mtl|union2mtl|stem1mtl|tyre1mtl)'),
   ('m3_touring_g81', '/models/bmw-m3-touring-g81.glb', 0, 4.80, '(^|\s)m3g81law$', 'rim_04|3_wheel|amdb11'),
   ('m4_g82', '/models/bmw-m4-competition.glb', 0, 4.79, 'zx1mtl|body151mtl|pillars1mtl|livery1mtl', '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)'),
   ('m5_g90', '/models/bmw-m5-g90-cc-by.glb', 0, 5.10, 'm5g90_body_paint', '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|calliper|rotor|lugs?)'),

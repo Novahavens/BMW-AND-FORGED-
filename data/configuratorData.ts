@@ -85,7 +85,7 @@ export const BMW_MODELS: CarModel[] = [
     modelRotationDeg: 180,
     modelLengthM: 4.79,
     paintMeshMatch: 'merged_materials',
-    hideMeshMatch: '(^|[^a-z])(wheelcolor1mtl|lugs1mtl|calliperpaintrl1mtl)'
+    hideMeshMatch: '(^|[^a-z])(wheelcolor1mtl|lugs1mtl|calliperpaintrl1mtl|union2mtl|stem1mtl|tyre1mtl)'
   },
   {
     id: 'm3_touring_g81',
@@ -283,7 +283,8 @@ export const BMW_MODELS: CarModel[] = [
   }
 ];
 
-// BMW South Africa factory paints (docs/bmw-factory-paints.md). Hex values are approximate swatch samples.
+// BMW South Africa factory paints (docs/bmw-factory-paints.md). Hex values are renderer-calibrated base
+// colours (matched to BMW's own car renders), not the raw swatch samples in the doc.
 // Mirrors supabase/migrations/20260927030000_factory_paints.sql; each car lists its own in paintIds.
 export const BMW_PAINTS: PaintColor[] = [
   { id: 'fire_red', name: 'Fire Red', code: 'C68', hex: '#934c50', type: 'Metallic', roughness: 0.18, metalness: 0.7, clearcoat: 0.95, clearcoatRoughness: 0.06 },

@@ -11,10 +11,16 @@
 --   codes keep working. New ids are the snake_case paint name without "BMW Individual", the "M" prefix,
 --   the finish word or the code. Where two codes share a name, the less common one gets its code:
 --   frozen_deep_grey (P7X) / frozen_deep_grey_c64 (C64), frozen_portimao_blue (X1E) / frozen_portimao_blue_c6r (C6R).
--- * Hex values are the doc's approximate swatch samples (lit swatches, so dark colours read light).
+-- * Hex values are CALIBRATED base colours for the studio renderer, not the doc's raw swatch samples
+--   (the swatches are lit chips, so dark and metallic paints read far too light: Black Sapphire samples
+--   #4C4C4C but is near-black on the car). Method: for the 23 codes with a BMW car render, the base
+--   colour was solved so our side-view door panel matches the door in BMW's render (CIEDE2000 < 1.2
+--   for all but Imola-style deep solids); the other codes use a correction fitted on those 23
+--   (swatch -> BMW-render lightness/chroma/hue model), then solved the same way. Details:
+--   docs/bmw-factory-paints.md, "Renderer calibration".
 -- * Type: Solid -> 'Uni', Metallic/pearl -> 'Metallic', Frozen -> 'Frozen'. PBR values are one set
---   per type, taken from the seed: Metallic like the seed metallics, Uni like Alpine White
---   (non-metallic), Frozen like Frozen Deep Grey (matte: high roughness, low clearcoat).
+--   per type: Uni is non-metallic under a gloss clearcoat, Metallic mixes 45 % metal under a gloss
+--   clearcoat, Frozen is matte (no clearcoat, rough).
 --
 -- GUESSED FINISHES: the doc marks these finishes "unverified", and neither the name nor the BMW
 -- category (ILACK = BMW Individual, which says nothing about the finish) settles it, so they are
