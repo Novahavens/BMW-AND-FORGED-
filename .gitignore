@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .scratch/
+
+# Throwaway helper scripts
+scripts/_*.mjs
