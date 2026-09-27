@@ -39,7 +39,7 @@ export class CarConfiguratorEngine {
   // Post-Processing Bloom Pipeline
   private composer!: EffectComposer;
   private bloomPass!: UnrealBloomPass;
-  private isBloomEnabled: boolean = false;
+  private isBloomEnabled: boolean = false; // UnrealBloomPass isn't alpha-aware; it breaks the transparent canvas
 
   // Car Hierarchy
   private carGroup: THREE.Group;
@@ -185,8 +185,8 @@ export class CarConfiguratorEngine {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.toneMapping = THREE.NeutralToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     this.container.appendChild(this.renderer.domElement);
 
     // Setup Post-Processing Specular Bloom Pass Pipeline
@@ -243,15 +243,16 @@ export class CarConfiguratorEngine {
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
 
-    // 2. Unreal Bloom Pass tuned specifically for metallic reflections on forged rims
-    // strength: 0.52 gives radiant specular bloom on high-metalness surfaces
-    // radius: 0.42 gives a tight, photorealistic automotive studio gleam around spoke bevels
-    // threshold: 0.82 selectively blooms high-intensity studio softbox & rim light glints
+    // 2. Unreal Bloom Pass: a restrained sheen on real hotspots (chrome, clearcoat highlights),
+    // tuned for the light studio backdrop so it doesn't just glow the whole car.
+    // strength: 0.30 - a sheen, not a glow
+    // radius: 0.32 - tight, so it reads as gloss rather than haze
+    // threshold: 0.92 - only the brightest specular hits bloom
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(width, height),
-      0.52, // strength
-      0.42, // radius
-      0.82  // threshold
+      0.30, // strength
+      0.32, // radius
+      0.92  // threshold
     );
     this.bloomPass.enabled = this.isBloomEnabled;
     this.composer.addPass(this.bloomPass);
@@ -459,21 +460,30 @@ export class CarConfiguratorEngine {
     }
 
     if (theme === 'studio_light') {
-      // Image-based light does the heavy lifting; these add a soft top key and gentle side sheen.
-      this.fillLight = new THREE.AmbientLight(0xffffff, 0.15);
+      // Image-based light (the HDRI) does most of the work; these sculpt the body so its
+      // curves read clearly instead of flattening into one grey gradient.
+      this.fillLight = new THREE.AmbientLight(0xffffff, 0.28);
       this.studioLightsGroup.add(this.fillLight);
 
-      this.softboxLight = new THREE.DirectionalLight(0xffffff, 1.1);
+      this.softboxLight = new THREE.DirectionalLight(0xfff7ec, 1.65);
       this.softboxLight.position.set(1.5, 8, 2.5);
       this.studioLightsGroup.add(this.softboxLight);
 
-      this.rimLight1 = new THREE.DirectionalLight(0xffffff, 0.55);
-      this.rimLight1.position.set(6, 2, 3);
+      // Warm key-side sheen
+      this.rimLight1 = new THREE.DirectionalLight(0xfff0dc, 1.1);
+      this.rimLight1.position.set(6, 2.2, 3);
       this.studioLightsGroup.add(this.rimLight1);
 
-      this.rimLight2 = new THREE.DirectionalLight(0xffffff, 0.45);
-      this.rimLight2.position.set(-6, 2, -3);
+      // Cool opposite-side sheen, so the two flanks separate instead of matching tone
+      this.rimLight2 = new THREE.DirectionalLight(0xdce8ff, 0.85);
+      this.rimLight2.position.set(-6, 1.8, -3);
       this.studioLightsGroup.add(this.rimLight2);
+
+      // Low, near-horizontal kicker along the sills/lower body so the lower half doesn't
+      // read as a flat black silhouette against the shadow.
+      const lowKicker = new THREE.DirectionalLight(0xffffff, 0.4);
+      lowKicker.position.set(-2, 0.6, 5);
+      this.studioLightsGroup.add(lowKicker);
     } else if (theme === 'studio_dark') {
       this.scene.background = new THREE.Color(0x0a0b0d);
       if (this.scene.fog) (this.scene.fog as THREE.FogExp2).color.set(0x0a0b0d);
@@ -934,6 +944,24 @@ export class CarConfiguratorEngine {
     }
   }
 
+  /**
+   * Some free/scraped GLBs omit metallicFactor/roughnessFactor on trim materials (window
+   * pillars, chrome, engine bay, lens covers). Per the glTF spec that defaults to fully
+   * metallic *and* fully rough, which under real environment lighting reads as flat, matte,
+   * "unfinished" plastic instead of the gloss it was clearly meant to have. Nudge only the
+   * exact-default combination (metalness 0, roughness ~1) down to a plausible gloss; anything
+   * with an authored value (a real matte fabric at 0.72, say) is left alone.
+   */
+  private static fixDefaultedMaterial(material: THREE.Material | null | undefined) {
+    const m = material as THREE.MeshStandardMaterial;
+    if (!m || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
+    if (m.metalness === 0 && m.roughness >= 0.98) {
+      m.roughness = 0.45;
+      m.envMapIntensity = 1;
+      m.needsUpdate = true;
+    }
+  }
+
   private mountCarModel(model: THREE.Object3D, car: CarModel) {
     // Orient: this scene drives along Z, so turn models authored along X first.
     model.updateMatrixWorld(true);
@@ -999,6 +1027,7 @@ export class CarConfiguratorEngine {
           : this.carBodyMaterial;
       } else {
         unmatched.push(mesh.name || '(unnamed)');
+        materials.forEach(CarConfiguratorEngine.fixDefaultedMaterial);
       }
     });
 
