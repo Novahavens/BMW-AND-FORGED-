@@ -44,7 +44,12 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
-    bodyStyle: 'sedan'
+    bodyStyle: 'sedan',
+    modelUrl: '/models/bmw-m3-competition.glb',
+    modelRotationDeg: 180,
+    modelLengthM: 4.79,
+    paintMeshMatch: 'merged_materials',
+    hideMeshMatch: '(^|[^a-z])(wheelcolor1mtl|lugs1mtl|calliperpaintrl1mtl)'
   },
   {
     id: 'm2_g87',
@@ -62,7 +67,11 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
-    bodyStyle: 'coupe'
+    bodyStyle: 'coupe',
+    modelUrl: '/models/bmw-m2-competition.glb',
+    modelLengthM: 4.58,
+    paintMeshMatch: 'm2g87undg_paint',
+    hideMeshMatch: '(^|[^a-z])(rimslaw|tire_01|calliper|caliper|brakedisc|rotor)'
   },
   {
     id: 'm5_g90',

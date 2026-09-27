@@ -132,7 +132,7 @@ export class CarConfiguratorEngine {
 
   // Studio extras
   static HDRI_URL = '/env/studio_small_09_1k.hdr';
-  static DEFAULT_HIDE = '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)';
+  static DEFAULT_HIDE = '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|calliper|rotor|lugs?)';
   private isDisposed = false;
   private contactShadow: {
     group: THREE.Group;
