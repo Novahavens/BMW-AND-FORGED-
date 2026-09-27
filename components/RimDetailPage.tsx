@@ -4,10 +4,12 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Car, Rotate3d, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Car, Rotate3d } from 'lucide-react';
 import { CarConfiguratorEngine } from '../services/CarConfiguratorEngine';
 import { WheelDesign, WheelFinish } from '../types';
-import { formatPrice, nearestRimSize, rimPrice, rimSizes } from '../services/pricing';
+import { nearestRimSize, rimPrice, rimSizes } from '../services/pricing';
+import { Region, formatMoney } from '../config/brand';
+import { Button, Eyebrow, FinishChip, IconButton, cx } from './journey/ui';
 
 interface RimDetailPageProps {
   wheels: WheelDesign[];
@@ -15,6 +17,7 @@ interface RimDetailPageProps {
   wheelId: string;
   initialFinishId?: string;
   initialSize?: string;
+  region: Region;
   onBack: () => void;
   onOpenRim: (wheelId: string) => void;
   /** Puts this rim, finish and size on the car in the studio. */
@@ -27,6 +30,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   wheelId,
   initialFinishId,
   initialSize,
+  region,
   onBack,
   onOpenRim,
   onConfigure
@@ -78,115 +82,113 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
 
   if (!wheel) {
     return (
-      <div className="absolute inset-0 bg-black flex items-center justify-center text-neutral-400 text-sm">
-        Rim not found.
-        <button onClick={onBack} className="ml-3 text-[#FF5500]">Back</button>
+      <div className="absolute inset-0 bg-studio flex items-center justify-center gap-4 text-mute text-sm">
+        Wheel not found.
+        <Button variant="secondary" size="sm" onClick={onBack}>Back</Button>
       </div>
     );
   }
 
   const prev = wheels[(index - 1 + wheels.length) % wheels.length];
   const next = wheels[(index + 1) % wheels.length];
+  const money = (usd: number) => formatMoney(usd, region);
 
   return (
-    <div className="absolute inset-0 bg-[#0a0b0d] text-neutral-200 flex flex-col md:flex-row select-none">
-      {/* 3D turntable */}
-      <div className="relative flex-1 min-h-[50vh]">
+    <div className="absolute inset-0 bg-studio text-ink flex flex-col md:flex-row select-none">
+      {/* 360° turntable */}
+      <div className="relative flex-1 min-h-[48vh]">
         <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
         {!ready && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black">
-            <Loader2 className="w-8 h-8 animate-spin text-[#FF5500]" />
+          <div className="absolute inset-0 flex items-center justify-center bg-studio">
+            <div className="h-10 w-10 rounded-full border border-ink/15 border-t-ink animate-spin" />
           </div>
         )}
-        <button
-          onClick={onBack}
-          className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 rounded-lg px-3 py-2 text-xs uppercase tracking-widest hover:text-white"
-        >
-          <ArrowLeft className="w-4 h-4" /> Studio
-        </button>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <button onClick={() => onOpenRim(prev.id)} className="bg-black/80 border border-white/10 rounded-lg p-2 hover:border-white/30" title={prev.name}>
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => { const v = !autoRotate; setAutoRotate(v); engineRef.current?.setAutoRotate(v); }}
-            className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-xs ${autoRotate ? 'border-[#FF5500] text-[#FF5500] bg-[#FF5500]/10' : 'border-white/10 bg-black/80'}`}
-          >
-            <Rotate3d className="w-4 h-4" /> Rotate
-          </button>
-          <button onClick={() => onOpenRim(next.id)} className="bg-black/80 border border-white/10 rounded-lg p-2 hover:border-white/30" title={next.name}>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+          <Button variant="light" size="sm" onClick={onBack} className="pl-3">
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.8} /> Back to your build
+          </Button>
         </div>
-        <p className="absolute bottom-16 left-1/2 -translate-x-1/2 text-[11px] text-neutral-500 whitespace-nowrap">
-          Drag to rotate • Scroll to zoom
-        </p>
+        <div className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 hidden sm:block">
+          <Eyebrow className="tracking-[0.34em]">360° view</Eyebrow>
+        </div>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-1 rounded-full bg-white/85 backdrop-blur p-1 ring-1 ring-line shadow-float">
+            <IconButton label={`Previous: ${prev.name}`} onClick={() => onOpenRim(prev.id)}>
+              <ChevronLeft className="h-4 w-4" />
+            </IconButton>
+            <button
+              onClick={() => { const v = !autoRotate; setAutoRotate(v); engineRef.current?.setAutoRotate(v); }}
+              className={cx('flex h-10 items-center gap-2 rounded-full px-4 text-[10.5px] font-semibold uppercase tracking-[0.14em] transition', autoRotate ? 'bg-ink text-white' : 'text-ink hover:bg-ink/[0.05]')}
+            >
+              <Rotate3d className="h-4 w-4" strokeWidth={1.7} /> Rotate
+            </button>
+            <IconButton label={`Next: ${next.name}`} onClick={() => onOpenRim(next.id)}>
+              <ChevronRight className="h-4 w-4" />
+            </IconButton>
+          </div>
+          <p className="text-[11px] text-mute whitespace-nowrap">Drag to rotate · Scroll to zoom</p>
+        </div>
       </div>
 
       {/* Details */}
-      <aside className="w-full md:w-[400px] shrink-0 border-t md:border-t-0 md:border-l border-white/10 bg-black overflow-y-auto p-6 space-y-6">
-        <div>
-          <div className="text-[11px] text-[#FF5500] font-bold tracking-widest uppercase">{wheel.code}</div>
-          <h1 className="text-2xl font-extrabold text-white mt-1">{wheel.name}</h1>
-          <p className="text-sm text-neutral-400 mt-1">{wheel.subtitle}</p>
+      <aside className="w-full md:w-[400px] shrink-0 bg-white md:border-l border-line overflow-y-auto px-6 sm:px-7 py-7 space-y-7 shadow-panel">
+        <div key={wheel.id} className="animate-rise">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-bronze">{wheel.code}</div>
+          <h1 className="mt-2 font-display text-[26px] font-extrabold tracking-[-0.02em]">{wheel.name}</h1>
+          <p className="mt-1 text-[13px] text-mute">{wheel.subtitle}</p>
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-widest text-neutral-400 mb-2">Colour: <span className="text-white">{finish?.name}</span></div>
-          <div className="flex flex-wrap gap-2">
+          <Eyebrow className="mb-3">Finish · <span className="text-ink">{finish?.name}</span></Eyebrow>
+          <div className="flex flex-wrap gap-2.5">
             {availableFinishes.map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFinish(f)}
                 title={f.name}
-                className={`w-10 h-10 rounded-full border-2 ${finish?.id === f.id ? 'border-[#FF5500] scale-110' : 'border-white/15 hover:border-white/40'} transition-all`}
-                style={{ background: `radial-gradient(circle at 35% 30%, #ffffffaa, ${f.hex} 45%, #000 120%)` }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-xs uppercase tracking-widest text-neutral-400 mb-2">Size</div>
-          <div className="grid grid-cols-4 gap-2">
-            {rimSizes(wheel).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSize(s)}
-                className={`rounded-lg border py-2 text-sm font-bold ${size === s ? 'bg-[#FF5500] text-black border-[#FF5500]' : 'border-white/10 hover:border-white/30'}`}
+                className={cx('rounded-full p-[3px] transition-all duration-300', finish?.id === f.id ? 'ring-[1.5px] ring-ink' : 'ring-1 ring-transparent hover:ring-line')}
               >
-                {s}
-                <span className={`block text-[10px] font-normal ${size === s ? 'text-black/70' : 'text-neutral-500'}`}>
-                  {formatPrice(rimPrice(wheel, s))}
-                </span>
+                <FinishChip finish={f} size={40} />
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex items-end justify-between border-y border-white/10 py-4">
-          <div>
-            <div className="text-[11px] uppercase tracking-widest text-neutral-500">Set of 4</div>
-            <div className="text-2xl font-extrabold text-white">{formatPrice(rimPrice(wheel, size))}</div>
+        <div>
+          <Eyebrow className="mb-3">Size</Eyebrow>
+          <div className="grid grid-cols-4 gap-2">
+            {rimSizes(wheel).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSize(s)}
+                className={cx('rounded-xl py-2.5 ring-1 transition-all duration-300', size === s ? 'bg-ink text-white ring-ink' : 'ring-line hover:ring-ink/30')}
+              >
+                <span className="block font-display text-[15px] font-extrabold">{s}</span>
+              </button>
+            ))}
           </div>
-          <div className="text-right text-xs text-neutral-400">
+        </div>
+
+        <div className="flex items-end justify-between border-y border-line py-5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">Set of four</div>
+            <div className="mt-1 font-display text-[26px] font-extrabold tabular-nums">{money(rimPrice(wheel, size))}</div>
+          </div>
+          <div className="text-right text-[12px] text-mute">
             {wheel.weightFrontKg} kg front<br />{wheel.weightRearKg} kg rear
           </div>
         </div>
 
-        <button
-          onClick={() => finish && onConfigure(wheel, finish, size)}
-          className="w-full flex items-center justify-center gap-2 bg-[#FF5500] hover:bg-[#FF6600] text-black font-bold text-sm rounded-xl py-3"
-        >
-          <Car className="w-4 h-4" /> See it on my car
-        </button>
+        <Button size="lg" className="w-full" onClick={() => finish && onConfigure(wheel, finish, size)} icon={<Car className="h-4 w-4" strokeWidth={1.7} />}>
+          See it on my car
+        </Button>
 
-        {wheel.description && <p className="text-sm text-neutral-300 leading-relaxed">{wheel.description}</p>}
+        {wheel.description && <p className="text-[14px] leading-relaxed text-mute">{wheel.description}</p>}
         {wheel.highlights.length > 0 && (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {wheel.highlights.map((h) => (
-              <li key={h} className="text-sm text-neutral-400 flex gap-2">
-                <span className="text-[#FF5500]">•</span> {h}
+              <li key={h} className="flex gap-3 text-[13px]">
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-bronze" /> {h}
               </li>
             ))}
           </ul>

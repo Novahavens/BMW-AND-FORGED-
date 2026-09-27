@@ -10,16 +10,14 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.29.1",
     "@supabase/supabase-js": "^2.117.0",
-    "canvas-confetti": "^1.9.4",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.181.1"
   },
   "devDependencies": {
-    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.14.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.0.0",

@@ -1595,8 +1595,11 @@ export class CarConfiguratorEngine {
   // CAMERA VIEW PRESETS (Aston Martin style)
   // ----------------------------------------------------
   public setCameraPreset(view: CameraViewPreset, opts: { instant?: boolean } = {}) {
-    // Whole-car views back off on narrow (portrait) screens so the car always fits.
-    const fit = THREE.MathUtils.clamp(1.55 / Math.max(this.camera.aspect, 0.3), 1, 2.4);
+    // Whole-car views back off on narrow screens (or when UI covers part of it) so the car always fits.
+    const w = this.container.clientWidth || 1;
+    const h = this.container.clientHeight || 1;
+    const visibleAspect = Math.max(w - Math.abs(this.viewInset.right), 1) / Math.max(h - this.viewInset.bottom, 1);
+    const fit = THREE.MathUtils.clamp(1.78 / Math.max(visibleAspect, 0.3), 1, 2.6);
     switch (view) {
       case 'showroom':
         this.targetLookAt.set(0, 0.55, 0);
@@ -1625,7 +1628,7 @@ export class CarConfiguratorEngine {
         const wheel = this.wheelAssemblies.find((a) => a.isRight && a.isFront === isFront);
         const c = wheel ? wheel.group.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0.92, 0.35, isFront ? 1.45 : -1.38);
         const s = wheel ? wheel.group.scale.x : 1;
-        const near = THREE.MathUtils.clamp(1.25 / Math.max(this.camera.aspect, 0.3), 1, 2.2);
+        const near = THREE.MathUtils.clamp(1.25 / Math.max(visibleAspect, 0.3), 1, 2.2);
         this.targetLookAt.copy(c);
         this.targetCameraPos.set(c.x + 1.55 * s * near, c.y + 0.16, c.z + (isFront ? 0.55 : 0.3) * s * near);
         break;
@@ -1673,7 +1676,7 @@ export class CarConfiguratorEngine {
    * a bottom sheet). Pixels in CSS units; animates.
    */
   public setViewInset(right: number, bottom = 0) {
-    this.viewInset = { right: Math.max(0, right), bottom: Math.max(0, bottom) };
+    this.viewInset = { right, bottom: Math.max(0, bottom) }; // negative right = shift the car right
   }
 
   private applyViewInset(delta: number) {
@@ -1683,7 +1686,7 @@ export class CarConfiguratorEngine {
     cur.bottom += (this.viewInset.bottom - cur.bottom) * k;
     const w = this.container.clientWidth || 1;
     const h = this.container.clientHeight || 1;
-    if (Math.abs(cur.right) < 0.5 && Math.abs(cur.bottom) < 0.5) {
+    if (Math.abs(cur.right) < 0.5 && Math.abs(cur.bottom) < 0.5 && Math.abs(this.viewInset.right) < 0.5 && this.viewInset.bottom < 0.5) {
       if (this.camera.view?.enabled) this.camera.clearViewOffset();
       return;
     }
@@ -1714,8 +1717,9 @@ export class CarConfiguratorEngine {
       damping: this.cameraDamping,
       zoom: { ...this.zoomRange }
     };
-    const hadOffset = !!this.camera.view?.enabled;
-    if (hadOffset) this.camera.clearViewOffset();
+    const savedInset = { ...this.viewInset };
+    this.viewInset = { right: 0, bottom: 0 }; // stills are framed for the full image, not around the UI
+    if (this.camera.view?.enabled) this.camera.clearViewOffset();
     if (this.shadowFrames > 0) this.renderContactShadow();
 
     const src = this.renderer.domElement;
@@ -1742,6 +1746,7 @@ export class CarConfiguratorEngine {
     this.targetCameraPos.copy(saved.targetPos);
     this.cameraDamping = saved.damping;
     this.zoomRange = saved.zoom;
+    this.viewInset = savedInset;
     this.currentInset = { right: 0, bottom: 0 }; // re-applied smoothly on the next frame
     this.updateCameraTransform();
     return shots;
@@ -1863,7 +1868,7 @@ export class CarConfiguratorEngine {
     this.updateCameraTransform();
     this.applyViewInset(Math.min(delta, 0.1));
 
-    this.stepDrive(Math.min(delta, 0.05));
+    this.stepDrive(Math.min(delta, 0.1));
     if (this.shadowFrames > 0) {
       this.shadowFrames--;
       this.renderContactShadow();
