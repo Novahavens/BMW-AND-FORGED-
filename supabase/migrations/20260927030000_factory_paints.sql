@@ -58,70 +58,70 @@ alter table public.cars add constraint cars_body_style_check
 -- Paints
 -- ---------------------------------------------------------------------------------------------
 insert into public.paints (id, name, code, hex, type, roughness, metalness, clearcoat, clearcoat_roughness, sort_order, active) values
-  ('fire_red', 'Fire Red', 'C68', '#934c50', 'Metallic', 0.18, 0.7, 0.95, 0.06, 0, true),
-  ('skyscraper_grey', 'Skyscraper Grey', 'C4W', '#999e9d', 'Metallic', 0.18, 0.7, 0.95, 0.06, 1, true),
-  ('brooklyn_grey', 'Brooklyn Grey', 'C4P', '#b6bbbb', 'Metallic', 0.18, 0.7, 0.95, 0.06, 2, true), -- existing id
-  ('black_sapphire', 'Black Sapphire', '475', '#4c4c4c', 'Metallic', 0.18, 0.7, 0.95, 0.06, 3, true), -- existing id
-  ('portimao_blue', 'Portimao Blue', 'C31', '#5b729f', 'Metallic', 0.18, 0.7, 0.95, 0.06, 4, true),
-  ('zandvoort_blue', 'Zandvoort Blue', 'C6E', '#a1c1e2', 'Uni', 0.2, 0.15, 0.9, 0.1, 5, true),
-  ('sao_paulo_yellow', 'São Paulo Yellow', 'C4H', '#c7c962', 'Uni', 0.2, 0.15, 0.9, 0.1, 6, true), -- existing id
-  ('alpine_white', 'Alpine White III', '300', '#f4f4f4', 'Uni', 0.2, 0.15, 0.9, 0.1, 7, true), -- existing id
-  ('frozen_portimao_blue_c6r', 'Frozen Portimao Blue', 'C6R', '#41507e', 'Frozen', 0.58, 0.35, 0.25, 0.45, 8, true),
-  ('frozen_pure_grey', 'Frozen Pure Grey', 'C5A', '#919898', 'Frozen', 0.58, 0.35, 0.25, 0.45, 9, true),
-  ('java_green', 'Java Green', 'P7V', '#9fb982', 'Metallic', 0.18, 0.7, 0.95, 0.06, 10, true), -- finish guessed
-  ('grigio_telesto', 'Grigio Telesto', 'P6M', '#7d7e7a', 'Metallic', 0.18, 0.7, 0.95, 0.06, 11, true),
-  ('twilight_purple', 'Twilight Purple', 'P28', '#815c78', 'Metallic', 0.18, 0.7, 0.95, 0.06, 12, true), -- finish guessed
-  ('voodoo_blue', 'Voodoo Blue', 'P7L', '#888888', 'Metallic', 0.18, 0.7, 0.95, 0.06, 13, false), -- finish guessed, no hex in doc: placeholder, inactive
-  ('thundernight', 'Thundernight', 'C56', '#5f4c65', 'Metallic', 0.18, 0.7, 0.95, 0.06, 14, true),
-  ('storm_bay', 'Storm Bay', 'C3N', '#838b93', 'Metallic', 0.18, 0.7, 0.95, 0.06, 15, true),
-  ('isle_of_man_green', 'Isle of Man Green', 'C4G', '#367462', 'Metallic', 0.18, 0.7, 0.95, 0.06, 16, true), -- existing id
-  ('toronto_red', 'Toronto Red', 'C3G', '#cf5247', 'Metallic', 0.18, 0.7, 0.95, 0.06, 17, true), -- existing id
-  ('aventurine_red_iii', 'Aventurine Red III', 'C57', '#804246', 'Metallic', 0.18, 0.7, 0.95, 0.06, 18, true),
-  ('tanzanite_blue_ii', 'Tanzanite Blue II', 'C3Z', '#47628c', 'Metallic', 0.18, 0.7, 0.95, 0.06, 19, true),
-  ('dravit_grey', 'Dravit Grey', 'C36', '#707071', 'Metallic', 0.18, 0.7, 0.95, 0.06, 20, true),
-  ('san_marino_blue', 'San Marino Blue', 'B51', '#404d77', 'Metallic', 0.18, 0.7, 0.95, 0.06, 21, true), -- finish guessed
-  ('wildberry', 'Wildberry', 'T09', '#835761', 'Metallic', 0.18, 0.7, 0.95, 0.06, 22, true),
-  ('ruby_black', 'Ruby Black', 'X03', '#494142', 'Metallic', 0.18, 0.7, 0.95, 0.06, 23, true),
-  ('frozen_deep_green', 'Frozen Deep Green', 'P80', '#78816f', 'Frozen', 0.58, 0.35, 0.25, 0.45, 24, true),
-  ('frozen_dark_grey_ii', 'Frozen Dark Grey II', 'P79', '#606465', 'Frozen', 0.58, 0.35, 0.25, 0.45, 25, true),
-  ('fire_orange_iii', 'Fire Orange III', 'P7E', '#d27e44', 'Uni', 0.2, 0.15, 0.9, 0.1, 26, true),
-  ('frozen_black', 'Frozen Black', 'U91', '#4f4f4f', 'Frozen', 0.58, 0.35, 0.25, 0.45, 27, true),
-  ('thunder', 'Thunder', 'P6L', '#656c6f', 'Metallic', 0.18, 0.7, 0.95, 0.06, 28, true),
-  ('mineral_white', 'Mineral White', 'A96', '#ebeae9', 'Metallic', 0.18, 0.7, 0.95, 0.06, 29, true),
-  ('riviera_blue', 'Riviera Blue', 'P5C', '#5abadb', 'Metallic', 0.18, 0.7, 0.95, 0.06, 30, true), -- finish guessed
-  ('marina_bay_blue', 'Marina Bay Blue', 'C1K', '#4f629d', 'Metallic', 0.18, 0.7, 0.95, 0.06, 31, true), -- existing id
-  ('mint_green', 'Mint Green', 'W97', '#81bfae', 'Metallic', 0.18, 0.7, 0.95, 0.06, 32, true), -- finish guessed
-  ('sepia_iii', 'Sepia III', 'S0N', '#7c7879', 'Metallic', 0.18, 0.7, 0.95, 0.06, 33, true),
-  ('frozen_tanzanite_blue', 'Frozen Tanzanite Blue', 'X1G', '#333f6c', 'Frozen', 0.58, 0.35, 0.25, 0.45, 34, true),
-  ('frozen_portimao_blue', 'Frozen Portimao Blue', 'X1E', '#41507e', 'Frozen', 0.58, 0.35, 0.25, 0.45, 35, true),
-  ('frozen_pure_grey_ii', 'Frozen Pure Grey II', 'X1F', '#aeb8ba', 'Frozen', 0.58, 0.35, 0.25, 0.45, 36, true),
-  ('anglesey_green', 'Anglesey Green', 'P9R', '#3e7460', 'Metallic', 0.18, 0.7, 0.95, 0.06, 37, true),
-  ('ruby_star', 'Ruby Star', 'P9L', '#a4537e', 'Metallic', 0.18, 0.7, 0.95, 0.06, 38, true), -- finish guessed
-  ('frozen_brilliant_white', 'Frozen Brilliant White', 'X16', '#e9e9e4', 'Frozen', 0.58, 0.35, 0.25, 0.45, 39, true),
-  ('frozen_preciosa_red', 'Frozen Preciosa Red', 'P9C', '#863e3a', 'Frozen', 0.58, 0.35, 0.25, 0.45, 40, true),
-  ('malachite_green_ii', 'Malachite Green II', 'P85', '#616d63', 'Metallic', 0.18, 0.7, 0.95, 0.06, 41, true), -- finish guessed
-  ('speed_yellow', 'Speed Yellow', 'U96', '#e2be60', 'Metallic', 0.18, 0.7, 0.95, 0.06, 42, true), -- finish guessed
-  ('brewster_green', 'Brewster Green', 'T42', '#49534c', 'Metallic', 0.18, 0.7, 0.95, 0.06, 43, true), -- finish guessed
-  ('urban_green_ii', 'Urban Green II', 'P9P', '#6d6f52', 'Uni', 0.2, 0.15, 0.9, 0.1, 44, true),
-  ('lagoon_green', 'Lagoon Green', '266', '#58868b', 'Metallic', 0.18, 0.7, 0.95, 0.06, 45, true), -- finish guessed
-  ('le_mans_blue', 'Le Mans Blue', '381', '#5681b4', 'Metallic', 0.18, 0.7, 0.95, 0.06, 46, true),
-  ('velvet_blue', 'Velvet Blue', '379', '#5b5a7f', 'Metallic', 0.18, 0.7, 0.95, 0.06, 47, true),
-  ('frozen_deep_grey', 'Frozen Deep Grey', 'P7X', '#5b5c5f', 'Frozen', 0.58, 0.35, 0.25, 0.45, 48, true), -- existing id
-  ('velvet_orchid_ii', 'Velvet Orchid II', 'L74', '#b29ca4', 'Metallic', 0.18, 0.7, 0.95, 0.06, 49, true),
-  ('carbon_black', 'Carbon Black', '416', '#393a41', 'Metallic', 0.18, 0.7, 0.95, 0.06, 50, true),
-  ('sophisto_grey_brilliant_effect', 'Sophisto Grey Brilliant Effect', 'A90', '#626366', 'Metallic', 0.18, 0.7, 0.95, 0.06, 51, true),
-  ('damast_red', 'Damast Red', 'B03', '#6f4e4d', 'Metallic', 0.18, 0.7, 0.95, 0.06, 52, true), -- finish guessed
-  ('imola_red', 'Imola Red', '405', '#903131', 'Uni', 0.2, 0.15, 0.9, 0.1, 53, true),
-  ('nardo_grey', 'Nardo Grey', 'P6K', '#9c9c9c', 'Metallic', 0.18, 0.7, 0.95, 0.06, 54, true), -- finish guessed
-  ('oxford_green_ii', 'Oxford Green II', '430', '#4c5c58', 'Metallic', 0.18, 0.7, 0.95, 0.06, 55, true),
-  ('bernina_grey_amber_effect', 'Bernina Grey Amber Effect', 'C3E', '#8a8a84', 'Metallic', 0.18, 0.7, 0.95, 0.06, 56, true),
-  ('frozen_deep_grey_c64', 'Frozen Deep Grey', 'C64', '#5a5a5a', 'Frozen', 0.58, 0.35, 0.25, 0.45, 57, true),
-  ('barcelona_blue', 'Barcelona Blue', 'C38', '#94a0a9', 'Metallic', 0.18, 0.7, 0.95, 0.06, 58, true),
-  ('arctic_race_blue', 'Arctic Race Blue', 'C4F', '#8095a2', 'Metallic', 0.18, 0.7, 0.95, 0.06, 59, true),
-  ('dune_grey', 'Dune Grey', 'C7A', '#bcbab0', 'Metallic', 0.18, 0.7, 0.95, 0.06, 60, true),
-  ('fire_red_ii', 'Fire Red II', '375', '#ad5245', 'Metallic', 0.18, 0.7, 0.95, 0.06, 61, true), -- finish guessed
-  ('sepang_bronze', 'Sepang Bronze', 'A32', '#999284', 'Metallic', 0.18, 0.7, 0.95, 0.06, 62, true),
-  ('aventurin_red', 'Aventurin Red', 'X15', '#65110f', 'Metallic', 0.18, 0.7, 0.95, 0.06, 63, true)
+  ('fire_red', 'Fire Red', 'C68', '#8c2226', 'Metallic', 0.32, 0.45, 1.0, 0.04, 0, true),
+  ('skyscraper_grey', 'Skyscraper Grey', 'C4W', '#555a5d', 'Metallic', 0.32, 0.45, 1.0, 0.04, 1, true),
+  ('brooklyn_grey', 'Brooklyn Grey', 'C4P', '#889296', 'Metallic', 0.32, 0.45, 1.0, 0.04, 2, true), -- existing id
+  ('black_sapphire', 'Black Sapphire', '475', '#151617', 'Metallic', 0.32, 0.45, 1.0, 0.04, 3, true), -- existing id
+  ('portimao_blue', 'Portimao Blue', 'C31', '#1e3066', 'Metallic', 0.32, 0.45, 1.0, 0.04, 4, true),
+  ('zandvoort_blue', 'Zandvoort Blue', 'C6E', '#547bad', 'Uni', 0.35, 0.0, 1.0, 0.04, 5, true),
+  ('sao_paulo_yellow', 'São Paulo Yellow', 'C4H', '#88a11c', 'Uni', 0.35, 0.0, 1.0, 0.04, 6, true), -- existing id
+  ('alpine_white', 'Alpine White III', '300', '#c8c8c9', 'Uni', 0.35, 0.0, 1.0, 0.04, 7, true), -- existing id
+  ('frozen_portimao_blue_c6r', 'Frozen Portimao Blue', 'C6R', '#0e2357', 'Frozen', 0.55, 0.4, 0.0, 0.5, 8, true),
+  ('frozen_pure_grey', 'Frozen Pure Grey', 'C5A', '#44494c', 'Frozen', 0.55, 0.4, 0.0, 0.5, 9, true),
+  ('java_green', 'Java Green', 'P7V', '#638954', 'Metallic', 0.32, 0.45, 1.0, 0.04, 10, true), -- finish guessed
+  ('grigio_telesto', 'Grigio Telesto', 'P6M', '#555858', 'Metallic', 0.32, 0.45, 1.0, 0.04, 11, true),
+  ('twilight_purple', 'Twilight Purple', 'P28', '#5a2c4d', 'Metallic', 0.32, 0.45, 1.0, 0.04, 12, true), -- finish guessed
+  ('voodoo_blue', 'Voodoo Blue', 'P7L', '#888888', 'Metallic', 0.32, 0.45, 1.0, 0.04, 13, false), -- finish guessed, no hex in doc: placeholder, inactive
+  ('thundernight', 'Thundernight', 'C56', '#3a1f3d', 'Metallic', 0.32, 0.45, 1.0, 0.04, 14, true),
+  ('storm_bay', 'Storm Bay', 'C3N', '#5f686e', 'Metallic', 0.32, 0.45, 1.0, 0.04, 15, true),
+  ('isle_of_man_green', 'Isle of Man Green', 'C4G', '#0f5444', 'Metallic', 0.32, 0.45, 1.0, 0.04, 16, true), -- existing id
+  ('toronto_red', 'Toronto Red', 'C3G', '#9d3307', 'Metallic', 0.32, 0.45, 1.0, 0.04, 17, true), -- existing id
+  ('aventurine_red_iii', 'Aventurine Red III', 'C57', '#630f1c', 'Metallic', 0.32, 0.45, 1.0, 0.04, 18, true),
+  ('tanzanite_blue_ii', 'Tanzanite Blue II', 'C3Z', '#151f32', 'Metallic', 0.32, 0.45, 1.0, 0.04, 19, true),
+  ('dravit_grey', 'Dravit Grey', 'C36', '#3c4041', 'Metallic', 0.32, 0.45, 1.0, 0.04, 20, true),
+  ('san_marino_blue', 'San Marino Blue', 'B51', '#092455', 'Metallic', 0.32, 0.45, 1.0, 0.04, 21, true), -- finish guessed
+  ('wildberry', 'Wildberry', 'T09', '#5a2834', 'Metallic', 0.32, 0.45, 1.0, 0.04, 22, true),
+  ('ruby_black', 'Ruby Black', 'X03', '#24181c', 'Metallic', 0.32, 0.45, 1.0, 0.04, 23, true),
+  ('frozen_deep_green', 'Frozen Deep Green', 'P80', '#3f4d3c', 'Frozen', 0.55, 0.4, 0.0, 0.5, 24, true),
+  ('frozen_dark_grey_ii', 'Frozen Dark Grey II', 'P79', '#2a3235', 'Frozen', 0.55, 0.4, 0.0, 0.5, 25, true),
+  ('fire_orange_iii', 'Fire Orange III', 'P7E', '#975305', 'Uni', 0.35, 0.0, 1.0, 0.04, 26, true),
+  ('frozen_black', 'Frozen Black', 'U91', '#18191b', 'Frozen', 0.55, 0.4, 0.0, 0.5, 27, true),
+  ('thunder', 'Thunder', 'P6L', '#373f43', 'Metallic', 0.32, 0.45, 1.0, 0.04, 28, true),
+  ('mineral_white', 'Mineral White', 'A96', '#ebeae9', 'Metallic', 0.32, 0.45, 1.0, 0.04, 29, true),
+  ('riviera_blue', 'Riviera Blue', 'P5C', '#028fc1', 'Metallic', 0.32, 0.45, 1.0, 0.04, 30, true), -- finish guessed
+  ('marina_bay_blue', 'Marina Bay Blue', 'C1K', '#1c4085', 'Metallic', 0.32, 0.45, 1.0, 0.04, 31, true), -- existing id
+  ('mint_green', 'Mint Green', 'W97', '#409084', 'Metallic', 0.32, 0.45, 1.0, 0.04, 32, true), -- finish guessed
+  ('sepia_iii', 'Sepia III', 'S0N', '#4b494b', 'Metallic', 0.32, 0.45, 1.0, 0.04, 33, true),
+  ('frozen_tanzanite_blue', 'Frozen Tanzanite Blue', 'X1G', '#02023f', 'Frozen', 0.55, 0.4, 0.0, 0.5, 34, true),
+  ('frozen_portimao_blue', 'Frozen Portimao Blue', 'X1E', '#0e2357', 'Frozen', 0.55, 0.4, 0.0, 0.5, 35, true),
+  ('frozen_pure_grey_ii', 'Frozen Pure Grey II', 'X1F', '#717e82', 'Frozen', 0.55, 0.4, 0.0, 0.5, 36, true),
+  ('anglesey_green', 'Anglesey Green', 'P9R', '#024b3a', 'Metallic', 0.32, 0.45, 1.0, 0.04, 37, true),
+  ('ruby_star', 'Ruby Star', 'P9L', '#75084c', 'Metallic', 0.32, 0.45, 1.0, 0.04, 38, true), -- finish guessed
+  ('frozen_brilliant_white', 'Frozen Brilliant White', 'X16', '#cbcec4', 'Frozen', 0.55, 0.4, 0.0, 0.5, 39, true),
+  ('frozen_preciosa_red', 'Frozen Preciosa Red', 'P9C', '#510202', 'Frozen', 0.55, 0.4, 0.0, 0.5, 40, true),
+  ('malachite_green_ii', 'Malachite Green II', 'P85', '#31433a', 'Metallic', 0.32, 0.45, 1.0, 0.04, 41, true), -- finish guessed
+  ('speed_yellow', 'Speed Yellow', 'U96', '#b09918', 'Metallic', 0.32, 0.45, 1.0, 0.04, 42, true), -- finish guessed
+  ('brewster_green', 'Brewster Green', 'T42', '#1a2c26', 'Metallic', 0.32, 0.45, 1.0, 0.04, 43, true), -- finish guessed
+  ('urban_green_ii', 'Urban Green II', 'P9P', '#485037', 'Uni', 0.35, 0.0, 1.0, 0.04, 44, true),
+  ('lagoon_green', 'Lagoon Green', '266', '#135861', 'Metallic', 0.32, 0.45, 1.0, 0.04, 45, true), -- finish guessed
+  ('le_mans_blue', 'Le Mans Blue', '381', '#1c5185', 'Metallic', 0.32, 0.45, 1.0, 0.04, 46, true),
+  ('velvet_blue', 'Velvet Blue', '379', '#342f58', 'Metallic', 0.32, 0.45, 1.0, 0.04, 47, true),
+  ('frozen_deep_grey', 'Frozen Deep Grey', 'P7X', '#25292f', 'Frozen', 0.55, 0.4, 0.0, 0.5, 48, true), -- existing id
+  ('velvet_orchid_ii', 'Velvet Orchid II', 'L74', '#806c72', 'Metallic', 0.32, 0.45, 1.0, 0.04, 49, true),
+  ('carbon_black', 'Carbon Black', '416', '#0e1b2b', 'Metallic', 0.32, 0.45, 1.0, 0.04, 50, true),
+  ('sophisto_grey_brilliant_effect', 'Sophisto Grey Brilliant Effect', 'A90', '#2b2c2b', 'Metallic', 0.32, 0.45, 1.0, 0.04, 51, true),
+  ('damast_red', 'Damast Red', 'B03', '#45231f', 'Metallic', 0.32, 0.45, 1.0, 0.04, 52, true), -- finish guessed
+  ('imola_red', 'Imola Red', '405', '#6e1b0d', 'Uni', 0.35, 0.0, 1.0, 0.04, 53, true),
+  ('nardo_grey', 'Nardo Grey', 'P6K', '#666869', 'Metallic', 0.32, 0.45, 1.0, 0.04, 54, true), -- finish guessed
+  ('oxford_green_ii', 'Oxford Green II', '430', '#1b3330', 'Metallic', 0.32, 0.45, 1.0, 0.04, 55, true),
+  ('bernina_grey_amber_effect', 'Bernina Grey Amber Effect', 'C3E', '#575852', 'Metallic', 0.32, 0.45, 1.0, 0.04, 56, true),
+  ('frozen_deep_grey_c64', 'Frozen Deep Grey', 'C64', '#242628', 'Frozen', 0.55, 0.4, 0.0, 0.5, 57, true),
+  ('barcelona_blue', 'Barcelona Blue', 'C38', '#636f78', 'Metallic', 0.32, 0.45, 1.0, 0.04, 58, true),
+  ('arctic_race_blue', 'Arctic Race Blue', 'C4F', '#30495b', 'Metallic', 0.32, 0.45, 1.0, 0.04, 59, true),
+  ('dune_grey', 'Dune Grey', 'C7A', '#adada6', 'Metallic', 0.32, 0.45, 1.0, 0.04, 60, true),
+  ('fire_red_ii', 'Fire Red II', '375', '#742002', 'Metallic', 0.32, 0.45, 1.0, 0.04, 61, true), -- finish guessed
+  ('sepang_bronze', 'Sepang Bronze', 'A32', '#636054', 'Metallic', 0.32, 0.45, 1.0, 0.04, 62, true),
+  ('aventurin_red', 'Aventurin Red', 'X15', '#530202', 'Metallic', 0.32, 0.45, 1.0, 0.04, 63, true)
 on conflict (id) do update set
   name = excluded.name,
   code = excluded.code,

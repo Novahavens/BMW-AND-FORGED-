@@ -472,12 +472,14 @@ export class CarConfiguratorEngine {
       this.fillLight = new THREE.AmbientLight(0xffffff, 0.28);
       this.studioLightsGroup.add(this.fillLight);
 
-      this.softboxLight = new THREE.DirectionalLight(0xfff7ec, 1.65);
+      // Near-neutral key and sheen: warmer lights tinted dark metallics (Black Sapphire, Carbon
+      // Black) bronze-brown on the flanks, which BMW's own renders never show.
+      this.softboxLight = new THREE.DirectionalLight(0xfffcf8, 1.65);
       this.softboxLight.position.set(1.5, 8, 2.5);
       this.studioLightsGroup.add(this.softboxLight);
 
-      // Warm key-side sheen
-      this.rimLight1 = new THREE.DirectionalLight(0xfff0dc, 1.1);
+      // Key-side sheen
+      this.rimLight1 = new THREE.DirectionalLight(0xfffaf4, 1.1);
       this.rimLight1.position.set(6, 2.2, 3);
       this.studioLightsGroup.add(this.rimLight1);
 
@@ -967,9 +969,15 @@ export class CarConfiguratorEngine {
     if (!m || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
     // See-through glass exported without a roughness value renders frosted (rough), which makes
     // the whole cabin read as a milky, washed-out block. Real glazing is a near-perfect mirror.
-    if ((m.transparent || m.opacity < 1) && /glass|window|windscreen|windshield/i.test(m.name) && m.roughness > 0.08) {
-      m.roughness = 0.04;
+    // Near-clear cabin glass also shows the light-grey interior of these uploads straight through,
+    // so the glasshouse reads milky; production BMW glazing is tinted, so give it a floor of tint.
+    if ((m.transparent || m.opacity < 1) && /glass|window|windscreen|windshield/i.test(m.name) && !/head|tail|lamp|light|lens/i.test(m.name)) {
+      if (m.roughness > 0.08) m.roughness = 0.04;
       m.metalness = 0;
+      if (m.opacity < 0.7) m.opacity = 0.7;
+      const hsl = { h: 0, s: 0, l: 0 };
+      m.color.getHSL(hsl);
+      if (hsl.l > 0.03) m.color.setHSL(hsl.h, hsl.s, 0.03);
       m.needsUpdate = true;
       return;
     }

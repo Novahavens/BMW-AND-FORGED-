@@ -130,8 +130,10 @@ export const ENTITIES: EntitySpec[] = [
       ...common
     ],
     defaults: {
-      id: '', name: '', code: '', hex: '#888888', type: 'Metallic', metalness: 0.7, roughness: 0.2,
-      clearcoat: 0.9, clearcoat_roughness: 0.1, sort_order: 99, active: true
+      // Calibrated Metallic finish (docs/bmw-factory-paints.md, "Renderer calibration"); Uni uses
+      // metalness 0 / roughness 0.35, Frozen roughness 0.55 / metalness 0.4 / clearcoat 0.
+      id: '', name: '', code: '', hex: '#888888', type: 'Metallic', metalness: 0.45, roughness: 0.32,
+      clearcoat: 1, clearcoat_roughness: 0.04, sort_order: 99, active: true
     }
   }
 ];

@@ -4,7 +4,7 @@
 - **Market: South Africa.** The primary source is the live BMW South Africa configurator (configure.bmw.co.za). Each paint there carries its option code (`P0` + paint code), its category (UNI = solid, MET = metallic, ILACK = BMW Individual paint) and its ZAR price. The bmw.co.za model overview pages were used as a cross-check.
 - **Fallback / comparison:** bmwusa.com model overview pages (model year 2027) were used for US comparison and US car renders. The M8 uses a US 2025 palette from carsdirect.com, with codes from paintscratch.com.
 - **Paint codes:** these are BMW's own codes, taken from the SA configurator (`data-node-code`, with the `P0` prefix removed), except where a row says otherwise.
-- **Reference hex:** every hex is **approximate**. It is sampled from BMW's own paint-swatch image in the SA configurator: the mean RGB of the central 40×40 px of the 140×140 JPEG from prod.cosy.bmw.cloud. The swatches are lit and shaded, so metallic and dark paints read lighter than a flat base colour (Black Sapphire samples as #4C4C4C, for example). Use these values as a starting point for the renderer, not as colour-managed paint data. The one exception is X15 (M8 only), whose hex comes from paintscratch.com's swatch.
+- **Reference hex:** every hex is **approximate**. It is sampled from BMW's own paint-swatch image in the SA configurator: the mean RGB of the central 40×40 px of the 140×140 JPEG from prod.cosy.bmw.cloud. The swatches are lit and shaded, so metallic and dark paints read lighter than a flat base colour (Black Sapphire samples as #4C4C4C, for example). Use these values as a starting point for the renderer, not as colour-managed paint data; the renderer uses calibrated values instead (see "Renderer calibration"). The one exception is X15 (M8 only), whose hex comes from paintscratch.com's swatch.
 - **Prices** are ZAR including VAT, as shown in the SA configurator on 2026-09-27. "Standard" means no extra cost. The SA site calls some colours "BMW Individual" even though they are extra-cost options in the normal list (for example Tanzanite Blue, Dravit Grey and Frozen colours at +R18 000 to +R75 000). ILACK paints are special-order BMW Individual colours.
 - **Finish** values come from BMW's category (UNI/MET) and the paint name ("Frozen" = matte, "Uni" = solid). Where BMW's label does not say, the finish is marked **unverified** rather than guessed.
 - **Render URLs** are in the appendix: one BMW swatch URL per paint, plus a BMW car render (the "in <paint>" colour-switch image) where bmw.co.za or bmwusa.com shows one for that paint.
@@ -401,6 +401,47 @@ One row per BMW paint code. "Cars" shows each model that offers the paint and ho
 ### Colours seen on bmwusa.com (MY2027) but not in any SA palette
 
 These are not in the master list, and their codes were not researched: **Vegas Red Metallic** (US M2, M235, M5, M5 Touring, X3 M50), **Dark Graphite Metallic** (US M5, M5 Touring, X3 M50) and **Cape York Green Metallic** (US M235). The US overview pages also show Thundernight Metallic (C56) on the M3 and M4 Convertible, and Arctic Race Blue (C4F) on the M4 Convertible. The US sites appear to be moving from Fire Red (C68) to Vegas Red on MY2027 cars.
+
+## Renderer calibration (2026-09-27)
+
+The swatch hex values above are lit 140×140 chips, so they are not usable as renderer base colours (dark and metallic paints come out far too light). `paints.hex` in the database and `data/configuratorData.ts` therefore hold **calibrated base colours** for the studio renderer (`services/CarConfiguratorEngine.ts`: studio HDRI, ACES tone mapping), found like this:
+
+1. **Ground truth.** For each paint with a BMW car render in the appendix, the door-panel colour was sampled from BMW's side-view render (a fixed box on the front door, outliers more than 12 ΔE76 from the median dropped, then averaged; median over all cars that show that paint).
+2. **Per-type finish.** One PBR set per type: Uni = non-metallic base under a gloss clearcoat (roughness 0.35, metalness 0, clearcoat 1 / 0.04); Metallic = roughness 0.32, metalness 0.45, clearcoat 1 / 0.04; Frozen = matte, roughness 0.55, metalness 0.4, no clearcoat. The old metallic set (metalness 0.7) could not get brighter than a mid grey on the door, so no base colour could match Mineral White or other light metallics.
+3. **Solve.** The M4 model was rendered side-on (the app's `side` preset) and the base colour iterated in linear RGB until our door matched BMW's door (CIEDE2000).
+4. **Swatch-only paints.** A correction was fitted on the 23 paints that have both a swatch and a render: swatch Lab → BMW-render Lab, with a lightness curve per finish group (Metallic: quadratic over 18 paints; Uni: linear over its 3; Frozen: the solid+frozen line over 5, because a 2-point frozen-only line turns Frozen Brilliant White grey), a chroma gain (×1.15 metallic, ×1.14 Uni, ×1.13 frozen) and a +6° hue shift. Its leave-one-out error is ΔE00 6.6 on average (max 14), so treat those paints as approximate. The predicted BMW colour was then solved to a base colour exactly as in step 3. Paints with the same name as a rendered one (Frozen Portimao Blue X1E = C6R) reuse its value.
+
+ΔE00 is ours vs BMW's door: *before* = raw swatch hex with the old per-type PBR, *after* = calibrated, measured with the final (neutralised) studio lights. Measured on the M4; the last column repeats the check on other cars' own models against that car's BMW render.
+
+| Code | Paint | Type | Swatch hex | Calibrated hex | ΔE before | ΔE after (M4) | Other models (before→after) |
+|---|---|---|---|---|---|---|---|
+| 300 | alpine_white | Uni | #f4f4f4 | #c8c8c9 | 1.71 | 0.47 | m5 4.0→2.8, x3m50 5.6→4.1 |
+| C4F | arctic_race_blue | Metallic | #8095a2 | #30495b | 12.16 | 1.38 | x3m50 15.3→3.6 |
+| C57 | aventurine_red_iii | Metallic | #804246 | #630f1c | 4.6 | 1.44 |  |
+| 475 | black_sapphire | Metallic | #4c4c4c | #151617 | 4.93 | 0.2 | m2 0.6→4.4, x3m50 5.4→1.8 |
+| C4P | brooklyn_grey | Metallic | #b6bbbb | #889296 | 8.38 | 1.5 | x3m50 4.6→4.9 |
+| 416 | carbon_black | Metallic | #393a41 | #0e1b2b | 4.55 | 0.85 | m5 4.6→1.8 |
+| C36 | dravit_grey | Metallic | #707071 | #3c4041 | 3.5 | 1.47 | x5m 5.0→1.1 |
+| C7A | dune_grey | Metallic | #bcbab0 | #adada6 | 15.16 | 1.49 |  |
+| C68 | fire_red | Metallic | #934c50 | #8c2226 | 10.24 | 0.74 | m2 12.2→3.1 |
+| C6R | frozen_portimao_blue_c6r | Frozen | #41507e | #0e2357 | 17.2 | 0.96 |  |
+| C5A | frozen_pure_grey | Frozen | #919898 | #44494c | 34.06 | 1.81 |  |
+| P6M | grigio_telesto | Metallic | #7d7e7a | #555858 | 2.78 | 1.4 |  |
+| C4G | isle_of_man_green | Metallic | #367462 | #0f5444 | 2.8 | 0.9 | m5 3.5→1.0 |
+| C1K | marina_bay_blue | Metallic | #4f629d | #1c4085 | 5.22 | 1.17 | m5 4.5→3.4 |
+| A96 | mineral_white | Metallic | #ebeae9 | #ebeae9 | 16.66 | 1.44 | x5m 14.2→1.0 |
+| C31 | portimao_blue | Metallic | #5b729f | #1e3066 | 8.91 | 0.93 |  |
+| C4H | sao_paulo_yellow | Uni | #c7c962 | #88a11c | 8.85 | 0.76 | m2 7.7→2.2 |
+| C4W | skyscraper_grey | Metallic | #999e9d | #555a5d | 7.54 | 1.0 |  |
+| A90 | sophisto_grey_brilliant_effect | Metallic | #626366 | #2b2c2b | 7.23 | 1.17 | x3m50 9.4→3.3 |
+| C3N | storm_bay | Metallic | #838b93 | #5f686e | 3.24 | 2.09 |  |
+| C3Z | tanzanite_blue_ii | Metallic | #47628c | #151f32 | 10.89 | 0.13 |  |
+| C3G | toronto_red | Metallic | #cf5247 | #9d3307 | 6.85 | 2.04 | x5m 4.8→4.5 |
+| C6E | zandvoort_blue | Uni | #a1c1e2 | #547bad | 14.3 | 0.77 | m2 13.1→2.8 |
+
+**Not verifiable against a BMW render** (swatch + correction only; ΔE is to the *predicted* colour, so it only shows the solve converged): anglesey_green (P9R), aventurin_red (X15), barcelona_blue (C38), bernina_grey_amber_effect (C3E), brewster_green (T42), damast_red (B03), fire_orange_iii (P7E), fire_red_ii (375), frozen_black (U91), frozen_brilliant_white (X16), frozen_dark_grey_ii (P79), frozen_deep_green (P80), frozen_deep_grey (P7X), frozen_deep_grey_c64 (C64), frozen_portimao_blue (X1E), frozen_preciosa_red (P9C), frozen_pure_grey_ii (X1F), frozen_tanzanite_blue (X1G), imola_red (405), java_green (P7V), lagoon_green (266), le_mans_blue (381), malachite_green_ii (P85), mint_green (W97), nardo_grey (P6K), oxford_green_ii (430), riviera_blue (P5C), ruby_black (X03), ruby_star (P9L), san_marino_blue (B51), sepang_bronze (A32), sepia_iii (S0N), speed_yellow (U96), thunder (P6L), thundernight (C56), twilight_purple (P28), urban_green_ii (P9P), velvet_blue (379), velvet_orchid_ii (L74), wildberry (T09).
+
+**Known limits:** very deep, saturated colours cannot be reached exactly because the clearcoat/frozen sheen puts a floor under the door brightness: Aventurin Red (X15, 11.3), Frozen Tanzanite Blue (X1G, 5.8), Frozen Preciosa Red (P9C, 6.1), Anglesey Green (P9R, 3.0). Voodoo Blue (P7L) still has no colour and stays inactive. The cross-model check shows ΔE 1–5 on other cars: body shape and panel angles change how much of the studio each door reflects, which a single base colour cannot cancel. BMW's own renders of one paint also differ by about that much between model pages (Black Sapphire's door samples #080808 on the M4 page, #1D1D1D on the M2 page).
 
 ## Appendix: BMW cosy image URLs, by car and paint code
 
