@@ -52,25 +52,28 @@ rim **GLB** if you have a real 3D model → set the finishes it's offered in and
 Save. See `docs/HANDOVER.md` §2b for image prep specifics (square crop, transparent gaps between
 spokes, 1024–2048px).
 
-**Automated (recommended for batches):** the n8n workflow "FORGED wheel pipeline (automated)" takes a
-Google Drive folder of front-on product shots plus a sheet named `wheels` and does everything:
+**Automated (recommended for batches):** put the photos (or a zip of them) and a sheet named
+`wheels` in one Google Drive folder, then run the n8n workflow "FORGED wheel pipeline (automated)".
+The live catalogue's sheet is
+[wheels](https://docs.google.com/spreadsheets/d/1OJJYaZsVSuJIgjnYkiSE55hBF7_l6y2o4dJH0SehOIM/edit)
+in the FORGED Drive folder; edit it like any spreadsheet.
 
 | Sheet column | Example | Notes |
 |---|---|---|
-| `file` | `gt3-front.jpg` | image file name in the folder (extension optional) |
-| `name` | `Monoblock GT3` | shown to customers |
-| `sizes` | `19\|20\|21` | separate values with `\|` |
-| `prices_zar` or `prices_usd` | `76000\|82000\|90000` | set of four, one per size |
+| `file` | `DSC08145.jpg` | photo file name in the folder (extension optional) |
+| `name` | `Zwartkops Branch` | shown to customers |
+| `code` | `FSA-02` | optional; becomes the wheel id (`forged_fsa_02`), keep it stable |
+| `sizes` | `19\|20\|21\|22` | separate values with `\|` |
+| `prices_zar` or `prices_usd` | `68000\|74000\|82000\|92000` | set of four, one per size |
 | `finishes` | `Liquid Metal\|Silver` | Liquid Metal, Bronze Matte, Black Gloss, Silver |
-| optional | `code`, `subtitle`, `description`, `highlights`, `weight_front_kg`, `weight_rear_kg` | AI writes the copy if blank |
+| optional | `subtitle`, `description`, `highlights` (split on `\|`), `style`, `skip` (`yes` = leave alone), `notes` | AI writes the copy if blank |
 
-Per image it makes a transparent rim-only cut-out (Riverflow 2.5 Pro via OpenRouter), has Gemini
-compare it with the original for design drift (one automatic retry), squares it to 2048px and posts it
-to the Supabase function `supabase/functions/ingest-wheel`. That function re-runs the app's own
-3D-spoke test (`validate.ts`, mirroring `services/rimExtrusion.ts`), uploads the PNG to `rim-images`
-and creates the wheel — **live** when every check passes, **hidden with reasons** otherwise. A
-`wheel-report.csv` lands in a "(processed)" folder. One-time setup: set the Supabase secret
-`INGEST_SECRET` and put the same value in the n8n Header Auth credential `x-ingest-secret`.
+Each photo is cut out (rim only, transparent gaps), then posted to the Supabase function
+`supabase/functions/ingest-wheel`. The function squares the rim to 2048px, converts it to the neutral
+grey the finishes are multiplied onto, re-runs the app's own 3D-spoke test, uploads it to
+`rim-images` and creates or updates the wheel: **live** when every check passes, **hidden with
+reasons** otherwise. Re-running a row updates that wheel; style, weights and spoke count set in
+`/admin` are kept. Full guide, setup and troubleshooting: [`docs/WHEEL_PIPELINE.md`](docs/WHEEL_PIPELINE.md).
 
 ### Adding a new car
 

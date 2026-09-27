@@ -209,6 +209,58 @@ export function traceRimShapes(image: CanvasImageSource & { width: number; heigh
  * Solid rim face: extruded along +Z (front face at z = 0), dished so the hub sits `dish` deeper
  * than the rim edge, then turned so the front faces +X (the wheel's outward axis).
  */
+/** Longest-edge bisection (in the face plane) of a non-indexed geometry, keeping UVs and groups. */
+function subdivideLongTriangles(geo: THREE.BufferGeometry, maxEdge: number) {
+  const pos = geo.attributes.position.array as ArrayLike<number>;
+  const uv = geo.attributes.uv.array as ArrayLike<number>;
+  const groups = geo.groups.length ? geo.groups : [{ start: 0, count: pos.length / 3, materialIndex: 0 }];
+  const outPos: number[] = [];
+  const outUv: number[] = [];
+  const outGroups: { start: number; count: number; materialIndex: number }[] = [];
+  const max2 = maxEdge * maxEdge;
+  type V = [number, number, number, number, number];
+  const vert = (i: number): V => [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2], uv[i * 2], uv[i * 2 + 1]];
+  const mid = (a: V, b: V): V => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2, (a[4] + b[4]) / 2];
+  const len2 = (a: V, b: V) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+  const emit = (a: V, b: V, c: V, depth: number) => {
+    const ab = len2(a, b), bc = len2(b, c), ca = len2(c, a);
+    const longest = Math.max(ab, bc, ca);
+    if (longest <= max2 || depth > 12) {
+      for (const v of [a, b, c]) {
+        outPos.push(v[0], v[1], v[2]);
+        outUv.push(v[3], v[4]);
+      }
+      return;
+    }
+    if (longest === ab) {
+      const m = mid(a, b);
+      emit(a, m, c, depth + 1);
+      emit(m, b, c, depth + 1);
+    } else if (longest === bc) {
+      const m = mid(b, c);
+      emit(a, b, m, depth + 1);
+      emit(a, m, c, depth + 1);
+    } else {
+      const m = mid(c, a);
+      emit(a, b, m, depth + 1);
+      emit(m, b, c, depth + 1);
+    }
+  };
+  for (const g of groups) {
+    const start = outPos.length / 3;
+    // Only the caps (group 0) span the dish; side walls follow the short outline edges already.
+    const limit = g.materialIndex === 0 ? 0 : 99;
+    for (let i = g.start; i < g.start + g.count; i += 3) emit(vert(i), vert(i + 1), vert(i + 2), limit);
+    outGroups.push({ start, count: outPos.length / 3 - start, materialIndex: g.materialIndex ?? 0 });
+  }
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(outPos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(outUv, 2));
+  // computeVertexNormals reuses an existing normal attribute, so a stale shorter one must go.
+  geo.deleteAttribute('normal');
+  geo.clearGroups();
+  outGroups.forEach((g) => geo.addGroup(g.start, g.count, g.materialIndex));
+}
+
 export function buildRimFaceGeometry(
   shapes: THREE.Shape[],
   opts: { radius: number; depth: number; dish: number; bevel?: number; curveSegments?: number }
@@ -240,6 +292,10 @@ export function buildRimFaceGeometry(
     bevelSegments: opts.bevel ? 3 : 2,
     UVGenerator: UVGenerator as unknown as THREE.UVGenerator
   });
+
+  // The cap triangulation has long hub-to-lip triangles; bending those into the dish leaves flat
+  // facets and hard creases, so split them until every edge is short enough to follow the curve.
+  subdivideLongTriangles(geo, radius * 0.09);
 
   // Front at z = 0, then dish: z drops linearly towards the hub
   const pos = geo.attributes.position as THREE.BufferAttribute;

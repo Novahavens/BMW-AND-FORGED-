@@ -145,24 +145,29 @@ Deno.serve(async (req) => {
   if (upErr) return json(500, { error: `upload failed: ${upErr.message}` });
   const imageUrl = supabase.storage.from('rim-images').getPublicUrl(path).data.publicUrl;
 
-  const { data: existing } = await supabase.from('wheels').select('id, sort_order').eq('id', id).maybeSingle();
+  const { data: existing } = await supabase
+    .from('wheels')
+    .select('id, sort_order, style, spoke_count, weight_front_kg, weight_rear_kg')
+    .eq('id', id)
+    .maybeSingle();
   let sortOrder = existing?.sort_order;
   if (sortOrder === undefined) {
     const { data: last } = await supabase.from('wheels').select('sort_order').order('sort_order', { ascending: false }).limit(1).maybeSingle();
     sortOrder = (last?.sort_order ?? -1) + 1;
   }
 
-  const front = Number(w.weight_front_kg) || 0;
-  const rear = Number(w.weight_rear_kg) || 0;
+  // Fields the sheet leaves blank keep what an admin set in /admin on an earlier run.
+  const front = Number(w.weight_front_kg) || Number(existing?.weight_front_kg) || 0;
+  const rear = Number(w.weight_rear_kg) || Number(existing?.weight_rear_kg) || 0;
   const validPrices = Object.values(priceBySize).filter((p) => p > 0);
   const row = {
     id,
     code: (w.code || name).toUpperCase(),
     name,
     subtitle: w.subtitle ?? '',
-    style: w.style ?? '',
+    style: w.style?.trim() || existing?.style || '',
     spoke_type: 'multi',
-    spoke_count: Math.max(1, Math.round(Number(w.spoke_count) || 10)),
+    spoke_count: Math.max(1, Math.round(Number(w.spoke_count) || Number(existing?.spoke_count) || 10)),
     weight_front_kg: front,
     weight_rear_kg: rear,
     weight_savings_kg: 0,

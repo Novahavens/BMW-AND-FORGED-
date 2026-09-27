@@ -154,22 +154,38 @@ export const FinishChip: React.FC<{ finish: Pick<WheelFinish, 'hex' | 'roughness
   />
 );
 
-/** Rim thumbnail: the uploaded front-on PNG, else the drawn preview. */
+/** Thumbnail tint for a finish: the 3D view multiplies the grey rim image by the finish colour, and so
+ *  does this, with a floor so a gloss-black wheel still shows its spokes without studio lighting. */
+const thumbTint = (hex?: string) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex ?? '');
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  const ch = [n >> 16, (n >> 8) & 255, n & 255].map((c) => Math.max(c, 0x48));
+  return `rgb(${ch.join(',')})`;
+};
+
+/** Rim thumbnail: the uploaded front-on PNG tinted by the finish, else the drawn preview. */
 export const RimThumb: React.FC<{ wheel: WheelDesign; finish?: WheelFinish; size?: number; className?: string }> = ({
   wheel,
   finish,
   size = 72,
   className
-}) =>
-  wheel.imageUrl ? (
-    <img
-      src={wheel.imageUrl}
-      alt=""
-      className={cx('object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.18)]', className)}
-      style={{ width: size, height: size }}
-    />
-  ) : (
-    <RimFaceSvg wheel={wheel} finishHex={finish?.hex} size={size} className={className} />
+}) => {
+  if (!wheel.imageUrl) return <RimFaceSvg wheel={wheel} finishHex={finish?.hex} size={size} className={className} />;
+  const tint = thumbTint(finish?.hex);
+  const mask = `url("${wheel.imageUrl}") center / contain no-repeat`;
+  return (
+    <div className={cx('relative drop-shadow-[0_6px_10px_rgba(0,0,0,0.18)]', className)} style={{ width: size, height: size }}>
+      <img src={wheel.imageUrl} alt="" className="h-full w-full object-contain" />
+      {tint && (
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{ backgroundColor: tint, mixBlendMode: 'multiply', mask, WebkitMask: mask }}
+        />
+      )}
+    </div>
   );
+};
 
 export const Divider: React.FC<{ className?: string }> = ({ className }) => <div className={cx('h-px bg-line', className)} />;

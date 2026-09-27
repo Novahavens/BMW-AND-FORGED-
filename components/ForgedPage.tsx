@@ -51,7 +51,13 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
           </p>
         </div>
         <div className="flex justify-center animate-rise delay-300">
-          {wheels[0] && (
+          {wheels[0]?.imageUrl ? (
+            <img
+              src={wheels[0].imageUrl}
+              alt={wheels[0].name}
+              className="h-[340px] w-[340px] max-w-full object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,0.22)]"
+            />
+          ) : wheels[0] && (
             <RimFaceSvg
               wheel={wheels[0]}
               finishHex={finishes[wheels[0].defaultVariant]?.hex}

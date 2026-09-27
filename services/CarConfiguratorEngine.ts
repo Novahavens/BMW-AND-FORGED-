@@ -72,6 +72,8 @@ export class CarConfiguratorEngine {
   // Materials Cache
   private carBodyMaterial!: THREE.MeshPhysicalMaterial;
   private wheelMaterial!: THREE.MeshPhysicalMaterial;
+  /** Bright neutral room reflections for the rims only; the studio HDRI is too dark behind the camera for chrome. */
+  private wheelEnvMap: THREE.Texture | null = null;
   private caliperMaterial!: THREE.MeshStandardMaterial;
   private brakeDiscMaterial!: THREE.MeshStandardMaterial;
   private tireMaterial!: THREE.MeshStandardMaterial;
@@ -581,6 +583,9 @@ export class CarConfiguratorEngine {
     const room = new RoomEnvironment();
     const roomTarget = pmrem.fromScene(room, 0.04);
     this.scene.environment = roomTarget.texture;
+    this.wheelEnvMap = roomTarget.texture;
+    this.wheelMaterial.envMap = this.wheelEnvMap;
+    this.wheelMaterial.needsUpdate = true;
     this.scene.environmentIntensity = 0.9;
     room.dispose?.();
 
@@ -593,7 +598,6 @@ export class CarConfiguratorEngine {
         this.scene.environment = envTarget.texture;
         this.scene.environmentIntensity = 1.0;
         this.scene.environmentRotation.set(0, Math.PI * 0.35, 0);
-        roomTarget.dispose();
         pmrem.dispose();
       })
       .catch((err) => {
@@ -1542,6 +1546,7 @@ export class CarConfiguratorEngine {
         metalness: this.wheelMaterial.metalness,
         roughness: this.wheelMaterial.roughness,
         clearcoat: this.wheelMaterial.clearcoat,
+        envMap: this.wheelMaterial.envMap,
         map: old?.map ?? null,
         normalMap: old?.normalMap ?? null
       });
@@ -1568,6 +1573,7 @@ export class CarConfiguratorEngine {
             roughness: this.wheelMaterial.roughness,
             clearcoat: this.wheelMaterial.clearcoat,
             color: this.wheelMaterial.color.clone(),
+            envMap: this.wheelMaterial.envMap,
             bumpMap: texture,
             bumpScale: 0.002
           });
@@ -1591,6 +1597,7 @@ export class CarConfiguratorEngine {
           roughness: this.wheelMaterial.roughness,
           clearcoat: this.wheelMaterial.clearcoat,
           color: this.wheelMaterial.color,
+          envMap: this.wheelMaterial.envMap,
           bumpMap: texture,
           bumpScale: config.bumpScale || 0.012,
           side: THREE.DoubleSide

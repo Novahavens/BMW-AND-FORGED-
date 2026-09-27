@@ -5,10 +5,11 @@
 // photo's shading and machining while letting Liquid Metal, Bronze, Black and Silver read correctly.
 
 export const OUTPUT_SIDE = 2048;
-// Grey range the shading is mapped into: dark enough for depth, light enough for chrome and silver.
-const GREY_LOW = 70;
-const GREY_HIGH = 238;
-const TARGET_MID = 0.62;
+// Grey range the shading is mapped into. The texture is sRGB and doubles as the metal reflectance, so
+// it must stay light (median ~88% sRGB, ~75% linear) or Liquid Metal and Silver render near black.
+const GREY_LOW = 120;
+const GREY_HIGH = 255;
+const TARGET_MID = 0.78;
 
 export interface Normalized {
   rgba: Uint8Array;
