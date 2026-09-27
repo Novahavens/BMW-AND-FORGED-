@@ -135,6 +135,7 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
   const [entity, setEntity] = useState<EntitySpec>(ENTITIES[0]);
   const [rows, setRows] = useState<Row[]>([]);
   const [finishIds, setFinishIds] = useState<string[]>([]);
+  const [paintOptions, setPaintOptions] = useState<PickOption[]>([]);
   const [draft, setDraft] = useState<Row | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -144,9 +145,20 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
   const load = useCallback(async (spec: EntitySpec) => {
     setLoading(true);
     try {
-      const [data, finishes] = await Promise.all([listRows(spec.table), listRows('wheel_finishes')]);
+      const [data, finishes, paints] = await Promise.all([
+        listRows(spec.table),
+        listRows('wheel_finishes'),
+        spec.table === 'cars' ? listRows('paints') : Promise.resolve([])
+      ]);
       setRows(data);
       setFinishIds(finishes.map((f) => String(f.id)));
+      setPaintOptions(
+        paints.map((p) => ({
+          id: String(p.id),
+          label: `${p.name} (${p.code})${p.active === false ? ' · hidden' : ''}`,
+          swatch: typeof p.hex === 'string' ? p.hex : undefined
+        }))
+      );
     } catch (e) {
       setMessage({ kind: 'error', text: (e as Error).message });
     }
@@ -273,6 +285,7 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
                   value={draft[field.key]}
                   folder={String(draft.id || 'unsorted')}
                   finishIds={finishIds}
+                  paintOptions={paintOptions}
                   readOnly={field.key === 'id' && !isNew}
                   onError={(text) => setMessage({ kind: 'error', text })}
                   onChange={(v) => setDraft((d) => (d ? { ...d, [field.key]: v } : d))}
@@ -307,12 +320,40 @@ interface FieldInputProps {
   value: unknown;
   folder: string;
   finishIds: string[];
+  paintOptions: PickOption[];
   readOnly: boolean;
   onChange: (v: unknown) => void;
   onError: (text: string) => void;
 }
 
-const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds, readOnly, onChange, onError }) => {
+interface PickOption {
+  id: string;
+  label: string;
+  swatch?: string;
+}
+
+/** Tick-box multi-select over ids (wheel finishes, car paints); keeps the order things were ticked in. */
+const MultiPick: React.FC<{ options: PickOption[]; value: unknown; onChange: (v: string[]) => void }> = ({ options, value, onChange }) => {
+  const selected = Array.isArray(value) ? (value as string[]) : [];
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => (
+        <label key={o.id} className="flex items-center gap-1.5 text-xs border border-white/10 rounded px-2 py-1">
+          <input
+            type="checkbox"
+            className="accent-[#FF5500]"
+            checked={selected.includes(o.id)}
+            onChange={(e) => onChange(e.target.checked ? [...selected, o.id] : selected.filter((s) => s !== o.id))}
+          />
+          {o.swatch && <span className="w-3 h-3 rounded-full border border-white/20" style={{ background: o.swatch }} />}
+          {o.label}
+        </label>
+      ))}
+    </div>
+  );
+};
+
+const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds, paintOptions, readOnly, onChange, onError }) => {
   const [uploading, setUploading] = useState(false);
   let control: React.ReactNode;
 
@@ -361,25 +402,12 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
         />
       );
       break;
-    case 'finishes': {
-      const selected = Array.isArray(value) ? (value as string[]) : [];
-      control = (
-        <div className="flex flex-wrap gap-2">
-          {finishIds.map((id) => (
-            <label key={id} className="flex items-center gap-1.5 text-xs border border-white/10 rounded px-2 py-1">
-              <input
-                type="checkbox"
-                className="accent-[#FF5500]"
-                checked={selected.includes(id)}
-                onChange={(e) => onChange(e.target.checked ? [...selected, id] : selected.filter((s) => s !== id))}
-              />
-              {id}
-            </label>
-          ))}
-        </div>
-      );
+    case 'finishes':
+      control = <MultiPick options={finishIds.map((id) => ({ id, label: id }))} value={value} onChange={onChange} />;
       break;
-    }
+    case 'paints':
+      control = <MultiPick options={paintOptions} value={value} onChange={onChange} />;
+      break;
     case 'fitment': {
       const fit = (value as Record<string, string>) || {};
       control = (

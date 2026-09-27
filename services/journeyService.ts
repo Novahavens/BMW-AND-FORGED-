@@ -100,14 +100,31 @@ export async function submitEnquiry(enquiry: Enquiry): Promise<'sent' | 'saved-l
 }
 
 // ----------------------------------------------------
-// Paint families (grouped by hue, like a manufacturer colour book)
+// Paint families (grouped by colour, like a manufacturer colour book)
 // ----------------------------------------------------
 
 export const PAINT_FAMILIES = ['Blacks & Greys', 'Whites & Silvers', 'Blues & Purples', 'Greens', 'Reds & Oranges', 'Yellows & Golds'] as const;
 export type PaintFamily = (typeof PAINT_FAMILIES)[number];
 
-export function paintFamily(paint: Pick<PaintColor, 'hex'>): PaintFamily {
-  const n = parseInt(paint.hex.replace('#', ''), 16);
+// BMW names say the colour family more reliably than the swatch hex (lit, approximate samples that
+// wash out greys and dark tones), so the name decides first; the hue is the fallback.
+const FAMILY_BY_NAME: [RegExp, PaintFamily][] = [
+  [/\bwhite\b/i, 'Whites & Silvers'],
+  [/\b(black|grey|gray|grigio|nardo|sepia|thunder)\b/i, 'Blacks & Greys'],
+  [/\b(blue|purple|orchid|thundernight|violet)\b/i, 'Blues & Purples'],
+  [/\bgreen\b/i, 'Greens'],
+  [/\b(yellow|gold|bronze)\b/i, 'Yellows & Golds'],
+  [/\b(red|orange|ruby|wildberry|aventurin|aventurine)\b/i, 'Reds & Oranges']
+];
+
+export function paintFamily(paint: Pick<PaintColor, 'hex'> & Partial<Pick<PaintColor, 'name'>>): PaintFamily {
+  const named = paint.name && FAMILY_BY_NAME.find(([re]) => re.test(paint.name!));
+  if (named) return named[1];
+  return hueFamily(paint.hex);
+}
+
+function hueFamily(hex: string): PaintFamily {
+  const n = parseInt(hex.replace('#', ''), 16);
   const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   const l = (max + min) / 2;

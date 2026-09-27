@@ -87,11 +87,17 @@ export async function downloadBrochurePdf(input: BrochureInput) {
   const heroH = await placeImage(input.images[0], M, 58, W - 2 * M, 110);
   let y = 58 + heroH + 10;
 
+  const fit = input.car.recommendedWheelFitment;
+  // Blank specs (cars listed without them) leave the detail column empty rather than "Front  · Rear "
   const rows: [string, string, string][] = [
-    ['Vehicle', input.car.name, `${input.car.chassisCode} · ${input.car.power}`],
+    ['Vehicle', input.car.name, [input.car.chassisCode, input.car.power].filter((v) => v?.trim()).join(' · ')],
     ['Paint', input.paint.name, `${input.paint.type} · ${input.paint.code}`],
     ['Wheel design', input.wheel.name, `${input.wheel.code} · ${input.wheel.style}`],
-    ['Wheel size', input.size, `Front ${input.car.recommendedWheelFitment.front} · Rear ${input.car.recommendedWheelFitment.rear}`],
+    [
+      'Wheel size',
+      input.size,
+      [fit?.front && `Front ${fit.front}`, fit?.rear && `Rear ${fit.rear}`].filter(Boolean).join(' · ')
+    ],
     ['Wheel finish', input.finish.name, input.finish.colorName]
   ];
   rows.forEach(([k, v, d]) => {
@@ -109,7 +115,7 @@ export async function downloadBrochurePdf(input: BrochureInput) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(...mute);
-    doc.text(d, W - M, y, { align: 'right' });
+    if (d) doc.text(d, W - M, y, { align: 'right' });
     y += 11;
   });
 

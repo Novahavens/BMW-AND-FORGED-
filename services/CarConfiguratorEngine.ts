@@ -28,6 +28,13 @@ import {
   Custom2DWheelConfig
 } from '../types';
 
+/**
+ * The placeholder body has three shapes; other body styles use the nearest one:
+ * a convertible the short coupe cabin, a touring or gran coupe the long sedan cabin.
+ */
+export const proceduralShape = (style: CarModel['bodyStyle']): 'coupe' | 'sedan' | 'suv' =>
+  style === 'convertible' ? 'coupe' : style === 'touring' || style === 'gran_coupe' ? 'sedan' : style;
+
 export class CarConfiguratorEngine {
   private container: HTMLElement;
   private scene: THREE.Scene;
@@ -596,7 +603,8 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   // PROCEDURAL BMW M PERFORMANCE 3D MODEL
   // ----------------------------------------------------
-  public buildBMWCarBody(bodyStyle: CarModel['bodyStyle'] = 'coupe') {
+  public buildBMWCarBody(style: CarModel['bodyStyle'] = 'coupe') {
+    const bodyStyle = proceduralShape(style);
     // Clear existing car body
     this.disposeBody();
 

@@ -49,14 +49,18 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
     { label: 'Wheel finish', value: p.finish.name, detail: p.finish.colorName, visual: <FinishChip finish={p.finish} size={52} />, price: 'Included' }
   ];
 
-  const standard = [
-    ['Engine', p.car.engine],
-    ['Power', p.car.power],
-    ['Torque', p.car.torque],
-    ['Acceleration', p.car.acceleration],
-    ['Factory fitment', `${p.car.recommendedWheelFitment.front} / ${p.car.recommendedWheelFitment.rear}`],
-    ['Bolt pattern', `${p.car.recommendedWheelFitment.pcd} · CB ${p.car.recommendedWheelFitment.cb}`]
-  ];
+  // Blank specs (cars listed without them) are left out rather than shown as empty rows
+  const fit = p.car.recommendedWheelFitment ?? { front: '', rear: '', pcd: '', cb: '' };
+  const standard = (
+    [
+      ['Engine', p.car.engine],
+      ['Power', p.car.power],
+      ['Torque', p.car.torque],
+      ['Acceleration', p.car.acceleration],
+      ['Factory fitment', [fit.front, fit.rear].filter((v) => v?.trim()).join(' / ')],
+      ['Bolt pattern', [fit.pcd, fit.cb && `CB ${fit.cb}`].filter((v) => v?.trim()).join(' · ')]
+    ] as [string, string][]
+  ).filter(([, v]) => v?.trim());
 
   return (
     <div className="absolute inset-0 z-50 overflow-y-auto bg-white animate-fade">
@@ -133,15 +137,17 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
               </ul>
             ) : (
               <div key="std" className="mt-6 animate-fade">
-                <dl className="grid gap-px overflow-hidden rounded-[20px] bg-line ring-1 ring-line sm:grid-cols-2">
-                  {standard.map(([k, v]) => (
-                    <div key={k} className="bg-white p-5">
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</dt>
-                      <dd className="mt-1.5 text-[14px] font-medium">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <Eyebrow className="mt-8 mb-3">Every {p.wheel.code} set</Eyebrow>
+                {standard.length > 0 && (
+                  <dl className="mb-8 grid gap-px overflow-hidden rounded-[20px] bg-line ring-1 ring-line sm:grid-cols-2">
+                    {standard.map(([k, v], i) => (
+                      <div key={k} className={cx('bg-white p-5', i === standard.length - 1 && standard.length % 2 === 1 && 'sm:col-span-2')}>
+                        <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</dt>
+                        <dd className="mt-1.5 text-[14px] font-medium">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                <Eyebrow className="mb-3">Every {p.wheel.code} set</Eyebrow>
                 <ul className="space-y-2.5">
                   {p.wheel.highlights.map((h) => (
                     <li key={h} className="flex gap-3 text-[14px]">

@@ -13,6 +13,7 @@ export type FieldSpec =
   | { key: string; label: string; type: 'select'; options: string[]; hint?: string }
   | { key: string; label: string; type: 'list'; hint?: string }
   | { key: string; label: string; type: 'finishes'; hint?: string }
+  | { key: string; label: string; type: 'paints'; hint?: string }
   | { key: string; label: string; type: 'fitment'; hint?: string }
   | { key: string; label: string; type: 'sizePrices'; hint?: string }
   | { key: string; label: string; type: 'asset'; bucket: string; accept: string; hint?: string };
@@ -44,7 +45,8 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'torque', label: 'Torque', type: 'text' },
       { key: 'acceleration', label: 'Acceleration', type: 'text' },
       { key: 'recommended_wheel_fitment', label: 'Recommended fitment', type: 'fitment' },
-      { key: 'body_style', label: 'Fallback body style', type: 'select', options: ['coupe', 'sedan', 'suv'], hint: 'Used when no 3D model is uploaded.' },
+      { key: 'body_style', label: 'Fallback body style', type: 'select', options: ['coupe', 'sedan', 'suv', 'convertible', 'touring', 'gran_coupe'], hint: 'Used when no 3D model is uploaded (convertible looks like the coupe; touring and gran_coupe like the sedan).' },
+      { key: 'paint_ids', label: 'Factory paints', type: 'paints', hint: 'The paints this car is offered in, in the order ticked. None ticked = every visible paint.' },
       { key: 'model_url', label: '3D model (.glb)', type: 'asset', bucket: ASSET_BUCKETS.carModels, accept: '.glb,model/gltf-binary', hint: 'Max 50 MB. Compress with gltf-transform for fast loading.' },
       { key: 'model_rotation_deg', label: 'Model rotation (°)', type: 'number', step: 90, hint: 'Rotate until the nose faces the camera in the front 3/4 view.' },
       { key: 'model_length_m', label: 'Real car length (m)', type: 'number', step: 0.01, hint: 'The model is scaled to this length.' },
@@ -55,7 +57,7 @@ export const ENTITIES: EntitySpec[] = [
     defaults: {
       id: '', name: '', badge: '', generation: '', chassis_code: '', engine: '', power: '', torque: '', acceleration: '',
       recommended_wheel_fitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
-      body_style: 'coupe', model_url: null, model_rotation_deg: 0, model_length_m: 4.7,
+      body_style: 'coupe', paint_ids: [], model_url: null, model_rotation_deg: 0, model_length_m: 4.7,
       paint_mesh_match: 'paint|body|carpaint|exterior', hide_mesh_match: 'wheel|rim|tyre|tire|brake|caliper|rotor',
       sort_order: 99, active: true
     }

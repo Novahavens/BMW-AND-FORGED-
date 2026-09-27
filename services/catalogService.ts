@@ -43,6 +43,26 @@ export const rowToApp = <T,>(row: Record<string, unknown>): T =>
 export const appToRow = (obj: Record<string, unknown>): Record<string, unknown> =>
   Object.fromEntries(Object.entries(obj).map(([k, v]) => [toSnake(k), v]));
 
+/**
+ * The car's factory palette in BMW's order. Falls back to every active paint when the car lists
+ * none (or none of its ids exist in this catalogue, e.g. a partly loaded one). Inactive paints are
+ * never offered.
+ */
+export function paintsForCar(paints: PaintColor[], car?: Pick<CarModel, 'paintIds'> | null): PaintColor[] {
+  const active = paints.filter((p) => p.active !== false);
+  const ids = car?.paintIds ?? [];
+  if (ids.length === 0) return active;
+  const byId = new Map(active.map((p) => [p.id, p]));
+  const palette = ids.map((id) => byId.get(id)).filter((p): p is PaintColor => !!p);
+  return palette.length ? palette : active;
+}
+
+/** Keeps the wanted paint when the car offers it, otherwise the car's first factory paint. */
+export function pickPaintForCar(paints: PaintColor[], car: Pick<CarModel, 'paintIds'> | null | undefined, wantedId?: string): PaintColor | undefined {
+  const palette = paintsForCar(paints, car);
+  return palette.find((p) => p.id === wantedId) ?? palette[0] ?? paints[0];
+}
+
 async function selectTable<T>(table: CatalogTable): Promise<T[] | null> {
   const { data, error } = await supabase.from(table).select('*').order('sort_order');
   if (error || !data || data.length === 0) {
@@ -62,7 +82,8 @@ export async function fetchCatalog(): Promise<{ catalog: Catalog; source: 'supab
       selectTable<CaliperColor>('calipers')
     ]);
     const catalog: Catalog = {
-      cars: cars ?? STATIC_CATALOG.cars,
+      // paint_ids -> paintIds; rows from before the factory-paints migration have none
+      cars: cars ? cars.map((c) => ({ ...c, paintIds: Array.isArray(c.paintIds) ? c.paintIds : [] })) : STATIC_CATALOG.cars,
       paints: paints ?? STATIC_CATALOG.paints,
       wheels: wheels ?? STATIC_CATALOG.wheels,
       finishes: finishes

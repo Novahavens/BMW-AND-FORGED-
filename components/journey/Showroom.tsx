@@ -58,6 +58,25 @@ export const Showroom: React.FC<{
 
   if (!car) return null;
   const n = cars.length;
+  // Cars can be listed without specs; blank values are left out rather than shown as empty rows
+  const headline = [
+    { text: car.power, wide: false },
+    { text: car.acceleration, wide: false },
+    { text: car.engine, wide: true }
+  ].filter((h) => h.text?.trim());
+  const fit = car.recommendedWheelFitment ?? { front: '', rear: '', pcd: '', cb: '' };
+  const specs = (
+    [
+      ['Engine', car.engine],
+      ['Power', car.power],
+      ['Torque', car.torque],
+      ['0–100 km/h', (car.acceleration ?? '').replace(/^0-100 km\/h in /, '')],
+      ['Front fitment', fit.front],
+      ['Rear fitment', fit.rear],
+      ['PCD', fit.pcd],
+      ['Centre bore', fit.cb]
+    ] as [string, string][]
+  ).filter(([, v]) => v?.trim());
 
   return (
     <div className="absolute inset-0 z-30 pointer-events-none">
@@ -106,13 +125,16 @@ export const Showroom: React.FC<{
           <h2 className="mt-2 font-display text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] text-ink animate-rise delay-100">
             {car.name}
           </h2>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[12px] text-mute animate-rise delay-200">
-            <span>{car.power}</span>
-            <span className="h-3 w-px bg-line" />
-            <span>{car.acceleration}</span>
-            <span className="hidden sm:block h-3 w-px bg-line" />
-            <span className="hidden sm:block">{car.engine}</span>
-          </div>
+          {headline.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[12px] text-mute animate-rise delay-200">
+              {headline.map((h, i) => (
+                <React.Fragment key={h.text}>
+                  {i > 0 && <span className={cx('h-3 w-px bg-line', h.wide && 'hidden sm:block')} />}
+                  <span className={cx(h.wide && 'hidden sm:block')}>{h.text}</span>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-7 flex items-center gap-3">
@@ -145,25 +167,19 @@ export const Showroom: React.FC<{
 
       <Modal open={explore} onClose={() => setExplore(false)} title={car.name}>
         <p className="text-[14px] leading-relaxed text-mute">
-          The {car.name} ({car.chassisCode}) with our forged wheels. Everything you see can be configured: paint, wheel design, size and finish.
+          The {car.name}{car.chassisCode ? ` (${car.chassisCode})` : ''} with our forged wheels. Everything you see can be configured: paint, wheel design, size and finish.
         </p>
-        <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-line ring-1 ring-line">
-          {[
-            ['Engine', car.engine],
-            ['Power', car.power],
-            ['Torque', car.torque],
-            ['0–100 km/h', car.acceleration.replace(/^0-100 km\/h in /, '')],
-            ['Front fitment', car.recommendedWheelFitment.front],
-            ['Rear fitment', car.recommendedWheelFitment.rear],
-            ['PCD', car.recommendedWheelFitment.pcd],
-            ['Centre bore', car.recommendedWheelFitment.cb]
-          ].map(([k, v]) => (
-            <div key={k} className="bg-white p-4">
-              <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</dt>
-              <dd className="mt-1.5 text-[13.5px] font-medium text-ink">{v}</dd>
-            </div>
-          ))}
-        </dl>
+        {specs.length > 0 && (
+          <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-line ring-1 ring-line">
+            {specs.map(([k, v], i) => (
+              // A lone last cell spans both columns so no empty grey cell shows
+              <div key={k} className={cx('bg-white p-4', i === specs.length - 1 && specs.length % 2 === 1 && 'col-span-2')}>
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</dt>
+                <dd className="mt-1.5 text-[13.5px] font-medium text-ink">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
         <Button
           className="mt-6 w-full"
           onClick={() => {

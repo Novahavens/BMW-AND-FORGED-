@@ -364,6 +364,12 @@ const WheelStep: React.FC<ConfiguratorProps & { onInfo: (w: WheelDesign) => void
 
 const SizeStep: React.FC<ConfiguratorProps> = (p) => {
   const sizes = rimSizes(p.wheel);
+  const fit = p.car.recommendedWheelFitment;
+  // Only the parts we know; cars added without specs show no fitment line at all
+  const fitment =
+    fit?.front || fit?.rear
+      ? [fit.front && `front ${fit.front}`, fit.rear && `rear ${fit.rear}`, fit.pcd].filter(Boolean).join(', ')
+      : '';
   return (
     <div>
       <StepHeader
@@ -389,10 +395,11 @@ const SizeStep: React.FC<ConfiguratorProps> = (p) => {
           );
         })}
       </div>
-      <div className="mt-5 rounded-2xl bg-ink/[0.035] p-4 text-[12px] leading-relaxed text-mute">
-        <span className="font-semibold text-ink">Factory fitment for the {shortModelName(p.car)}:</span> front {p.car.recommendedWheelFitment.front}, rear{' '}
-        {p.car.recommendedWheelFitment.rear}, {p.car.recommendedWheelFitment.pcd}.
-      </div>
+      {fitment && (
+        <div className="mt-5 rounded-2xl bg-ink/[0.035] p-4 text-[12px] leading-relaxed text-mute">
+          <span className="font-semibold text-ink">Factory fitment for the {shortModelName(p.car)}:</span> {fitment}.
+        </div>
+      )}
       <NextLink label="Wheel finish" onClick={() => p.onStep('finish')} />
     </div>
   );

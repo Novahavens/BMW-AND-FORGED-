@@ -19,7 +19,10 @@ export interface CarModel {
     pcd: string;
     cb: string;
   };
-  bodyStyle: 'coupe' | 'sedan' | 'suv';
+  /** Fallback body when no GLB: convertible uses the coupe shape, touring/gran_coupe the sedan shape. */
+  bodyStyle: 'coupe' | 'sedan' | 'suv' | 'convertible' | 'touring' | 'gran_coupe';
+  /** Factory paints this car offers, in BMW's order (paint ids). Empty = every active paint. */
+  paintIds?: string[];
   /** Uploaded GLB; the procedural body is used when absent. */
   modelUrl?: string | null;
   modelRotationDeg?: number;
@@ -40,6 +43,8 @@ export interface PaintColor {
   metalness: number;
   clearcoat: number;
   clearcoatRoughness: number;
+  /** false = hidden from the configurator (e.g. no reliable colour yet). */
+  active?: boolean;
 }
 
 // Finishes are editable in the admin, so any id is allowed; these are the seeded ones.

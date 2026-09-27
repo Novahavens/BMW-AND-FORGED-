@@ -5,7 +5,7 @@
 
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CarConfiguratorEngine } from './services/CarConfiguratorEngine';
-import { Catalog, STATIC_CATALOG, fetchCatalog } from './services/catalogService';
+import { Catalog, STATIC_CATALOG, fetchCatalog, paintsForCar, pickPaintForCar } from './services/catalogService';
 import { nearestRimSize, rimPrice } from './services/pricing';
 import { CarModel, PaintColor, WheelDesign, WheelFinish, CameraViewPreset } from './types';
 import { BRAND, DEFAULT_REGION, Region } from './config/brand';
@@ -77,6 +77,9 @@ const showroomCars = (cars: CarModel[]) => {
   return withModels.length ? withModels : cars;
 };
 
+/** First-visit paint when the car offers it (otherwise the car's first factory paint). */
+const DEFAULT_PAINT_ID = 'isle_of_man_green';
+
 const PANEL_WIDTH = 400;
 const isPhone = () => window.innerWidth < 640;
 
@@ -102,7 +105,9 @@ export const App: React.FC = () => {
 
   // The five choices
   const [selectedCar, setSelectedCar] = useState<CarModel>(() => showroomCars(STATIC_CATALOG.cars)[0]);
-  const [selectedPaint, setSelectedPaint] = useState<PaintColor>(STATIC_CATALOG.paints[0]);
+  const [selectedPaint, setSelectedPaint] = useState<PaintColor>(
+    () => pickPaintForCar(STATIC_CATALOG.paints, showroomCars(STATIC_CATALOG.cars)[0], DEFAULT_PAINT_ID)!
+  );
   const [selectedWheel, setSelectedWheel] = useState<WheelDesign>(STATIC_CATALOG.wheels[0]);
   const [selectedFinish, setSelectedFinish] = useState<WheelFinish>(STATIC_CATALOG.finishes.liquid_metal);
   const [selectedSize, setSelectedSize] = useState<string>('20"');
@@ -192,7 +197,7 @@ export const App: React.FC = () => {
   // After a catalogue load or admin edit, point selections at the fresh rows and push them to the engine.
   useEffect(() => {
     const car = catalog.cars.find((c) => c.id === selectedCar.id) ?? showroomCars(catalog.cars)[0];
-    const paint = catalog.paints.find((p) => p.id === selectedPaint.id) ?? catalog.paints[0];
+    const paint = pickPaintForCar(catalog.paints, car, selectedPaint.id);
     const wheel = catalog.wheels.find((w) => w.id === selectedWheel.id) ?? catalog.wheels[0];
     if (!car || !paint || !wheel) return;
     const finish = pickFinish(catalog, wheel, selectedFinish);
@@ -270,10 +275,19 @@ export const App: React.FC = () => {
   // ----------------------------------------------------
   // Choices
   // ----------------------------------------------------
-  const mountCar = useCallback((car: CarModel) => {
-    setSelectedCar(car);
-    loadedCarKeyRef.current = carModelKey(car);
-  }, []);
+  /** Each car offers only its own factory paints: keep the paint if it has it, else take its first. */
+  const mountCar = useCallback(
+    (car: CarModel) => {
+      setSelectedCar(car);
+      loadedCarKeyRef.current = carModelKey(car);
+      const paint = pickPaintForCar(catalog.paints, car, selectedPaint.id);
+      if (paint && paint.id !== selectedPaint.id) {
+        setSelectedPaint(paint);
+        engineRef.current?.applyPaintColor(paint);
+      }
+    },
+    [catalog.paints, selectedPaint.id]
+  );
 
   const stepCar = useCallback(
     async (direction: 1 | -1, target?: number) => {
@@ -386,7 +400,8 @@ export const App: React.FC = () => {
   const applyConfig = useCallback(
     (cfg: SavedConfiguration) => {
       const car = catalog.cars.find((c) => c.id === cfg.carId);
-      const paint = catalog.paints.find((p) => p.id === cfg.paintId);
+      // A saved paint the car no longer offers (or that was retired) falls back to its first factory paint
+      const paint = car && pickPaintForCar(catalog.paints, car, cfg.paintId);
       const wheel = catalog.wheels.find((w) => w.id === cfg.wheelId);
       if (!car || !paint || !wheel) return false;
       const engine = engineRef.current;
@@ -438,6 +453,7 @@ export const App: React.FC = () => {
   }, [navigateTo, configCode, selectedCar, selectedPaint, selectedWheel, selectedFinish, selectedSize, region]);
 
   const price = rimPrice(selectedWheel, selectedSize);
+  const carPaints = useMemo(() => paintsForCar(catalog.paints, selectedCar), [catalog.paints, selectedCar]);
 
   const menuLinks = [
     { label: 'Home', onClick: () => navigateTo({ name: 'welcome' }) },
@@ -498,7 +514,7 @@ export const App: React.FC = () => {
       {booted && route.name === 'configure' && (
         <Configurator
           car={selectedCar}
-          paints={catalog.paints}
+          paints={carPaints}
           wheels={catalog.wheels}
           finishes={catalog.finishes}
           paint={selectedPaint}
