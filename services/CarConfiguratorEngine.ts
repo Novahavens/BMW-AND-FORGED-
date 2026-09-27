@@ -1401,7 +1401,17 @@ export class CarConfiguratorEngine {
     const key = `proc|${wheel.spokeType}|${wheel.spokeCount}|${mirror}|${dish}`;
     let geo = this.rimFaceGeometryCache.get(key);
     if (!geo) {
-      geo = buildRimFaceGeometry(proceduralRimShapes(wheel, mirror), { radius: 0.245, depth: 0.028, dish, bevel: 0.0045 });
+      // curveSegments: the outer face is a full-circle curve; the default of 1 samples only
+      // two (coincident) points around it, leaving the rim's outer boundary undefined for
+      // triangulation. A real segment count gives every procedural design a round, not
+      // degenerate, outer edge.
+      geo = buildRimFaceGeometry(proceduralRimShapes(wheel, mirror), {
+        radius: 0.245,
+        depth: 0.028,
+        dish,
+        bevel: 0.0045,
+        curveSegments: 64
+      });
       this.rimFaceGeometryCache.set(key, geo);
     }
     return geo;

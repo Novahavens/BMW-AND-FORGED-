@@ -25,7 +25,7 @@ export const BMW_MODELS: CarModel[] = [
     bodyStyle: 'coupe',
     modelUrl: '/models/bmw-m4-competition.glb',
     modelLengthM: 4.79,
-    paintMeshMatch: 'zx1mtl',
+    paintMeshMatch: 'zx1mtl|body151mtl|pillars1mtl',
     hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)|livery'
   },
   {
