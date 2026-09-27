@@ -174,9 +174,11 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">Set of four</div>
             <div className="mt-1 font-display text-[26px] font-extrabold tabular-nums">{money(rimPrice(wheel, size))}</div>
           </div>
-          <div className="text-right text-[12px] text-mute">
-            {wheel.weightFrontKg} kg front<br />{wheel.weightRearKg} kg rear
-          </div>
+          {(wheel.weightFrontKg > 0 || wheel.weightRearKg > 0) && (
+            <div className="text-right text-[12px] text-mute">
+              {wheel.weightFrontKg} kg front<br />{wheel.weightRearKg} kg rear
+            </div>
+          )}
         </div>
 
         <Button size="lg" className="w-full" onClick={() => finish && onConfigure(wheel, finish, size)} icon={<Car className="h-4 w-4" strokeWidth={1.7} />}>

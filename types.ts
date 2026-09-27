@@ -48,7 +48,7 @@ export interface PaintColor {
 }
 
 // Finishes are editable in the admin, so any id is allowed; these are the seeded ones.
-export type FinishVariantKey = 'liquid_metal' | 'bronze' | 'black' | 'titanium' | 'champagne_gold' | 'rose_gold' | (string & {});
+export type FinishVariantKey = 'liquid_metal' | 'bronze' | 'black' | 'silver' | (string & {});
 
 export interface WheelFinish {
   id: FinishVariantKey;

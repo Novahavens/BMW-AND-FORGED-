@@ -472,11 +472,12 @@ export const WheelInfoModal: React.FC<{
             </li>
           ))}
         </ul>
+        {(wheel.weightFrontKg > 0 || wheel.weightRearKg > 0) && (
         <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-line ring-1 ring-line text-center">
           {[
             ['Front', `${wheel.weightFrontKg} kg`],
             ['Rear', `${wheel.weightRearKg} kg`],
-            ['Saving', `${wheel.weightSavingsKg} kg`]
+            ['Saving', wheel.weightSavingsKg > 0 ? `${wheel.weightSavingsKg} kg` : '—']
           ].map(([k, v]) => (
             <div key={k} className="bg-white p-4">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</div>
@@ -484,6 +485,7 @@ export const WheelInfoModal: React.FC<{
             </div>
           ))}
         </div>
+        )}
         <div className="mt-6">
           <Eyebrow className="mb-2">Sizes and prices (set of four)</Eyebrow>
           <div className="flex flex-wrap gap-2">

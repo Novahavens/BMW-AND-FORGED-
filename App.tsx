@@ -402,8 +402,10 @@ export const App: React.FC = () => {
       const car = catalog.cars.find((c) => c.id === cfg.carId);
       // A saved paint the car no longer offers (or that was retired) falls back to its first factory paint
       const paint = car && pickPaintForCar(catalog.paints, car, cfg.paintId);
-      const wheel = catalog.wheels.find((w) => w.id === cfg.wheelId);
+      // A saved wheel that was retired falls back to the first wheel in the collection
+      const wheel = catalog.wheels.find((w) => w.id === cfg.wheelId) ?? catalog.wheels[0];
       if (!car || !paint || !wheel) return false;
+      const finish = wheel.availableVariants.includes(cfg.finishId) ? catalog.finishes[cfg.finishId] : undefined;
       const engine = engineRef.current;
       if (carModelKey(car) !== loadedCarKeyRef.current) {
         loadedCarKeyRef.current = carModelKey(car);
@@ -411,7 +413,7 @@ export const App: React.FC = () => {
       }
       setSelectedCar(car);
       choosePaint(paint);
-      applyRim(wheel, catalog.finishes[cfg.finishId], cfg.size);
+      applyRim(wheel, finish, cfg.size);
       const r = BRAND.regions.find((x) => x.id === cfg.regionId);
       if (r) changeRegion(r);
       return true;

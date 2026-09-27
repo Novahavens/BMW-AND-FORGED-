@@ -52,6 +52,26 @@ rim **GLB** if you have a real 3D model → set the finishes it's offered in and
 Save. See `docs/HANDOVER.md` §2b for image prep specifics (square crop, transparent gaps between
 spokes, 1024–2048px).
 
+**Automated (recommended for batches):** the n8n workflow "FORGED wheel pipeline (automated)" takes a
+Google Drive folder of front-on product shots plus a sheet named `wheels` and does everything:
+
+| Sheet column | Example | Notes |
+|---|---|---|
+| `file` | `gt3-front.jpg` | image file name in the folder (extension optional) |
+| `name` | `Monoblock GT3` | shown to customers |
+| `sizes` | `19\|20\|21` | separate values with `\|` |
+| `prices_zar` or `prices_usd` | `76000\|82000\|90000` | set of four, one per size |
+| `finishes` | `Liquid Metal\|Silver` | Liquid Metal, Bronze Matte, Black Gloss, Silver |
+| optional | `code`, `subtitle`, `description`, `highlights`, `weight_front_kg`, `weight_rear_kg` | AI writes the copy if blank |
+
+Per image it makes a transparent rim-only cut-out (Riverflow 2.5 Pro via OpenRouter), has Gemini
+compare it with the original for design drift (one automatic retry), squares it to 2048px and posts it
+to the Supabase function `supabase/functions/ingest-wheel`. That function re-runs the app's own
+3D-spoke test (`validate.ts`, mirroring `services/rimExtrusion.ts`), uploads the PNG to `rim-images`
+and creates the wheel — **live** when every check passes, **hidden with reasons** otherwise. A
+`wheel-report.csv` lands in a "(processed)" folder. One-time setup: set the Supabase secret
+`INGEST_SECRET` and put the same value in the n8n Header Auth credential `x-ingest-secret`.
+
 ### Adding a new car
 
 Cars tab → **New** → fill in the spec fields (engine, power, fitment, etc.) → upload a `.glb`
