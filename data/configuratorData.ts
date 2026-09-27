@@ -32,8 +32,8 @@ export const BMW_MODELS: CarModel[] = [
     ],
     modelUrl: '/models/bmw-m4-competition.glb',
     modelLengthM: 4.79,
-    paintMeshMatch: 'zx1mtl|body151mtl|pillars1mtl',
-    hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)|livery'
+    paintMeshMatch: 'zx1mtl|body151mtl|pillars1mtl|livery1mtl',
+    hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)'
   },
   {
     id: 'm4_convertible_g83',
@@ -106,7 +106,11 @@ export const BMW_MODELS: CarModel[] = [
       'dravit_grey', 'malachite_green_ii', 'speed_yellow', 'frozen_black', 'riviera_blue', 'brewster_green',
       'sepia_iii', 'twilight_purple', 'frozen_portimao_blue', 'frozen_pure_grey_ii', 'anglesey_green',
       'urban_green_ii', 'ruby_star', 'frozen_brilliant_white', 'lagoon_green', 'le_mans_blue'
-    ]
+    ],
+    modelUrl: '/models/bmw-m3-touring-g81.glb',
+    modelLengthM: 4.8,
+    paintMeshMatch: '(^|\\s)m3g81law$',
+    hideMeshMatch: 'rim_04|3_wheel|amdb11'
   },
   {
     id: 'm2_g87',
@@ -151,7 +155,12 @@ export const BMW_MODELS: CarModel[] = [
     paintIds: [
       'fire_red', 'skyscraper_grey', 'thundernight', 'brooklyn_grey', 'black_sapphire', 'portimao_blue',
       'alpine_white', 'frozen_portimao_blue_c6r', 'frozen_pure_grey', 'storm_bay'
-    ]
+    ],
+    modelUrl: '/models/bmw-m235-gran-coupe.glb',
+    modelRotationDeg: 180,
+    modelLengthM: 4.54,
+    paintMeshMatch: '(^|\\s)paint$',
+    hideMeshMatch: 'wheel_lf'
   },
   {
     id: 'm5_g90',
@@ -176,10 +185,10 @@ export const BMW_MODELS: CarModel[] = [
       'frozen_black', 'nardo_grey', 'mineral_white', 'oxford_green_ii', 'bernina_grey_amber_effect',
       'alpine_white', 'storm_bay', 'frozen_deep_grey_c64'
     ],
-    modelUrl: '/models/bmw-m5-g90.glb',
+    modelUrl: '/models/bmw-m5-g90-cc-by.glb',
     modelLengthM: 5.1,
-    paintMeshMatch: 'paint_material',
-    hideMeshMatch: '3dwheel|calliper'
+    paintMeshMatch: 'm5g90_body_paint',
+    hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|calliper|rotor|lugs?)'
   },
   {
     id: 'm5_touring_g99',
@@ -217,7 +226,11 @@ export const BMW_MODELS: CarModel[] = [
       'alpine_white', 'aventurin_red', 'black_sapphire', 'brooklyn_grey', 'dravit_grey', 'frozen_pure_grey',
       'frozen_tanzanite_blue', 'isle_of_man_green', 'marina_bay_blue', 'skyscraper_grey',
       'tanzanite_blue_ii'
-    ]
+    ],
+    modelUrl: '/models/bmw-m8-competition-f92.glb',
+    modelLengthM: 4.87,
+    paintMeshMatch: 'carpaint',
+    hideMeshMatch: 'm8f92_(wheel|caliper|brakedisc)'
   },
   {
     id: 'x3m50_g45',
@@ -235,7 +248,12 @@ export const BMW_MODELS: CarModel[] = [
     paintIds: [
       'fire_red', 'brooklyn_grey', 'sophisto_grey_brilliant_effect', 'arctic_race_blue', 'black_sapphire',
       'dune_grey', 'alpine_white', 'tanzanite_blue_ii', 'frozen_deep_grey_c64', 'frozen_pure_grey'
-    ]
+    ],
+    modelUrl: '/models/bmw-x3-m50-g45.glb',
+    modelRotationDeg: 180,
+    modelLengthM: 4.76,
+    paintMeshMatch: 'paint_|^object_86\\s',
+    hideMeshMatch: 'wheel_'
   },
   {
     id: 'x5m_f95',
@@ -258,7 +276,10 @@ export const BMW_MODELS: CarModel[] = [
       'carbon_black', 'mineral_white', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
       'fire_red_ii', 'anglesey_green', 'sepang_bronze', 'alpine_white', 'dravit_grey'
     ],
-    modelLengthM: 4.94
+    modelUrl: '/models/bmw-x5m-f95.glb',
+    modelLengthM: 4.94,
+    paintMeshMatch: 'marina_bay',
+    hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|calliper|rotor|lugs?)'
   }
 ];
 

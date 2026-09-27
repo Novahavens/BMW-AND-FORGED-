@@ -963,6 +963,14 @@ export class CarConfiguratorEngine {
   private static fixDefaultedMaterial(material: THREE.Material | null | undefined) {
     const m = material as THREE.MeshStandardMaterial;
     if (!m || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
+    // See-through glass exported without a roughness value renders frosted (rough), which makes
+    // the whole cabin read as a milky, washed-out block. Real glazing is a near-perfect mirror.
+    if ((m.transparent || m.opacity < 1) && /glass|window|windscreen|windshield/i.test(m.name) && m.roughness > 0.08) {
+      m.roughness = 0.04;
+      m.metalness = 0;
+      m.needsUpdate = true;
+      return;
+    }
     if (m.metalness === 0 && m.roughness >= 0.98) {
       m.roughness = 0.45;
       m.envMapIntensity = 1;
@@ -1005,6 +1013,12 @@ export class CarConfiguratorEngine {
     const wheelMeshes: THREE.Mesh[] = [];
 
     model.traverse((obj) => {
+      // SketchUp/Collada conversions carry their edge outlines as line primitives; drawn over a
+      // shaded body they read as heavy black seams, so only triangle meshes are kept.
+      if ((obj as THREE.Line).isLine || (obj as THREE.Points).isPoints) {
+        obj.visible = false;
+        return;
+      }
       const mesh = obj as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
