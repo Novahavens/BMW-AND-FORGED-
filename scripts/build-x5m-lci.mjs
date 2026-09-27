@@ -180,6 +180,7 @@ mk('lamp_lens_tail', srgb('#3a0306'), 0, 0.04, { alpha: 0.7 });
 mk('lamp_reflector_chrome', srgb('#c9ccd0'), 1, 0.12);
 mk('lamp_housing_black', srgb('#0d0e10'), 0.2, 0.35);
 mk('lamp_drl_blue', srgb('#8fb4ff'), 0, 0.2, { emissive: [0.35, 0.45, 0.7] });
+mk('lamp_signal', srgb('#b9b4ad'), 0.2, 0.12);
 mk('lamp_tail_red', srgb('#9a0b10'), 0, 0.3, { emissive: [0.25, 0.0, 0.01] });
 mk('badge_chrome', srgb('#cfd2d6'), 1, 0.12);
 mk('tyre_rubber', srgb('#1a1a1a'), 0, 0.88);
@@ -209,7 +210,9 @@ const classify = (part, tail) => {
   if (/^wheel_/.test(part)) return part.includes('tyre') ? 'tyre_rubber' : 'rim_metal';
   if (t === 'body') return 'x5m_paint';
   if (/glass_tinted|glass$|^glass/.test(t) && !/peredfari/.test(t)) return /nak1/.test(part) ? 'lamp_lens_clear' : 'glass_window';
-  if (/peredfari/.test(t)) return /tail|tailgate/.test(part) ? 'lamp_lens_tail' : 'lamp_lens_clear';
+  if (/peredfari/.test(t)) return /tail|tailgate|bumper_R/.test(part) ? 'lamp_lens_tail' : 'lamp_lens_clear';
+  if (/^signal_.res$/.test(t)) return 'lamp_signal';
+  if (/leather_perff/.test(t)) return 'interior_leather_black';
   if (/^(fonar_red|fonar_red2|fonar_red3|fonar_red_t|fonar_red2_t|headlight_zad|stop|stop2|signal_._zad)$/.test(t)) return 'lamp_tail_red';
   if (/^blue$|bmw_laser/.test(t)) return 'lamp_drl_blue';
   if (/chrome/.test(t)) {
@@ -245,7 +248,7 @@ for (const top of rootNode.listChildren()) {
     tail = tail.replace(/^_/, '').replace(/_0$/, '').replace(/^0$/, '');
     // Sub-object names inside dummies: "doorglass_RL_glass" -> "glass".
     const sub = tail.match(/(glass_tinted|glass|leather_black|chrome|black|body|logo|stitch)$/);
-    const cls = classify(part, sub ? sub[1] : tail);
+    const cls = /^wheel_/.test(part) ? (/_tyre/.test(c.getName()) ? 'tyre_rubber' : 'rim_metal') : classify(part, sub ? sub[1] : tail);
     const m = mats[cls];
     // Meshes are shared by instancing only for the wheels; clone-per-use keeps it simple.
     for (const p of mesh.listPrimitives()) p.setMaterial(m);
