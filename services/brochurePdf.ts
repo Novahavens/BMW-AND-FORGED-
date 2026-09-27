@@ -35,6 +35,10 @@ const INK: RGB = [242, 238, 230];
 const MUTE: RGB = [156, 151, 142];
 const HAIRLINE: RGB = [46, 46, 46];
 
+// Locale formatting (e.g. en-ZA "R 86 000") uses no-break and narrow spaces; the embedded Satoshi font has
+// no glyphs for them and jsPDF drops the rest of the string, so they become plain spaces.
+const pdfText = (s: string) => s.replace(/[\u00a0\u202f\u2007\u2009]/g, ' ');
+
 const imageSize = (src: string) =>
   new Promise<{ w: number; h: number }>((resolve) => {
     const img = new Image();
@@ -228,7 +232,7 @@ export async function downloadBrochurePdf(input: BrochureInput) {
   heading('black');
   doc.setFontSize(17);
   doc.setTextColor(...GOLD);
-  doc.text(formatMoney(input.price, input.region), W - M - 7, y + 13, { align: 'right' });
+  doc.text(pdfText(formatMoney(input.price, input.region)), W - M - 7, y + 13, { align: 'right' });
   footer();
 
   // Page 2: views + wheel story
