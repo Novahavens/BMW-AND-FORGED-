@@ -15,6 +15,7 @@ import {
   uploadAsset
 } from '../../services/catalogService';
 import { ENTITIES, EntitySpec, FieldSpec } from './entityConfig';
+import { EnquiriesPanel } from './EnquiriesPanel';
 
 type Row = Record<string, unknown>;
 
@@ -25,7 +26,7 @@ interface AdminPageProps {
 }
 
 const inputCls =
-  'w-full bg-[#0d0d0d] border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF5500]';
+  'w-full bg-[#0d0d0d] border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#CF9F52]';
 
 export const AdminPage: React.FC<AdminPageProps> = ({ onBack, onCatalogChanged }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -53,7 +54,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBack, onCatalogChanged }
           <ArrowLeft className="w-4 h-4" /> Back to studio
         </button>
         <div className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase">
-          <ShieldCheck className="w-4 h-4 text-[#FF5500]" /> Apex Forged Admin
+          <ShieldCheck className="w-4 h-4 text-[#CF9F52]" /> FORGEDSA Admin
         </div>
         {session ? (
           <button
@@ -66,11 +67,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBack, onCatalogChanged }
       </header>
 
       {!authChecked ? (
-        <Centered><Loader2 className="w-6 h-6 animate-spin text-[#FF5500]" /></Centered>
+        <Centered><Loader2 className="w-6 h-6 animate-spin text-[#CF9F52]" /></Centered>
       ) : !session ? (
         <LoginForm />
       ) : isAdmin === null ? (
-        <Centered><Loader2 className="w-6 h-6 animate-spin text-[#FF5500]" /></Centered>
+        <Centered><Loader2 className="w-6 h-6 animate-spin text-[#CF9F52]" /></Centered>
       ) : !isAdmin ? (
         <Centered>
           <p className="text-sm text-neutral-400 text-center max-w-sm">
@@ -108,7 +109,7 @@ const LoginForm: React.FC = () => {
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 p-6 rounded-xl border border-white/10 bg-[#080808]">
         <div>
           <h1 className="text-lg font-bold text-white">Admin sign in</h1>
-          <p className="text-xs text-neutral-500 mt-1">Manage cars, wheels, finishes, paints and 3D assets.</p>
+          <p className="text-xs text-neutral-500 mt-1">Manage cars, wheels, prices, finishes, paints, 3D assets and enquiries.</p>
         </div>
         <label className="block space-y-1">
           <span className="text-xs text-neutral-400">Email</span>
@@ -122,7 +123,7 @@ const LoginForm: React.FC = () => {
         <button
           type="submit"
           disabled={busy}
-          className="w-full flex items-center justify-center gap-2 bg-[#FF5500] hover:bg-[#FF6600] disabled:opacity-60 text-black font-bold text-sm rounded-md py-2"
+          className="w-full flex items-center justify-center gap-2 bg-[#CF9F52] hover:bg-[#E8C37D] disabled:opacity-60 text-black font-bold text-sm rounded-md py-2"
         >
           {busy && <Loader2 className="w-4 h-4 animate-spin" />} Sign in
         </button>
@@ -133,6 +134,7 @@ const LoginForm: React.FC = () => {
 
 const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogChanged }) => {
   const [entity, setEntity] = useState<EntitySpec>(ENTITIES[0]);
+  const [showLeads, setShowLeads] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [finishIds, setFinishIds] = useState<string[]>([]);
   const [paintOptions, setPaintOptions] = useState<PickOption[]>([]);
@@ -225,17 +227,27 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
         {ENTITIES.map((spec) => (
           <button
             key={spec.table}
-            onClick={() => setEntity(spec)}
+            onClick={() => { setEntity(spec); setShowLeads(false); }}
             className={`px-4 py-2 rounded-md text-xs font-bold uppercase tracking-widest border ${
-              spec.table === entity.table
-                ? 'bg-[#FF5500] text-black border-[#FF5500]'
+              !showLeads && spec.table === entity.table
+                ? 'bg-[#CF9F52] text-black border-[#CF9F52]'
                 : 'border-white/10 text-neutral-400 hover:text-white hover:border-white/30'
             }`}
           >
             {spec.label}
           </button>
         ))}
+        <button
+          onClick={() => setShowLeads(true)}
+          className={`px-4 py-2 rounded-md text-xs font-bold uppercase tracking-widest border ${
+            showLeads ? 'bg-[#CF9F52] text-black border-[#CF9F52]' : 'border-white/10 text-neutral-400 hover:text-white hover:border-white/30'
+          }`}
+        >
+          Enquiries
+        </button>
       </nav>
+
+      {showLeads ? <EnquiriesPanel /> : <>
 
       {message && (
         <p className={`mb-4 text-xs ${message.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>{message.text}</p>
@@ -245,19 +257,19 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
         <aside className="space-y-2">
           <button
             onClick={() => { setDraft({ ...entity.defaults }); setIsNew(true); setMessage(null); }}
-            className="w-full flex items-center justify-center gap-2 border border-dashed border-white/20 hover:border-[#FF5500] rounded-md py-2 text-xs uppercase tracking-widest"
+            className="w-full flex items-center justify-center gap-2 border border-dashed border-white/20 hover:border-[#CF9F52] rounded-md py-2 text-xs uppercase tracking-widest"
           >
             <Plus className="w-4 h-4" /> New {entity.label.replace(/s$/, '').toLowerCase()}
           </button>
           {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-[#FF5500] mx-auto mt-6" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#CF9F52] mx-auto mt-6" />
           ) : (
             rows.map((row) => (
               <button
                 key={String(row.id)}
                 onClick={() => { setDraft({ ...row }); setIsNew(false); setMessage(null); }}
                 className={`w-full text-left px-3 py-2 rounded-md border text-sm ${
-                  draft && !isNew && draft.id === row.id ? 'border-[#FF5500] bg-white/5' : 'border-white/10 hover:border-white/30'
+                  draft && !isNew && draft.id === row.id ? 'border-[#CF9F52] bg-white/5' : 'border-white/10 hover:border-white/30'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -302,7 +314,7 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 bg-[#FF5500] hover:bg-[#FF6600] disabled:opacity-60 text-black font-bold text-sm rounded-md px-5 py-2"
+                  className="flex items-center gap-2 bg-[#CF9F52] hover:bg-[#E8C37D] disabled:opacity-60 text-black font-bold text-sm rounded-md px-5 py-2"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
                 </button>
@@ -311,6 +323,7 @@ const CatalogEditor: React.FC<{ onCatalogChanged: () => void }> = ({ onCatalogCh
           )}
         </section>
       </div>
+      </>}
     </div>
   );
 };
@@ -341,7 +354,7 @@ const MultiPick: React.FC<{ options: PickOption[]; value: unknown; onChange: (v:
         <label key={o.id} className="flex items-center gap-1.5 text-xs border border-white/10 rounded px-2 py-1">
           <input
             type="checkbox"
-            className="accent-[#FF5500]"
+            className="accent-[#CF9F52]"
             checked={selected.includes(o.id)}
             onChange={(e) => onChange(e.target.checked ? [...selected, o.id] : selected.filter((s) => s !== o.id))}
           />
@@ -382,7 +395,7 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
       break;
     case 'bool':
       control = (
-        <input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} className="w-4 h-4 accent-[#FF5500]" />
+        <input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} className="w-4 h-4 accent-[#CF9F52]" />
       );
       break;
     case 'select':
@@ -455,7 +468,7 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
               <button
                 key={s}
                 onClick={() => setPrices({ ...prices, [s]: 0 })}
-                className="text-xs border border-dashed border-white/20 hover:border-[#FF5500] rounded px-2 py-1"
+                className="text-xs border border-dashed border-white/20 hover:border-[#CF9F52] rounded px-2 py-1"
               >
                 + {s}
               </button>
@@ -474,7 +487,7 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
           )}
           {url && <a href={url} target="_blank" rel="noreferrer" className="block text-[11px] text-[#FF7722] break-all">{url}</a>}
           <div className="flex gap-2">
-            <label className="flex items-center gap-2 cursor-pointer border border-white/10 hover:border-[#FF5500] rounded-md px-3 py-2 text-xs uppercase tracking-widest">
+            <label className="flex items-center gap-2 cursor-pointer border border-white/10 hover:border-[#CF9F52] rounded-md px-3 py-2 text-xs uppercase tracking-widest">
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               {url ? 'Replace' : 'Upload'}
               <input

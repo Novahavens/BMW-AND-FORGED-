@@ -8,8 +8,9 @@ import { ArrowLeft, ArrowRight, Rotate3d } from 'lucide-react';
 import { BRAND, Region, formatMoney } from '../config/brand';
 import { WheelDesign, WheelFinish } from '../types';
 import { rimFromPrice, rimSizes } from '../services/pricing';
-import { Button, Eyebrow, Logo } from './journey/ui';
+import { Button, Eyebrow, Logo, RimThumb } from './journey/ui';
 import { RimFaceSvg } from './journey/RimFaceSvg';
+import { SiteFooter } from './SiteFooter';
 
 interface ForgedPageProps {
   wheels: WheelDesign[];
@@ -28,8 +29,8 @@ const PILLARS = [
 
 /** The collection: every design, its sizes and a way into the 360° view or the configurator. */
 export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region, onBack, onOpenRim, onConfigure }) => (
-  <div className="absolute inset-0 overflow-y-auto bg-white text-ink">
-    <header className="sticky top-0 z-20 flex h-16 sm:h-20 items-center justify-between bg-white/85 backdrop-blur-xl px-4 sm:px-8 border-b border-line">
+  <div className="absolute inset-0 overflow-y-auto bg-carbon text-ink">
+    <header className="sticky top-0 z-20 flex h-16 sm:h-20 items-center justify-between bg-carbon/85 backdrop-blur-xl px-4 sm:px-8 border-b border-line">
       <Button variant="ghost" size="sm" onClick={onBack} className="pl-2">
         <ArrowLeft className="h-4 w-4" strokeWidth={1.8} /> Back
       </Button>
@@ -52,18 +53,14 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
         </div>
         <div className="flex justify-center animate-rise delay-300">
           {wheels[0]?.imageUrl ? (
-            <img
-              src={wheels[0].imageUrl}
-              alt={wheels[0].name}
-              className="h-[340px] w-[340px] max-w-full object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,0.22)]"
-            />
+            <RimThumb wheel={wheels[0]} finish={finishes[wheels[0].defaultVariant]} size={340} className="max-w-full" />
           ) : wheels[0] && (
             <RimFaceSvg
               wheel={wheels[0]}
               finishHex={finishes[wheels[0].defaultVariant]?.hex}
               size={340}
               withTyre
-              className="drop-shadow-[0_40px_40px_rgba(0,0,0,0.22)] max-w-full h-auto"
+              className="drop-shadow-[0_40px_50px_rgba(0,0,0,0.6)] max-w-full h-auto"
             />
           )}
         </div>
@@ -80,9 +77,9 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
               className="group flex flex-col rounded-[26px] ring-1 ring-line p-6 transition-all duration-500 ease-lux hover:shadow-panel hover:-translate-y-0.5 animate-rise"
               style={{ animationDelay: `${i * 60}ms` }}
             >
-              <div className="flex justify-center rounded-[20px] bg-gradient-to-b from-[#f6f7f9] to-[#eceef1] py-8">
+              <div className="flex justify-center rounded-[20px] bg-gradient-to-b from-[#202020] to-[#161616] py-8">
                 {w.imageUrl ? (
-                  <img src={w.imageUrl} alt="" className="h-44 w-44 object-contain" />
+                  <RimThumb wheel={w} finish={finish} size={176} />
                 ) : (
                   <RimFaceSvg wheel={w} finishHex={finish?.hex} size={176} withTyre className="transition-transform duration-700 ease-lux group-hover:rotate-[24deg]" />
                 )}
@@ -107,7 +104,7 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
       </ul>
     </section>
 
-    <section className="bg-ink text-white">
+    <section className="bg-surface text-white border-t border-line">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24 grid gap-10 md:grid-cols-3">
         {PILLARS.map((p, i) => (
           <div key={p.title}>
@@ -119,11 +116,6 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
       </div>
     </section>
 
-    <footer className="mx-auto max-w-6xl px-5 sm:px-8 py-12 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between text-[12px] text-mute">
-      <Logo size="sm" />
-      <div>
-        {BRAND.contact.email} · {BRAND.contact.phone}
-      </div>
-    </footer>
+    <SiteFooter />
   </div>
 );

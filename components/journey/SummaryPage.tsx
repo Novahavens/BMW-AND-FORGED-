@@ -7,8 +7,9 @@ import React, { useState } from 'react';
 import { ArrowLeft, Check, Copy, Download, Mail, Share2 } from 'lucide-react';
 import { BRAND, Region, formatMoney } from '../../config/brand';
 import { CarModel, PaintColor, WheelDesign, WheelFinish } from '../../types';
-import { shareUrl } from '../../services/journeyService';
+import { PdfContact, rememberPdfContact, rememberedPdfContact, shareUrl } from '../../services/journeyService';
 import { Button, Eyebrow, FinishChip, Logo, Modal, PaintChip, RimThumb, cx } from './ui';
+import { SiteFooter } from '../SiteFooter';
 import { shortModelName } from './Showroom';
 
 export interface SummaryProps {
@@ -23,7 +24,8 @@ export interface SummaryProps {
   code: string | null;
   onBack: () => void;
   onEnquire: () => void;
-  onDownloadPdf: () => Promise<void>;
+  /** Saves the contact as a lead, then builds the PDF. */
+  onDownloadPdf: (contact: PdfContact) => Promise<void>;
 }
 
 export const SummaryPage: React.FC<SummaryProps> = (p) => {
@@ -33,14 +35,34 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
   const [pdfBusy, setPdfBusy] = useState(false);
   const name = shortModelName(p.car);
 
-  const downloadPdf = async () => {
+  // The PDF is gated on an email address and mobile number (saved as a lead with the build).
+  const [gate, setGate] = useState(false);
+  const [contact, setContact] = useState<PdfContact>(rememberedPdfContact);
+  const [gateError, setGateError] = useState<string | null>(null);
+  const downloadPdf = () => {
+    setShare(false);
+    setGateError(null);
+    setGate(true);
+  };
+  const submitGate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = contact.email.trim();
+    const phone = contact.phone.replace(/[\s()-]/g, '');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setGateError('Please enter a valid email address.');
+    if (!/^\+?\d{9,15}$/.test(phone)) return setGateError('Please enter a valid mobile number, e.g. 082 123 4567.');
+    const clean = { name: contact.name.trim(), email, phone: contact.phone.trim() };
+    rememberPdfContact(clean);
     setPdfBusy(true);
     try {
-      await p.onDownloadPdf();
+      await p.onDownloadPdf(clean);
+      setGate(false);
+    } catch {
+      setGateError('The PDF could not be created. Please try again.');
     } finally {
       setPdfBusy(false);
     }
   };
+  const setField = (k: keyof PdfContact) => (e: React.ChangeEvent<HTMLInputElement>) => setContact((c) => ({ ...c, [k]: e.target.value }));
 
   const options = [
     { label: 'Paint', value: p.paint.name, detail: `${p.paint.type} · ${p.paint.code}`, visual: <PaintChip paint={p.paint} size={52} />, price: 'Included' },
@@ -63,8 +85,8 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
   ).filter(([, v]) => v?.trim());
 
   return (
-    <div className="absolute inset-0 z-50 overflow-y-auto bg-white animate-fade">
-      <header className="sticky top-0 z-20 flex h-16 sm:h-20 items-center justify-between bg-white/85 backdrop-blur-xl px-4 sm:px-8 border-b border-line">
+    <div className="absolute inset-0 z-50 overflow-y-auto bg-carbon animate-fade">
+      <header className="sticky top-0 z-20 flex h-16 sm:h-20 items-center justify-between bg-carbon/85 backdrop-blur-xl px-4 sm:px-8 border-b border-line">
         <Button variant="ghost" size="sm" onClick={p.onBack} className="pl-2">
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
           <span className="hidden sm:inline">Return to configuration</span>
@@ -116,7 +138,7 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
                   )}
                 >
                   {t === 'selected' ? 'Selected options' : 'Standard features'}
-                  {tab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-ink" />}
+                  {tab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-gold" />}
                 </button>
               ))}
             </div>
@@ -140,7 +162,7 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
                 {standard.length > 0 && (
                   <dl className="mb-8 grid gap-px overflow-hidden rounded-[20px] bg-line ring-1 ring-line sm:grid-cols-2">
                     {standard.map(([k, v], i) => (
-                      <div key={k} className={cx('bg-white p-5', i === standard.length - 1 && standard.length % 2 === 1 && 'sm:col-span-2')}>
+                      <div key={k} className={cx('bg-surface p-5', i === standard.length - 1 && standard.length % 2 === 1 && 'sm:col-span-2')}>
                         <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</dt>
                         <dd className="mt-1.5 text-[14px] font-medium">{v}</dd>
                       </div>
@@ -160,7 +182,7 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-28 h-fit rounded-[24px] bg-ink text-white p-7">
+          <aside className="lg:sticky lg:top-28 h-fit rounded-[24px] bg-gunmetal text-white ring-1 ring-gold/25 p-7">
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/60">Wheel set of four</div>
             <div className="mt-2 font-display text-[36px] font-extrabold tracking-[-0.02em] tabular-nums">{formatMoney(p.price, p.region)}</div>
             <div className="mt-1 text-[12px] text-white/60">
@@ -196,6 +218,8 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
         </div>
       </div>
 
+      <SiteFooter className="mt-16" />
+
       <Modal open={share} onClose={() => setShare(false)} title="Share summary" width="max-w-md">
         <p className="text-[13.5px] leading-relaxed text-mute">
           Use this code to reopen your {name} configuration at any time, or share the link.
@@ -227,6 +251,39 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
           </Button>
         </div>
       </Modal>
+
+      <Modal open={gate} onClose={() => !pdfBusy && setGate(false)} title="Download your PDF" width="max-w-md">
+        <form onSubmit={submitGate} className="space-y-4">
+          <p className="text-[13.5px] leading-relaxed text-mute">
+            Enter your email address and mobile number and your {name} build sheet downloads straight away. We use them only to
+            follow up on this configuration.
+          </p>
+          <GateField label="Email address" type="email" required autoComplete="email" value={contact.email} onChange={setField('email')} />
+          <GateField label="Mobile number" type="tel" required autoComplete="tel" placeholder="082 123 4567" value={contact.phone} onChange={setField('phone')} />
+          <GateField label="Name (optional)" autoComplete="name" value={contact.name} onChange={setField('name')} />
+          {gateError && <p className="text-[12.5px] text-red-400">{gateError}</p>}
+          <Button type="submit" size="lg" className="w-full" disabled={pdfBusy} icon={<Download className="h-4 w-4" strokeWidth={1.7} />}>
+            {pdfBusy ? 'Preparing PDF…' : 'Download PDF'}
+          </Button>
+          <p className="text-[11px] leading-relaxed text-mute">
+            By continuing you agree to our{' '}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 hover:text-gold">
+              terms and privacy notice
+            </a>
+            .
+          </p>
+        </form>
+      </Modal>
     </div>
   );
 };
+
+const GateField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...rest }) => (
+  <label className="block">
+    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{label}</span>
+    <input
+      {...rest}
+      className="mt-1.5 h-12 w-full rounded-xl bg-ink/[0.04] px-4 text-[14px] outline-none ring-1 ring-line focus:ring-gold/60 transition placeholder:text-mute/50"
+    />
+  </label>
+);

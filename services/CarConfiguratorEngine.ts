@@ -15,6 +15,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
+import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { traceRimShapes, buildRimFaceGeometry } from './rimExtrusion';
 import { proceduralRimShapes } from './proceduralRims';
 import { 
@@ -968,6 +969,29 @@ export class CarConfiguratorEngine {
    * exact-default combination (metalness 0, roughness ~1) down to a plausible gloss; anything
    * with an authored value (a real matte fabric at 0.72, say) is left alone.
    */
+  private static smoothedPanels = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
+  /** Set false (e.g. from the console) to compare against the model's own normals. */
+  static SMOOTH_PAINT = true;
+
+  /**
+   * Community car models often ship faceted or badly averaged normals; under a mirror-like clearcoat
+   * every facet shows as a wobble or blotch in the reflections. Painted panels get normals rebuilt
+   * from their shape: averaged across the panel, kept sharp only at real creases (> 34°).
+   */
+  private static smoothPanelGeometry(geometry: THREE.BufferGeometry) {
+    if (!CarConfiguratorEngine.SMOOTH_PAINT || !geometry.getAttribute('position')) return geometry;
+    const cached = CarConfiguratorEngine.smoothedPanels.get(geometry);
+    if (cached) return cached;
+    let smooth = geometry;
+    try {
+      smooth = toCreasedNormals(geometry, THREE.MathUtils.degToRad(34));
+    } catch {
+      /* unusual attributes: keep the model's own normals */
+    }
+    CarConfiguratorEngine.smoothedPanels.set(geometry, smooth);
+    return smooth;
+  }
+
   private static fixDefaultedMaterial(material: THREE.Material | null | undefined) {
     const m = material as THREE.MeshStandardMaterial;
     if (!m || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
@@ -1058,6 +1082,7 @@ export class CarConfiguratorEngine {
 
       const ownNames = `${mesh.name} ${materialNames}`;
       if (paintRe.test(ownNames) && !notPaintRe.test(ownNames)) {
+        mesh.geometry = CarConfiguratorEngine.smoothPanelGeometry(mesh.geometry);
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map(() => this.carBodyMaterial)
           : this.carBodyMaterial;
@@ -1536,22 +1561,31 @@ export class CarConfiguratorEngine {
     const c = box.getCenter(new THREE.Vector3());
     holder.position.set(-box.max.x + 0.01, -c.y, -c.z);
 
+    // One finish material per mounted rim: CAD exports can hold hundreds of bodies. A per-mesh copy is
+    // kept only where the GLB brings its own texture or normal map.
+    const shared = new THREE.MeshPhysicalMaterial({
+      color: this.wheelMaterial.color.clone(),
+      metalness: this.wheelMaterial.metalness,
+      roughness: this.wheelMaterial.roughness,
+      clearcoat: this.wheelMaterial.clearcoat,
+      envMap: this.wheelMaterial.envMap
+    });
+    this.customFaceMaterials.push(shared);
     rim.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
+      mesh.receiveShadow = true; // spokes shade the barrel, as on the procedural and photo rims
       const old = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
-      const mat = new THREE.MeshPhysicalMaterial({
-        color: this.wheelMaterial.color.clone(),
-        metalness: this.wheelMaterial.metalness,
-        roughness: this.wheelMaterial.roughness,
-        clearcoat: this.wheelMaterial.clearcoat,
-        envMap: this.wheelMaterial.envMap,
-        map: old?.map ?? null,
-        normalMap: old?.normalMap ?? null
-      });
-      this.customFaceMaterials.push(mat);
-      mesh.material = mat;
+      if (old?.map || old?.normalMap) {
+        const mat = shared.clone();
+        mat.map = old.map ?? null;
+        mat.normalMap = old.normalMap ?? null;
+        this.customFaceMaterials.push(mat);
+        mesh.material = mat;
+      } else {
+        mesh.material = shared;
+      }
     });
     parent.add(holder);
   }
@@ -1782,10 +1816,11 @@ export class CarConfiguratorEngine {
   }
 
   /**
-   * Stills of the current configuration from the given angles, as JPEG data URLs on a soft studio
-   * backdrop. Used by the summary page and the PDF. The live view is restored afterwards.
+   * Stills of the current configuration from the given angles, as JPEG data URLs on the dark studio
+   * backdrop (a pool of light on Matte Carbon, as on the page). Used by the summary page and the PDF.
+   * The live view is restored afterwards.
    */
-  public captureViews(views: CameraViewPreset[], background: [string, string] = ['#ffffff', '#e9ebee']): string[] {
+  public captureViews(views: CameraViewPreset[], background: [string, string] = ['#2e2e2e', '#101010']): string[] {
     const saved = {
       spherical: { ...this.spherical },
       target: { ...this.targetSpherical },
@@ -1808,7 +1843,10 @@ export class CarConfiguratorEngine {
       out.width = src.width;
       out.height = src.height;
       const ctx = out.getContext('2d')!;
-      const g = ctx.createLinearGradient(0, 0, 0, out.height);
+      const g = ctx.createRadialGradient(
+        out.width / 2, out.height * 0.6, 0,
+        out.width / 2, out.height * 0.6, Math.max(out.width, out.height) * 0.75
+      );
       g.addColorStop(0, background[0]);
       g.addColorStop(1, background[1]);
       ctx.fillStyle = g;

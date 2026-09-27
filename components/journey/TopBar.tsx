@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import { BRAND } from '../../config/brand';
 import { Logo, cx } from './ui';
+import { SocialLinks } from './SocialLinks';
 
 export interface MenuLink {
   label: string;
@@ -40,15 +41,15 @@ export const TopBar: React.FC<{
 
       {open && (
         <div className="fixed inset-0 z-[75]">
-          <div className="absolute inset-0 bg-ink/20 backdrop-blur-[2px] animate-fade" onClick={() => setOpen(false)} />
-          <nav className="absolute inset-y-0 left-0 w-full max-w-sm bg-white shadow-panel flex flex-col animate-slide-in">
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px] animate-fade" onClick={() => setOpen(false)} />
+          <nav className="absolute inset-y-0 left-0 w-full max-w-sm bg-surface shadow-panel flex flex-col animate-slide-in">
             <div className="flex items-center justify-between h-16 sm:h-20 px-6">
               <Logo size="sm" />
               <button onClick={() => setOpen(false)} aria-label="Close menu" className="h-10 w-10 inline-flex items-center justify-center rounded-full hover:bg-ink/[0.05]">
                 <X className="h-5 w-5" strokeWidth={1.5} />
               </button>
             </div>
-            <ul className="flex-1 px-6 pt-6">
+            <ul className="flex-1 overflow-y-auto px-6 pt-6">
               {links.map((l, i) => (
                 <li key={l.label} className="animate-rise" style={{ animationDelay: `${60 + i * 50}ms` }}>
                   <button
@@ -65,6 +66,7 @@ export const TopBar: React.FC<{
               ))}
             </ul>
             <div className="px-6 pb-8 text-[12px] leading-relaxed text-mute">
+              <SocialLinks size="sm" withWebsite className="mb-5" />
               <div>{BRAND.contact.email}</div>
               <div>{BRAND.contact.phone}</div>
             </div>

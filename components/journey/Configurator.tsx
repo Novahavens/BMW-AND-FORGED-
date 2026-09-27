@@ -84,14 +84,14 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
 
       {/* Camera controls, centred under the car */}
       <div className="absolute z-30 left-1/2 sm:left-[calc((100%-400px)/2)] -translate-x-1/2 bottom-[calc(50vh+14px)] sm:bottom-8 animate-rise delay-300">
-        <div className="flex items-center sm:gap-1 rounded-full bg-white/85 backdrop-blur-md p-1 ring-1 ring-line shadow-float max-w-[calc(100vw-24px)]">
+        <div className="flex items-center sm:gap-1 rounded-full bg-surface/85 backdrop-blur-md p-1 ring-1 ring-line shadow-float max-w-[calc(100vw-24px)]">
           {VIEWS.map((v) => (
             <button
               key={v.id}
               onClick={() => p.onCamera(v.id)}
               className={cx(
                 'h-9 rounded-full px-2.5 sm:px-4 text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em] transition-all duration-300 ease-lux',
-                p.cameraView === v.id ? 'bg-ink text-white' : 'text-mute hover:text-ink'
+                p.cameraView === v.id ? 'bg-gold text-carbon' : 'text-mute hover:text-ink'
               )}
             >
               {v.label}
@@ -106,7 +106,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
 
       {/* Panel: right column on desktop, bottom sheet on phones */}
       <aside
-        className="absolute z-40 bg-white/[0.97] backdrop-blur-xl shadow-panel flex flex-col animate-slide-in
+        className="absolute z-40 bg-surface/[0.97] backdrop-blur-xl shadow-panel flex flex-col animate-slide-in
           inset-x-0 bottom-0 h-[50vh] rounded-t-[26px]
           sm:inset-x-auto sm:right-0 sm:top-0 sm:bottom-0 sm:h-auto sm:w-[400px] sm:rounded-none sm:border-l sm:border-line"
       >
@@ -140,7 +140,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
                   aria-label={`Step ${i + 1}: ${s.label}`}
                   className={cx(
                     'h-7 w-7 rounded-full text-[11px] font-semibold tabular-nums transition-all duration-300 ease-lux',
-                    i === stepIndex ? 'bg-ink text-white' : i < stepIndex ? 'text-ink' : 'text-mute hover:text-ink'
+                    i === stepIndex ? 'bg-gold text-carbon' : i < stepIndex ? 'text-ink' : 'text-mute hover:text-ink'
                   )}
                 >
                   {i + 1}
@@ -167,7 +167,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
         </div>
 
         {/* Sticky total + primary action */}
-        <div className="border-t border-line px-6 sm:px-7 py-4 sm:py-5 bg-white">
+        <div className="border-t border-line px-6 sm:px-7 py-4 sm:py-5 bg-surface">
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">Wheel set of four</div>
@@ -302,7 +302,7 @@ const WheelStep: React.FC<ConfiguratorProps & { onInfo: (w: WheelDesign) => void
     <StepHeader title="Wheels" onBack={() => p.onStep('overview')} />
 
     {/* Hero */}
-    <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-b from-[#f6f7f9] to-[#e9ebef] ring-1 ring-line">
+    <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-b from-[#202020] to-[#161616] ring-1 ring-line">
       <div className="flex items-center justify-center pt-7 pb-3">
         <div key={p.wheel.id + p.finish.id} className="animate-rise">
           {p.wheel.imageUrl ? (
@@ -321,10 +321,10 @@ const WheelStep: React.FC<ConfiguratorProps & { onInfo: (w: WheelDesign) => void
           </div>
         </div>
         <div className="flex shrink-0 gap-1.5">
-          <IconButton label="Wheel details" onClick={() => p.onInfo(p.wheel)} className="bg-white ring-1 ring-line">
+          <IconButton label="Wheel details" onClick={() => p.onInfo(p.wheel)} className="bg-surface ring-1 ring-line">
             <Info className="h-4 w-4" strokeWidth={1.7} />
           </IconButton>
-          <IconButton label="View in 360°" onClick={() => p.onOpen360(p.wheel)} className="bg-white ring-1 ring-line">
+          <IconButton label="View in 360°" onClick={() => p.onOpen360(p.wheel)} className="bg-surface ring-1 ring-line">
             <Rotate3d className="h-4 w-4" strokeWidth={1.7} />
           </IconButton>
         </div>
@@ -350,7 +350,7 @@ const WheelStep: React.FC<ConfiguratorProps & { onInfo: (w: WheelDesign) => void
                   {w.style} · from {formatMoney(rimFromPrice(w), p.region)}
                 </span>
               </span>
-              <span className={cx('flex h-6 w-6 items-center justify-center rounded-full transition', active ? 'bg-ink text-white' : 'ring-1 ring-line text-transparent')}>
+              <span className={cx('flex h-6 w-6 items-center justify-center rounded-full transition', active ? 'bg-gold text-carbon' : 'ring-1 ring-line text-transparent')}>
                 <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
               </span>
             </button>
@@ -386,11 +386,11 @@ const SizeStep: React.FC<ConfiguratorProps> = (p) => {
               onClick={() => p.onSize(s)}
               className={cx(
                 'rounded-2xl px-4 py-4 text-left ring-1 transition-all duration-300 ease-lux',
-                active ? 'bg-ink text-white ring-ink' : 'bg-white ring-line hover:ring-ink/30'
+                active ? 'bg-gold text-carbon ring-gold' : 'bg-surface ring-line hover:ring-ink/30'
               )}
             >
               <div className="font-display text-[24px] font-extrabold tracking-[-0.02em]">{s}</div>
-              <div className={cx('mt-1 text-[12px] tabular-nums', active ? 'text-white/70' : 'text-mute')}>{formatMoney(rimPrice(p.wheel, s), p.region)}</div>
+              <div className={cx('mt-1 text-[12px] tabular-nums', active ? 'text-carbon/70' : 'text-mute')}>{formatMoney(rimPrice(p.wheel, s), p.region)}</div>
             </button>
           );
         })}
@@ -428,7 +428,7 @@ const FinishStep: React.FC<ConfiguratorProps> = (p) => {
                   <span className="block truncate text-[11.5px] text-mute">{f.colorName}</span>
                 </span>
                 {f.badge && <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-bronze">{f.badge}</span>}
-                <span className={cx('ml-1 flex h-6 w-6 items-center justify-center rounded-full transition', active ? 'bg-ink text-white' : 'ring-1 ring-line text-transparent')}>
+                <span className={cx('ml-1 flex h-6 w-6 items-center justify-center rounded-full transition', active ? 'bg-gold text-carbon' : 'ring-1 ring-line text-transparent')}>
                   <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
                 </span>
               </button>
@@ -479,7 +479,7 @@ export const WheelInfoModal: React.FC<{
             ['Rear', `${wheel.weightRearKg} kg`],
             ['Saving', wheel.weightSavingsKg > 0 ? `${wheel.weightSavingsKg} kg` : '—']
           ].map(([k, v]) => (
-            <div key={k} className="bg-white p-4">
+            <div key={k} className="bg-surface p-4">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</div>
               <div className="mt-1 font-display text-[16px] font-extrabold">{v}</div>
             </div>
@@ -536,11 +536,11 @@ export const MoreOptionsModal: React.FC<{
             onClick={() => onRegion(r)}
             className={cx(
               'flex items-center justify-between rounded-xl px-4 py-3 text-left text-[13px] transition',
-              r.id === region.id ? 'bg-ink text-white' : 'bg-ink/[0.035] hover:bg-ink/[0.06]'
+              r.id === region.id ? 'bg-gold text-carbon' : 'bg-ink/[0.035] hover:bg-ink/[0.06]'
             )}
           >
             <span className="font-medium">{r.label}</span>
-            <span className={r.id === region.id ? 'text-white/70' : 'text-mute'}>
+            <span className={r.id === region.id ? 'text-carbon/70' : 'text-mute'}>
               {r.language} · {r.currency}
             </span>
           </button>

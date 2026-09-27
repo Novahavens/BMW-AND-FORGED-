@@ -71,6 +71,7 @@ export async function loadConfiguration(code: string): Promise<SavedConfiguratio
 export const shareUrl = (code: string) => `${window.location.origin}/?config=${code}`;
 
 export interface Enquiry {
+  /** Optional for PDF downloads. */
   name: string;
   email: string;
   phone?: string;
@@ -79,19 +80,32 @@ export interface Enquiry {
   configCode?: string;
   configuration?: Record<string, string>;
   region?: string;
+  /** 'pdf' when the contact details were given to download the summary PDF. */
+  source?: 'enquiry' | 'pdf';
 }
+
+/** Contact details asked for before the summary PDF generates; remembered in this browser. */
+export interface PdfContact {
+  name: string;
+  email: string;
+  phone: string;
+}
+const LOCAL_PDF_CONTACT = 'forgedsa_pdf_contact';
+export const rememberedPdfContact = (): PdfContact => ({ name: '', email: '', phone: '', ...readLocal<Partial<PdfContact>>(LOCAL_PDF_CONTACT, {}) });
+export const rememberPdfContact = (c: PdfContact) => writeLocal(LOCAL_PDF_CONTACT, c);
 
 /** Sends an enquiry to Supabase; keeps a copy in this browser if that fails. */
 export async function submitEnquiry(enquiry: Enquiry): Promise<'sent' | 'saved-locally'> {
   const { error } = await supabase.from('leads').insert({
-    name: enquiry.name,
+    name: enquiry.name.trim() || null,
     email: enquiry.email,
     phone: enquiry.phone || null,
     message: enquiry.message || null,
     consultation: enquiry.consultation,
     config_code: enquiry.configCode || null,
     configuration: enquiry.configuration ?? null,
-    region: enquiry.region ?? null
+    region: enquiry.region ?? null,
+    source: enquiry.source ?? 'enquiry'
   });
   if (!error) return 'sent';
   console.warn('Enquiry kept in this browser:', error.message);

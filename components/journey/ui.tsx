@@ -14,8 +14,10 @@ export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Bool
 
 /** Brand mark: the logo image when configured, else the wordmark. */
 export const Logo: React.FC<{ className?: string; size?: 'sm' | 'md' | 'lg' }> = ({ className, size = 'md' }) => {
-  const h = size === 'lg' ? 'h-10' : size === 'sm' ? 'h-5' : 'h-7';
-  if (BRAND.logoUrl) return <img src={BRAND.logoUrl} alt={BRAND.name} className={cx(h, 'w-auto', className)} />;
+  // The wordmark is ~9.5:1, so heights stay small to keep it inside a phone header.
+  const h = size === 'lg' ? 'h-6 sm:h-8' : size === 'sm' ? 'h-3.5 sm:h-4' : 'h-4 sm:h-5';
+  if (BRAND.logoUrl)
+    return <img src={BRAND.logoUrl} alt={BRAND.name} draggable={false} className={cx(h, 'w-auto select-none', className)} />;
   const text = size === 'lg' ? 'text-3xl' : size === 'sm' ? 'text-sm' : 'text-lg';
   return (
     <span className={cx('font-display font-extrabold tracking-[0.32em] text-ink select-none', text, className)}>
@@ -36,10 +38,10 @@ export const Button: React.FC<
       size === 'sm' && 'h-9 px-4 text-[10.5px]',
       size === 'md' && 'h-11 px-6 text-[11px]',
       size === 'lg' && 'h-14 px-8 text-[12px]',
-      variant === 'primary' && 'bg-ink text-white hover:bg-black shadow-float',
-      variant === 'secondary' && 'bg-white text-ink ring-1 ring-line hover:ring-ink/30',
+      variant === 'primary' && 'bg-gold text-carbon hover:bg-brass shadow-float font-bold',
+      variant === 'secondary' && 'bg-surface text-ink ring-1 ring-line hover:ring-ink/30',
       variant === 'ghost' && 'text-ink hover:bg-ink/[0.05]',
-      variant === 'light' && 'bg-white/80 backdrop-blur text-ink ring-1 ring-line hover:bg-white',
+      variant === 'light' && 'bg-surface/80 backdrop-blur text-ink ring-1 ring-line hover:bg-surface',
       className
     )}
   >
@@ -61,7 +63,7 @@ export const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
     title={label}
     className={cx(
       'inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-lux active:scale-95',
-      active ? 'bg-ink text-white' : 'text-ink hover:bg-ink/[0.06]',
+      active ? 'bg-gold text-carbon' : 'text-ink hover:bg-ink/[0.06]',
       className
     )}
   >
@@ -90,14 +92,14 @@ export const Modal: React.FC<{
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center pointer-events-auto select-text" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-ink/25 backdrop-blur-[3px] animate-fade" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px] animate-fade" onClick={onClose} />
       <div
         className={cx(
-          'relative w-full bg-white shadow-panel animate-rise rounded-t-[28px] sm:rounded-[28px] max-h-[88vh] overflow-y-auto',
+          'relative w-full bg-surface shadow-panel animate-rise rounded-t-[28px] sm:rounded-[28px] max-h-[88vh] overflow-y-auto',
           width
         )}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-white/90 backdrop-blur px-7 pt-6 pb-3">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-surface/90 backdrop-blur px-7 pt-6 pb-3">
           <div className="font-display text-[15px] font-bold uppercase tracking-[0.08em]">{title}</div>
           <IconButton label="Close" onClick={onClose} className="-mr-2">
             <X className="h-5 w-5" strokeWidth={1.6} />
@@ -126,7 +128,7 @@ export const PaintChip: React.FC<{ paint: Pick<PaintColor, 'hex' | 'type'>; size
   const matte = paint.type === 'Frozen';
   return (
     <span
-      className={cx('inline-block rounded-full ring-1 ring-black/10', className)}
+      className={cx('inline-block rounded-full ring-1 ring-white/10', className)}
       style={{
         width: size,
         height: size,
@@ -145,7 +147,7 @@ export const FinishChip: React.FC<{ finish: Pick<WheelFinish, 'hex' | 'roughness
   className
 }) => (
   <span
-    className={cx('inline-block rounded-full ring-1 ring-black/10', className)}
+    className={cx('inline-block rounded-full ring-1 ring-white/10', className)}
     style={{
       width: size,
       height: size,
@@ -175,8 +177,10 @@ export const RimThumb: React.FC<{ wheel: WheelDesign; finish?: WheelFinish; size
   const tint = thumbTint(finish?.hex);
   const mask = `url("${wheel.imageUrl}") center / contain no-repeat`;
   return (
-    <div className={cx('relative drop-shadow-[0_6px_10px_rgba(0,0,0,0.18)]', className)} style={{ width: size, height: size }}>
-      <img src={wheel.imageUrl} alt="" className="h-full w-full object-contain" />
+    <div className={cx('relative drop-shadow-[0_8px_14px_rgba(0,0,0,0.55)]', className)} style={{ width: size, height: size }}>
+      {/* The image is a light neutral grey (it doubles as metal reflectance in 3D); a touch of contrast
+          keeps it reading as metal rather than white on the dark theme. */}
+      <img src={wheel.imageUrl} alt="" className="h-full w-full object-contain" style={{ filter: 'contrast(1.18) brightness(0.9)' }} />
       {tint && (
         <div
           aria-hidden

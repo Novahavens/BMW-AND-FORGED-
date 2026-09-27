@@ -112,13 +112,13 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
           <Eyebrow className="tracking-[0.34em]">360° view</Eyebrow>
         </div>
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-1 rounded-full bg-white/85 backdrop-blur p-1 ring-1 ring-line shadow-float">
+          <div className="flex items-center gap-1 rounded-full bg-surface/85 backdrop-blur p-1 ring-1 ring-line shadow-float">
             <IconButton label={`Previous: ${prev.name}`} onClick={() => onOpenRim(prev.id)}>
               <ChevronLeft className="h-4 w-4" />
             </IconButton>
             <button
               onClick={() => { const v = !autoRotate; setAutoRotate(v); engineRef.current?.setAutoRotate(v); }}
-              className={cx('flex h-10 items-center gap-2 rounded-full px-4 text-[10.5px] font-semibold uppercase tracking-[0.14em] transition', autoRotate ? 'bg-ink text-white' : 'text-ink hover:bg-ink/[0.05]')}
+              className={cx('flex h-10 items-center gap-2 rounded-full px-4 text-[10.5px] font-semibold uppercase tracking-[0.14em] transition', autoRotate ? 'bg-gold text-carbon' : 'text-ink hover:bg-ink/[0.05]')}
             >
               <Rotate3d className="h-4 w-4" strokeWidth={1.7} /> Rotate
             </button>
@@ -131,7 +131,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
       </div>
 
       {/* Details */}
-      <aside className="w-full md:w-[400px] shrink-0 bg-white md:border-l border-line overflow-y-auto px-6 sm:px-7 py-7 space-y-7 shadow-panel">
+      <aside className="w-full md:w-[400px] shrink-0 bg-surface md:border-l border-line overflow-y-auto px-6 sm:px-7 py-7 space-y-7 shadow-panel">
         <div key={wheel.id} className="animate-rise">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-bronze">{wheel.code}</div>
           <h1 className="mt-2 font-display text-[26px] font-extrabold tracking-[-0.02em]">{wheel.name}</h1>
@@ -161,7 +161,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
               <button
                 key={s}
                 onClick={() => setSize(s)}
-                className={cx('rounded-xl py-2.5 ring-1 transition-all duration-300', size === s ? 'bg-ink text-white ring-ink' : 'ring-line hover:ring-ink/30')}
+                className={cx('rounded-xl py-2.5 ring-1 transition-all duration-300', size === s ? 'bg-gold text-carbon ring-gold' : 'ring-line hover:ring-ink/30')}
               >
                 <span className="block font-display text-[15px] font-extrabold">{s}</span>
               </button>

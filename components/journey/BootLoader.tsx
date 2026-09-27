@@ -16,13 +16,13 @@ export const BootLoader: React.FC<{ progress: number; ready: boolean }> = ({ pro
   return (
     <div
       className={cx(
-        'absolute inset-0 z-[70] flex flex-col items-center justify-center bg-white transition-opacity duration-[900ms] ease-lux',
+        'absolute inset-0 z-[70] flex flex-col items-center justify-center bg-carbon transition-opacity duration-[900ms] ease-lux',
         ready ? 'pointer-events-none opacity-0' : 'opacity-100'
       )}
       aria-busy={!ready}
       aria-label="Loading"
     >
-      <svg viewBox="-110 -110 220 220" className="h-40 w-40 sm:h-48 sm:w-48 text-ink" fill="none" stroke="currentColor">
+      <svg viewBox="-110 -110 220 220" className="h-40 w-40 sm:h-48 sm:w-48 text-gold" fill="none" stroke="currentColor">
         <circle r="100" strokeWidth="0.9" className="animate-draw" style={{ ['--len' as string]: 630 }} />
         <circle r="86" strokeWidth="0.6" className="animate-draw delay-200" style={{ ['--len' as string]: 541 }} opacity={0.6} />
         <circle r="24" strokeWidth="0.9" className="animate-draw delay-300" style={{ ['--len' as string]: 151 }} />
@@ -55,7 +55,7 @@ export const BootLoader: React.FC<{ progress: number; ready: boolean }> = ({ pro
       <div className="absolute bottom-14 left-1/2 w-40 -translate-x-1/2">
         <div className="h-px w-full bg-line overflow-hidden">
           <div
-            className="h-px bg-ink transition-[width] duration-700 ease-lux"
+            className="h-px bg-gold transition-[width] duration-700 ease-lux"
             style={{ width: `${Math.round(Math.max(0.04, Math.min(1, progress)) * 100)}%` }}
           />
         </div>

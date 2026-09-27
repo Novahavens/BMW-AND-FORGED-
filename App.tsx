@@ -9,7 +9,8 @@ import { Catalog, STATIC_CATALOG, fetchCatalog, paintsForCar, pickPaintForCar } 
 import { nearestRimSize, rimPrice } from './services/pricing';
 import { CarModel, PaintColor, WheelDesign, WheelFinish, CameraViewPreset } from './types';
 import { BRAND, DEFAULT_REGION, Region } from './config/brand';
-import { SavedConfiguration, configKey, loadConfiguration, saveConfiguration } from './services/journeyService';
+import { DELIVERY, TERMS } from './config/pages';
+import { SavedConfiguration, configKey, loadConfiguration, saveConfiguration, submitEnquiry } from './services/journeyService';
 import { downloadBrochurePdf } from './services/brochurePdf';
 import { BootLoader } from './components/journey/BootLoader';
 import { WelcomeGate } from './components/journey/WelcomeGate';
@@ -23,6 +24,7 @@ import { Button } from './components/journey/ui';
 // Pages off the main journey load on demand
 const ForgedPage = lazy(() => import('./components/ForgedPage').then((m) => ({ default: m.ForgedPage })));
 const RimDetailPage = lazy(() => import('./components/RimDetailPage').then((m) => ({ default: m.RimDetailPage })));
+const InfoPage = lazy(() => import('./components/InfoPage').then((m) => ({ default: m.InfoPage })));
 const AdminPage = lazy(() => import('./components/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 
 // Journey: welcome -> showroom (choose the car) -> configure (paint, wheel design, size, finish) -> summary.
@@ -35,6 +37,8 @@ type Route =
   | { name: 'summary' }
   | { name: 'forged' }
   | { name: 'admin' }
+  | { name: 'terms' }
+  | { name: 'delivery' }
   | { name: 'rim'; rimId: string };
 
 const routeFromLocation = (): Route => {
@@ -46,6 +50,8 @@ const routeFromLocation = (): Route => {
   if (path === '/summary') return { name: 'configure' }; // stills are captured on the way in
   if (path === '/forged' || hash === 'forged') return { name: 'forged' };
   if (path === '/admin' || hash === 'admin') return { name: 'admin' };
+  if (path === '/terms') return { name: 'terms' };
+  if (path === '/delivery') return { name: 'delivery' };
   const rim = path.match(/^\/rims\/([^/]+)$/);
   if (rim) return { name: 'rim', rimId: decodeURIComponent(rim[1]) };
   return { name: 'welcome' };
@@ -59,6 +65,8 @@ const routePath = (route: Route) =>
     summary: '/summary',
     forged: '/forged',
     admin: '/admin',
+    terms: '/terms',
+    delivery: '/delivery',
     rim: route.name === 'rim' ? `/rims/${encodeURIComponent(route.rimId)}` : '/'
   })[route.name];
 
@@ -462,7 +470,9 @@ export const App: React.FC = () => {
     { label: 'Models', onClick: () => navigateTo({ name: 'showroom' }) },
     { label: 'Configure', onClick: () => navigateTo({ name: 'configure' }) },
     { label: 'The wheels', onClick: () => navigateTo({ name: 'forged' }) },
-    { label: 'Enquire', onClick: () => setEnquiryOpen(true) }
+    { label: 'Enquire', onClick: () => setEnquiryOpen(true) },
+    { label: 'Delivery & fitment', onClick: () => navigateTo({ name: 'delivery' }) },
+    { label: 'Terms & conditions', onClick: () => navigateTo({ name: 'terms' }) }
   ];
 
   const enquirySummary = `${selectedCar.name} · ${selectedPaint.name} · ${selectedWheel.name} ${selectedSize} in ${selectedFinish.name}`;
@@ -554,8 +564,23 @@ export const App: React.FC = () => {
           code={configCode?.code ?? null}
           onBack={() => navigateTo({ name: 'configure' })}
           onEnquire={() => setEnquiryOpen(true)}
-          onDownloadPdf={() =>
-            downloadBrochurePdf({
+          onDownloadPdf={async (contact) => {
+            // Saved as a lead first (never blocks the PDF: submitEnquiry keeps a local copy if offline)
+            await submitEnquiry({
+              ...contact,
+              consultation: false,
+              source: 'pdf',
+              configCode: configCode?.code,
+              configuration: {
+                car: selectedCar.name,
+                paint: selectedPaint.name,
+                wheel: selectedWheel.name,
+                size: selectedSize,
+                finish: selectedFinish.name
+              },
+              region: region.id
+            });
+            await downloadBrochurePdf({
               car: selectedCar,
               paint: selectedPaint,
               wheel: selectedWheel,
@@ -565,8 +590,8 @@ export const App: React.FC = () => {
               region,
               code: configCode?.code ?? '',
               images: summaryImages
-            })
-          }
+            });
+          }}
         />
       )}
 
@@ -633,6 +658,17 @@ export const App: React.FC = () => {
               setCameraView('frontWheel');
               navigateTo({ name: 'configure' });
             }}
+          />
+        </div>
+      )}
+
+      {(route.name === 'terms' || route.name === 'delivery') && (
+        <div className="absolute inset-0 z-50 animate-fadeIn">
+          <InfoPage
+            key={route.name}
+            content={route.name === 'terms' ? TERMS : DELIVERY}
+            onBack={() => (window.history.length > 1 ? window.history.back() : navigateTo({ name: 'welcome' }))}
+            onEnquire={() => setEnquiryOpen(true)}
           />
         </div>
       )}

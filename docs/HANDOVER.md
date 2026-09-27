@@ -1,6 +1,8 @@
-# FORGED Configurator: Handover & Customisation Guide
+# FORGEDSA Configurator: Technical Handover & Customisation Guide
 
-> The brand name **FORGED** is a placeholder. Rename it, add a logo and change colours in one file: `config/brand.ts` (section 4).
+> For the business-owner overview, read [`CLIENT_HANDOVER.md`](CLIENT_HANDOVER.md) first. This guide is
+> the technical companion. Brand name, logo, colours, contact details and social links live in one
+> file: `config/brand.ts` (section 4). Terms and delivery copy live in `config/pages.ts`.
 
 Follow the sections in order. Each step has a **Check** line; do not move on until it passes.
 
@@ -18,19 +20,20 @@ Follow the sections in order. Each step has a **Check** line; do not move on unt
 
 | URL | What it is |
 |---|---|
-| `/` | Welcome: live car in a white studio, region and currency select, **Enter** |
+| `/` | Welcome: live car in the dark FORGEDSA studio, region and currency select, **Enter** |
 | `/models` | Showroom: one BMW M car at a time, huge model name behind it, ← → to switch (the car drives out and the next drives in), **Explore** (specs) and **Build** |
 | `/configure` | Configurator: right-hand panel (bottom sheet on phones) with 4 steps: Paint, Wheels, Size, Finish. Wheel choices cut to a close-up of the wheel |
 | `/summary` | Your build: studio stills, options, price, **Share** (configuration code + link), **PDF**, **Enquire** |
 | `/?config=CODE` | Reopens a shared configuration |
 | `/forged` | The wheel collection |
 | `/rims/<rim-id>` | 360° view of one wheel: finish, size, price, "See it on my car" |
+| `/delivery` | Delivery & fitment (copy in `config/pages.ts`) |
+| `/terms` | Terms & conditions (copy in `config/pages.ts`) |
 | `/admin` | Admin sign-in, then edit cars, wheels, finishes and paints, and upload GLBs and rim PNGs |
 
-**Only cars with a 3D file appear in the showroom.** Today those are the BMW M4 Competition and the
-2025 BMW M5 (G90). The M2, M3 and X5 M appear automatically as soon as you upload a GLB for them in
-`/admin`. Model credits and licences: `public/models/CREDITS.md`. **The M5 file is licensed for
-non-commercial use only**, so replace or license it before any commercial use.
+**Only cars with a 3D file appear in the showroom.** Nine of the 11 cars have one; the M4 Convertible
+and M5 Touring appear automatically as soon as you upload a GLB for them in `/admin`. Model credits
+and licences: `public/models/CREDITS.md`.
 
 **Customer choices (only these five):** car, paint colour, rim design, rim size, rim colour (finish).
 Rim size visibly changes the rim on the car (bigger rim, thinner tyre sidewall) and has its own price.

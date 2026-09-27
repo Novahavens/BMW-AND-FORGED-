@@ -7,6 +7,7 @@ import React from 'react';
 import { ArrowRight, ChevronDown, Globe } from 'lucide-react';
 import { BRAND, Region } from '../../config/brand';
 import { Button, Logo } from './ui';
+import { SocialLinks } from './SocialLinks';
 
 /** Region select + Enter, over the live car turning slowly in the studio. */
 export const WelcomeGate: React.FC<{
@@ -17,8 +18,8 @@ export const WelcomeGate: React.FC<{
 }> = ({ region, onRegionChange, onEnter, onOpenForged }) => (
   <div className="absolute inset-0 z-30 pointer-events-none">
     {/* Legibility wash on the text side only; the car stays crisp */}
-    <div className="absolute inset-y-0 left-0 hidden sm:block w-[44%] bg-gradient-to-r from-white/80 via-white/40 to-transparent" />
-    <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-white via-white/80 to-transparent sm:hidden" />
+    <div className="absolute inset-y-0 left-0 hidden sm:block w-[44%] bg-gradient-to-r from-carbon/80 via-carbon/40 to-transparent" />
+    <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-carbon via-carbon/80 to-transparent sm:hidden" />
 
     <header className="absolute top-0 inset-x-0 flex items-center justify-between px-6 sm:px-12 pt-6 sm:pt-9 animate-fade">
       <Logo />
@@ -38,7 +39,7 @@ export const WelcomeGate: React.FC<{
       <p className="mt-5 max-w-md text-[14.5px] leading-relaxed text-mute animate-rise delay-200">{BRAND.welcomeBody}</p>
 
       <div className="mt-8 flex flex-col sm:flex-row gap-3 animate-rise delay-300">
-        <label className="relative flex h-14 w-full sm:flex-1 shrink-0 items-center rounded-full bg-white ring-1 ring-line pl-5 pr-11 hover:ring-ink/25 transition">
+        <label className="relative flex h-14 w-full sm:flex-1 shrink-0 items-center rounded-full bg-surface ring-1 ring-line pl-5 pr-11 hover:ring-ink/25 transition">
           <Globe className="h-4 w-4 text-mute shrink-0" strokeWidth={1.6} />
           <span className="sr-only">Region</span>
           <select
@@ -58,6 +59,7 @@ export const WelcomeGate: React.FC<{
           Enter
         </Button>
       </div>
+      <SocialLinks size="sm" className="mt-7 animate-rise delay-500" />
     </div>
   </div>
 );
