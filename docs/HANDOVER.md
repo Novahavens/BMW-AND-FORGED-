@@ -1,4 +1,6 @@
-# Apex Forged Configurator: Handover & Customisation Guide
+# FORGED Configurator: Handover & Customisation Guide
+
+> The brand name **FORGED** is a placeholder. Rename it, add a logo and change colours in one file: `config/brand.ts` (section 4).
 
 Follow the sections in order. Each step has a **Check** line; do not move on until it passes.
 
@@ -16,10 +18,19 @@ Follow the sections in order. Each step has a **Check** line; do not move on unt
 
 | URL | What it is |
 |---|---|
-| `/` | 3D studio configurator (landing page today) |
-| `/forged` | Marketing / showcase page |
-| `/rims/<rim-id>` | 3D detail page for one rim: turntable, zoom, colour and size with price, "See it on my car" |
+| `/` | Welcome: live car in a white studio, region and currency select, **Enter** |
+| `/models` | Showroom: one BMW M car at a time, huge model name behind it, ← → to switch (the car drives out and the next drives in), **Explore** (specs) and **Build** |
+| `/configure` | Configurator: right-hand panel (bottom sheet on phones) with 4 steps: Paint, Wheels, Size, Finish. Wheel choices cut to a close-up of the wheel |
+| `/summary` | Your build: studio stills, options, price, **Share** (configuration code + link), **PDF**, **Enquire** |
+| `/?config=CODE` | Reopens a shared configuration |
+| `/forged` | The wheel collection |
+| `/rims/<rim-id>` | 360° view of one wheel: finish, size, price, "See it on my car" |
 | `/admin` | Admin sign-in, then edit cars, wheels, finishes and paints, and upload GLBs and rim PNGs |
+
+**Only cars with a 3D file appear in the showroom.** Today those are the BMW M4 Competition and the
+2025 BMW M5 (G90). The M2, M3 and X5 M appear automatically as soon as you upload a GLB for them in
+`/admin`. Model credits and licences: `public/models/CREDITS.md`. **The M5 file is licensed for
+non-commercial use only**, so replace or license it before any commercial use.
 
 **Customer choices (only these five):** car, paint colour, rim design, rim size, rim colour (finish).
 Rim size visibly changes the rim on the car (bigger rim, thinner tyre sidewall) and has its own price.
@@ -126,32 +137,29 @@ Everything in the drawers comes from the admin tabs. Edit → **Save** → the s
 
 ---
 
-## 3. Landing page & user journey
+## 3. User journey
 
-**Current journey:** `/` opens straight into the 3D studio → **car & paint** drawer → **Next: forged wheels**
-→ rim design, colour and size (price per size) → optional **Rim detail** page per rim (3D turntable,
-"See it on my car" returns to the studio zoomed on the wheel) → **Get Brochure** (lead form).
-`/forged` is a separate showcase page linked from the header.
+Welcome (`/`) → **Enter** → Showroom (`/models`) → **Build** → pre-curated vehicle notice → Configurator
+(`/configure`) → **View your M4** → Summary (`/summary`) → Share / PDF / Enquire.
+One 3D studio stays alive behind every step; the camera glides between stages rather than the page reloading.
 
 | To change… | Edit |
 |---|---|
-| Browser tab title, link-preview text | `index.html` lines 6–10 |
-| Loading screen text | `App.tsx`, search `APEX FORGED 3D STUDIO` |
-| Header logo, links, buttons | `components/ConfiguratorHeader.tsx` |
-| Showcase page copy, hero, social links | `components/ForgedPage.tsx` |
-| Brochure form wording | `components/BrochureModal.tsx` |
-| Which drawer is open on arrival | `App.tsx`: `isVehicleDrawerOpen` (`true`) / `isDrawerOpen` (`false`) |
-| Starting car / paint / wheel | Admin → *Sort order* (the first item is the default) |
-| Make `/forged` the landing page | `App.tsx` → `routeFromLocation`: return `'forged'` instead of the final `'studio'` |
+| Brand name, logo, tagline, welcome copy, contact details, visualisation notice | `config/brand.ts` |
+| Regions, languages, currencies and exchange rates (prices are stored in USD) | `config/brand.ts` → `regions` |
+| Browser tab title, link-preview text | `index.html` |
+| Welcome screen layout | `components/journey/WelcomeGate.tsx` |
+| Showroom | `components/journey/Showroom.tsx` |
+| Configurator panel and steps | `components/journey/Configurator.tsx` |
+| Summary page | `components/journey/SummaryPage.tsx` |
+| PDF layout | `services/brochurePdf.ts` |
+| Enquiry form | `components/journey/EnquiryModal.tsx` |
+| Car order in the showroom / default paint and wheel | Admin → *Sort order* (the first item is the default) |
 
-**Fix before the client sees it** (template leftovers):
-- `ForgedPage.tsx` shows a fake terminal command (`npx apex-forged …`, line 48) and an announcement
-  pill with a version number: remove them or replace them with real copy.
-- `ForgedPage.tsx` social links point to the generic facebook.com / instagram.com / tiktok.com homepages
-  (around lines 388–415): put in the real profile URLs or delete them.
-- `ForgedPage.tsx` logo is a Vercel-style triangle (around line 103): swap in the client's logo.
-- The brochure form saves leads **only in that visitor's browser** (localStorage). No one receives them.
-  Either tell the client it's a demo, or ask for it to be wired to Supabase + email (about 1–2 h of work).
+**Where things are saved (Supabase):**
+- **Enquiries** → table `leads` (name, email, phone, message, consultation, configuration, code, region).
+  View them at Supabase → Table editor → `leads`. If Supabase is unreachable, a copy is kept in the visitor's browser.
+- **Share codes** → table `saved_configurations`. Anyone with a code can reopen it; nobody can list them.
 
 ---
 
@@ -159,11 +167,11 @@ Everything in the drawers comes from the admin tabs. Edit → **Save** → the s
 
 | Change | How |
 |---|---|
-| Accent colour (orange `#FF5500`) | Find & replace `#FF5500` across the project (≈200 uses), plus the `neon` colours in `index.html` (`tailwind.config`) and `#FF6600`/`#FF7722` hover shades |
-| Font (forced to Verdana) | `index.html`: change the `font-family` rules marked `!important` and `fontFamily` in `tailwind.config`. A Google font is already loaded: `Geist` |
-| Brand name "Apex Forged" | Find & replace in `index.html`, `App.tsx`, `components/*.tsx`, `metadata.json` |
-| Studio background / lighting | Studio controls in the app (theme buttons); defaults live in `services/CarConfiguratorEngine.ts` → `setupStudioLighting` |
-| Currency | Prices display as `$… USD` in `components/WheelDrawer.tsx` and `components/BrochureModal.tsx` |
+| Name, logo | `config/brand.ts`: `name`, and `logoUrl` (put the SVG/PNG in `public/` and use e.g. `'/logo.svg'`) |
+| Colours | `config/brand.ts` → `colors`, and the matching `ink` / `bronze` colours in `index.html` (`tailwind.config`) |
+| Font | Archivo, self-hosted in `public/fonts/` and declared in `index.html` |
+| Studio lighting / reflections | `services/CarConfiguratorEngine.ts` → `setupStudioLighting('studio_light')` and `HDRI_URL` |
+| Camera angles | `services/CarConfiguratorEngine.ts` → `setCameraPreset` |
 
 **Safe editing loop (every time):**
 ```bash
@@ -178,30 +186,26 @@ Vercel builds a **preview URL** for every pushed branch. Check it there before m
 
 ---
 
-## 5. Deploy (Vercel, 10 min, once)
+## 5. Deploy (Vercel)
 
-1. <https://vercel.com/new> → import `novahavens/BMW-AND-FORGED-`.
-2. Framework preset **Vite**, build command `npm run build`, output `dist` (auto-detected).
-3. Environment variables are **optional** (the Supabase URL and publishable key are built in; they're
-   safe to be public). To override, copy them from `.env.example`.
-4. Deploy. `vercel.json` already makes `/admin` and `/forged` work on refresh.
-5. Optional: Settings → Domains → add the client's domain.
-
-**Check:** on the live URL, `/`, `/forged` and `/admin` all load, and refreshing each still works.
+A Vercel project **forged-configurator** (team *Nova Havens*) is connected to this repo. Every push
+builds a preview URL; the production URL is <https://forged-configurator-nova-havens.vercel.app>.
+Build settings: framework **Vite**, build `vite build`, output `dist`. No environment variables are needed.
+`vercel.json` makes every page work on refresh. Optional: Settings → Domains → add the client's domain.
 
 ---
 
 ## 6. Pre-handover checklist (do it on the live URL, on a laptop **and** a phone)
 
-- [ ] Studio loads in under ~5 s, with no stuck loading screen
-- [ ] Every car switches; uploaded GLBs face the camera, correct size, paint changes colour
-- [ ] Every wheel shows on the car; image rims look right in **Zoom to Wheel**
-- [ ] Every finish, paint and caliper colour applies
-- [ ] Prices in the drawer match what the client expects
-- [ ] Template leftovers from section 3 removed
+- [ ] Loader → welcome in a few seconds; the car turns slowly on the welcome screen
+- [ ] Showroom arrows switch cars (drive-out / drive-in); Explore shows specs
+- [ ] Build → notice → Confirm opens the configurator; every paint, wheel, size and finish applies
+- [ ] Choosing a wheel, size or finish cuts to the wheel close-up
+- [ ] Prices and currency match the region chosen on the welcome screen
+- [ ] Summary shows three stills; **Share** shows a code; opening `/?config=CODE` in a private window restores it
+- [ ] **PDF** downloads a two-page spec sheet
+- [ ] An enquiry appears in Supabase → `leads`
 - [ ] `/admin` sign-in works for you **and** the client; sign-ups disabled (step 1.3)
-- [ ] Change a price in admin → it appears in the studio → change it back
-- [ ] Brochure form behaviour explained to the client (demo only / wired up)
 
 ---
 
@@ -210,7 +214,8 @@ Vercel builds a **preview URL** for every pushed branch. Check it there before m
 - Database schema & policies: `supabase/migrations/` (apply to a new project in order, via the Supabase SQL editor)
 - Catalogue loading & admin API: `services/catalogService.ts`
 - Admin UI & editable fields: `components/admin/AdminPage.tsx`, `components/admin/entityConfig.ts`
-- GLB fitting logic: `services/CarConfiguratorEngine.ts` → `loadCar` / `mountCarModel`
+- GLB fitting logic: `services/CarConfiguratorEngine.ts` → `loadCar` / `mountCarModel` (wheels found by name; if all four wheels are one mesh they are split by position)
+- Procedural wheel shapes (used until a rim PNG/GLB is uploaded): `services/proceduralRims.ts`
 - Storage buckets: `car-models` (GLB, 50 MB max), `rim-images` (PNG/WebP, 10 MB max); both publicly readable
 - Free-tier note: Supabase pauses free projects after ~1 week with no traffic. Open the site (or the
   dashboard) the day before any demo; a paused project is restored from the dashboard in a minute.
