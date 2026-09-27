@@ -45,6 +45,9 @@ conditions**, and a footer with your social channels and contact details on ever
 ### What customers choose
 
 - **Car:** 11 BMW M models (M2, M235i, M3, M3 Touring, M4, M4 Convertible, M5, M5 Touring, M8, X3 M50, X5 M).
+  The X5 M is the 2024 facelift X5 M Competition. The Sketchfab model first suggested for it is a paid
+  store model under an *Editorial* licence (no commercial use), so a freely licensed facelift model (CC BY,
+  credited) was prepared instead.
 - **Paint:** the exact BMW South Africa factory colours offered for that car (64 colours in total, researched
   from BMW's own configurator). A customer can match what they specced at the dealer.
 - **Wheel design:** your real FORGEDSA wheels (9 live now, see section 6).
@@ -88,6 +91,14 @@ customer never sees an empty page.
 ## 5. Your admin panel
 
 Go to **/admin** and sign in with your admin email and password. You will see five tabs.
+
+**First sign-in (once):** your email must be on the admin list (fazal@novahavens.com already is) and
+have a login. Create the login in Supabase: open the project's
+[Authentication → Users](https://supabase.com/dashboard/project/qxlfkfhzpqbxffuqqewg/auth/users) page →
+**Add user → Create new user** → your email, a strong password, tick **Auto Confirm User**. Then sign in
+at /admin. To add another admin, create their login the same way and add their email to the admin list
+(one line of SQL, in `HANDOVER.md` section 1). Also switch off public sign-ups (Authentication → Sign In /
+Providers → Email → untick *Allow new users to sign up*).
 
 | Tab | What you can do |
 |---|---|
