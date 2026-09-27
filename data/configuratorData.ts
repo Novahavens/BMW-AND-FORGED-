@@ -22,7 +22,11 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
-    bodyStyle: 'coupe'
+    bodyStyle: 'coupe',
+    modelUrl: '/models/bmw-m4-competition.glb',
+    modelLengthM: 4.79,
+    paintMeshMatch: 'zx1mtl',
+    hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)|livery'
   },
   {
     id: 'm3_g80',
@@ -61,22 +65,26 @@ export const BMW_MODELS: CarModel[] = [
     bodyStyle: 'coupe'
   },
   {
-    id: 'm5_f90',
-    name: 'BMW M5 CS',
-    badge: 'M5 F90 CS',
-    generation: 'F90',
-    chassisCode: 'F90 M5',
-    engine: '4.4L S63 Twin-Turbo V8',
-    power: '627 HP / 635 PS',
-    torque: '750 Nm (553 lb-ft)',
-    acceleration: '0-100 km/h in 3.0s',
+    id: 'm5_g90',
+    name: 'BMW M5',
+    badge: 'M5 G90',
+    generation: 'G90',
+    chassisCode: 'G90 M5',
+    engine: '4.4L S68 Twin-Turbo V8 M Hybrid',
+    power: '727 HP / 535 kW',
+    torque: '1,000 Nm (738 lb-ft)',
+    acceleration: '0-100 km/h in 3.5s',
     recommendedWheelFitment: {
-      front: '20 x 9.5J ET20',
-      rear: '20 x 10.5J ET24',
+      front: '20 x 9.5J',
+      rear: '21 x 10.5J',
       pcd: '5x112',
       cb: '66.6mm'
     },
-    bodyStyle: 'sedan'
+    bodyStyle: 'sedan',
+    modelUrl: '/models/bmw-m5-g90.glb',
+    modelLengthM: 5.1,
+    paintMeshMatch: 'paint_material',
+    hideMeshMatch: '3dwheel|calliper'
   },
   {
     id: 'x5m_f95',

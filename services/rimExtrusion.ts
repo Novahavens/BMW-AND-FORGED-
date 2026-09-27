@@ -209,7 +209,10 @@ export function traceRimShapes(image: CanvasImageSource & { width: number; heigh
  * Solid rim face: extruded along +Z (front face at z = 0), dished so the hub sits `dish` deeper
  * than the rim edge, then turned so the front faces +X (the wheel's outward axis).
  */
-export function buildRimFaceGeometry(shapes: THREE.Shape[], opts: { radius: number; depth: number; dish: number }): THREE.BufferGeometry {
+export function buildRimFaceGeometry(
+  shapes: THREE.Shape[],
+  opts: { radius: number; depth: number; dish: number; bevel?: number; curveSegments?: number }
+): THREE.BufferGeometry {
   const { radius, depth, dish } = opts;
   const scaled = shapes.map((s) => {
     const shape = new THREE.Shape(s.getPoints().map((p) => p.clone().multiplyScalar(radius)));
@@ -226,15 +229,15 @@ export function buildRimFaceGeometry(shapes: THREE.Shape[], opts: { radius: numb
       [uvAt(v, a), uvAt(v, b), uvAt(v, c), uvAt(v, d)]
   };
 
-  const bevel = Math.min(0.0025, depth * 0.15);
+  const bevel = opts.bevel ?? Math.min(0.0025, depth * 0.15);
   const geo = new THREE.ExtrudeGeometry(scaled, {
     depth,
-    curveSegments: 1,
+    curveSegments: opts.curveSegments ?? 1,
     bevelEnabled: true,
     bevelThickness: bevel,
     bevelSize: bevel,
     bevelOffset: -bevel,
-    bevelSegments: 2,
+    bevelSegments: opts.bevel ? 3 : 2,
     UVGenerator: UVGenerator as unknown as THREE.UVGenerator
   });
 

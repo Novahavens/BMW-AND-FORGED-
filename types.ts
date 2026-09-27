@@ -93,7 +93,9 @@ export interface CaliperColor {
   logo: string;
 }
 
-export type CameraViewPreset = 
+export type CameraViewPreset =
+  | 'showroom'
+  | 'hero'
   | 'frontThreeQuarter' 
   | 'side' 
   | 'frontWheel' 
@@ -101,7 +103,7 @@ export type CameraViewPreset =
   | 'rearThreeQuarter' 
   | 'top';
 
-export type StudioTheme = 'studio_dark' | 'studio_pure' | 'night_runway';
+export type StudioTheme = 'studio_light' | 'studio_dark' | 'studio_pure' | 'night_runway';
 
 export interface BrochureLead {
   id: string;
