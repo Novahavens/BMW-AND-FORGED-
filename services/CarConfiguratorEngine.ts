@@ -15,7 +15,6 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
-import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { traceRimShapes, buildRimFaceGeometry } from './rimExtrusion';
 import { proceduralRimShapes } from './proceduralRims';
 import { 
@@ -477,17 +476,18 @@ export class CarConfiguratorEngine {
 
       // Near-neutral key and sheen: warmer lights tinted dark metallics (Black Sapphire, Carbon
       // Black) bronze-brown on the flanks, which BMW's own renders never show.
-      this.softboxLight = new THREE.DirectionalLight(0xfffcf8, 1.65);
+      // Kept low: on a clearcoat a strong overhead key reads as a white-hot bonnet, not a studio.
+      this.softboxLight = new THREE.DirectionalLight(0xfffcf8, 0.6);
       this.softboxLight.position.set(1.5, 8, 2.5);
       this.studioLightsGroup.add(this.softboxLight);
 
       // Key-side sheen
-      this.rimLight1 = new THREE.DirectionalLight(0xfffaf4, 1.1);
+      this.rimLight1 = new THREE.DirectionalLight(0xfffaf4, 0.55);
       this.rimLight1.position.set(6, 2.2, 3);
       this.studioLightsGroup.add(this.rimLight1);
 
       // Cool opposite-side sheen, so the two flanks separate instead of matching tone
-      this.rimLight2 = new THREE.DirectionalLight(0xdce8ff, 0.85);
+      this.rimLight2 = new THREE.DirectionalLight(0xdce8ff, 0.45);
       this.rimLight2.position.set(-6, 1.8, -3);
       this.studioLightsGroup.add(this.rimLight2);
 
@@ -969,29 +969,6 @@ export class CarConfiguratorEngine {
    * exact-default combination (metalness 0, roughness ~1) down to a plausible gloss; anything
    * with an authored value (a real matte fabric at 0.72, say) is left alone.
    */
-  private static smoothedPanels = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
-  /** Set false (e.g. from the console) to compare against the model's own normals. */
-  static SMOOTH_PAINT = true;
-
-  /**
-   * Community car models often ship faceted or badly averaged normals; under a mirror-like clearcoat
-   * every facet shows as a wobble or blotch in the reflections. Painted panels get normals rebuilt
-   * from their shape: averaged across the panel, kept sharp only at real creases (> 34°).
-   */
-  private static smoothPanelGeometry(geometry: THREE.BufferGeometry) {
-    if (!CarConfiguratorEngine.SMOOTH_PAINT || !geometry.getAttribute('position')) return geometry;
-    const cached = CarConfiguratorEngine.smoothedPanels.get(geometry);
-    if (cached) return cached;
-    let smooth = geometry;
-    try {
-      smooth = toCreasedNormals(geometry, THREE.MathUtils.degToRad(34));
-    } catch {
-      /* unusual attributes: keep the model's own normals */
-    }
-    CarConfiguratorEngine.smoothedPanels.set(geometry, smooth);
-    return smooth;
-  }
-
   private static fixDefaultedMaterial(material: THREE.Material | null | undefined) {
     const m = material as THREE.MeshStandardMaterial;
     if (!m || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
@@ -1082,7 +1059,6 @@ export class CarConfiguratorEngine {
 
       const ownNames = `${mesh.name} ${materialNames}`;
       if (paintRe.test(ownNames) && !notPaintRe.test(ownNames)) {
-        mesh.geometry = CarConfiguratorEngine.smoothPanelGeometry(mesh.geometry);
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map(() => this.carBodyMaterial)
           : this.carBodyMaterial;
@@ -1660,7 +1636,15 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   // COLOR & FINISH UPDATES
   // ----------------------------------------------------
+  /**
+   * How strongly the painted body reflects the studio HDRI. At 1 the overhead softbox washes the bonnet
+   * and roof out to flat white; ~0.45 keeps a crisp softbox reflection with the paint colour showing
+   * through, which is how BMW's own studio renders read.
+   */
+  static BODY_ENV_INTENSITY = 0.45;
+
   public applyPaintColor(paint: PaintColor) {
+    this.carBodyMaterial.envMapIntensity = CarConfiguratorEngine.BODY_ENV_INTENSITY;
     this.carBodyMaterial.color.set(paint.hex);
     this.carBodyMaterial.roughness = paint.roughness;
     this.carBodyMaterial.metalness = paint.metalness;
