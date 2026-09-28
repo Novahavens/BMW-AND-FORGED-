@@ -38,7 +38,7 @@ export const Button: React.FC<
       size === 'sm' && 'h-9 px-4 text-[10.5px]',
       size === 'md' && 'h-11 px-6 text-[11px]',
       size === 'lg' && 'h-14 px-8 text-[12px]',
-      variant === 'primary' && 'bg-gold text-carbon hover:bg-brass shadow-float font-bold',
+      variant === 'primary' && 'bg-ember text-carbon hover:bg-ember-light shadow-ember font-bold',
       variant === 'secondary' && 'bg-surface text-ink ring-1 ring-line hover:ring-ink/30',
       variant === 'ghost' && 'text-ink hover:bg-ink/[0.05]',
       variant === 'light' && 'bg-surface/80 backdrop-blur text-ink ring-1 ring-line hover:bg-surface',

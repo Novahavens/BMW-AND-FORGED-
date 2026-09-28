@@ -45,7 +45,7 @@ export const BRAND = {
     brass: '#E8C37D', // Brass Light: highlight
     carbon: '#121212', // Matte Carbon: background
     gunmetal: '#2A2A2A', // Gunmetal: surface
-    ember: '#FF5A00' // Electric Orange: sparing accent
+    ember: '#FF5A00' // Electric Orange: main action buttons only (site, PDF, lead email)
   },
 
   // Placeholder email and phone: replace with the real ones before launch.

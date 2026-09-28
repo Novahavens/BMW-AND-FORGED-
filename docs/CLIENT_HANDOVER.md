@@ -61,8 +61,12 @@ conditions**, and a footer with your social channels and contact details on ever
 
 The whole site now follows the FORGEDSA Official Brand Design System:
 
-- **Colours:** Matte Carbon (#121212) backgrounds, Gunmetal (#2A2A2A) surfaces, Forged Gold (#CF9F52) for
-  buttons and highlights, Brass Light (#E8C37D) for hovers, Electric Orange kept for rare accents.
+- **Colours:** Matte Carbon (#121212) backgrounds and Gunmetal (#2A2A2A) surfaces.
+  - **Electric Orange (#FF5A00)** is the action colour, used only on the main buttons that move a customer
+    forward: Enter, Build, Confirm, View your build, Download PDF, Send enquiry. The same colour is used for
+    the "Open your build online" button in the PDF and the Reply button in the lead email.
+  - **Forged Gold (#CF9F52)** is used for everything else that stands out: the logo, selected options, steps,
+  prices and headings. Brass Light (#E8C37D) is used for hovers.
 - **Type:** Satoshi for headlines, Inter for everything else, exactly as the kit specifies.
 - **Logo:** the gold FORGEDSA wordmark in the header of every page and on the PDF. We cut it out of the
   image you sent (which had a printed checkerboard, not real transparency).

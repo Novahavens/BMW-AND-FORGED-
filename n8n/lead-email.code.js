@@ -33,7 +33,7 @@ const buildUrl = code ? `${SITE}/?config=${encodeURIComponent(code)}` : SITE;
 const phoneHref = String(lead.phone || '').replace(/[^\d+]/g, '');
 const received = new Date(lead.created_at || Date.now()).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg', dateStyle: 'medium', timeStyle: 'short' });
 
-const GOLD = '#CF9F52', INK = '#F2EEE6', MUTE = '#9C978E', LINE = '#2A2A2A', CARD = '#1A1A1A', BG = '#121212';
+const GOLD = '#CF9F52', EMBER = '#FF5A00', INK = '#F2EEE6', MUTE = '#9C978E', LINE = '#2A2A2A', CARD = '#1A1A1A', BG = '#121212';
 const font = "font-family:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif;";
 const label = (t) => `<div style="${font}font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:${MUTE};font-weight:600;">${t}</div>`;
 const swatch = (c) => `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;vertical-align:middle;"><tr><td width="22" height="22" style="width:22px;height:22px;border-radius:11px;background-color:${c};border:1px solid #3a3a3a;font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
@@ -42,7 +42,7 @@ const row = (k, v, extra = '') => `<tr>
   <td style="padding:14px 0;border-bottom:1px solid ${LINE};vertical-align:middle;${font}font-size:15px;color:${INK};">${extra}${extra ? '&nbsp;&nbsp;' : ''}<span style="vertical-align:middle;">${v}</span></td>
 </tr>`;
 const contactRow = (k, v) => `<tr><td style="padding:6px 0;width:30%;">${label(k)}</td><td style="padding:6px 0;${font}font-size:15px;color:${INK};">${v}</td></tr>`;
-const button = (href, text, primary) => `<a class="btn" href="${href}" style="display:inline-block;${font}font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:14px 26px;margin:0 8px 10px 0;border-radius:999px;${primary ? `background-color:${GOLD};color:${BG};` : `border:1px solid #444;color:${INK};`}">${text}</a>`;
+const button = (href, text, primary) => `<a class="btn" href="${href}" style="display:inline-block;${font}font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:14px 26px;margin:0 8px 10px 0;border-radius:999px;${primary ? `background-color:${EMBER};color:${BG};` : `border:1px solid #444;color:${INK};`}">${text}</a>`;
 
 const specRows = [
   row('Vehicle', `${esc(carName)}${car.generation ? ` <span style="color:${MUTE};">· ${esc(car.generation)}</span>` : ''}`),

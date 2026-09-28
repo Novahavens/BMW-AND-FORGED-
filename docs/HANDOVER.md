@@ -173,8 +173,8 @@ One 3D studio stays alive behind every step; the camera glides between stages ra
 | Change | How |
 |---|---|
 | Name, logo | `config/brand.ts`: `name`, and `logoUrl` (put the SVG/PNG in `public/` and use e.g. `'/logo.svg'`) |
-| Colours | `config/brand.ts` → `colors`, and the matching `ink` / `bronze` colours in `index.html` (`tailwind.config`) |
-| Font | Archivo, self-hosted in `public/fonts/` and declared in `index.html` |
+| Colours | `config/brand.ts` → `colors` (used by the PDF), and the matching Tailwind tokens in `index.html` (`gold`, `brass`, `carbon`, `surface`, `ember`). Main action buttons are the `primary` variant of `Button` in `components/journey/ui.tsx` (`bg-ember`, hover `ember-light`). The lead email has its own copy of the colours in the n8n Code node (§5a). |
+| Font | Satoshi (headings) and Inter (body), self-hosted in `public/fonts/` and declared in `index.html`. The PDF embeds `satoshi-700/900.ttf` |
 | Studio lighting / reflections | `services/CarConfiguratorEngine.ts` → `setupStudioLighting('studio_light')` and `HDRI_URL` |
 | Camera angles | `services/CarConfiguratorEngine.ts` → `setCameraPreset` |
 

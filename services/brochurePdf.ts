@@ -31,6 +31,7 @@ const hexRgb = (hex: string): RGB => {
 const CARBON = hexRgb(BRAND.colors.carbon);
 const GUNMETAL = hexRgb(BRAND.colors.gunmetal);
 const GOLD = hexRgb(BRAND.colors.gold);
+const EMBER = hexRgb(BRAND.colors.ember);
 const INK: RGB = [242, 238, 230];
 const MUTE: RGB = [156, 151, 142];
 const HAIRLINE: RGB = [46, 46, 46];
@@ -279,7 +280,7 @@ export async function downloadBrochurePdf(input: BrochureInput) {
 
   // Next steps
   doc.setFillColor(...GUNMETAL);
-  doc.roundedRect(M, y, W - 2 * M, 34, 3, 3, 'F');
+  doc.roundedRect(M, y, W - 2 * M, 42, 3, 3, 'F');
   heading('bold');
   doc.setFontSize(12);
   doc.setTextColor(...INK);
@@ -295,10 +296,24 @@ export async function downloadBrochurePdf(input: BrochureInput) {
     M + 7,
     y + 17
   );
+  // Call to action: Electric Orange pill (the brand's action colour), linked to the saved build
   const reopen = `${origin}/?config=${input.code}`;
-  doc.setTextColor(...GOLD);
-  doc.text(`Reopen this configuration: ${reopen}`, M + 7, y + 29);
-  doc.link(M + 7, y + 26, doc.getTextWidth(`Reopen this configuration: ${reopen}`), 4, { url: reopen });
+  const cta = 'OPEN YOUR BUILD ONLINE';
+  heading('bold');
+  doc.setFontSize(8);
+  doc.setCharSpace(0.5);
+  const ctaW = doc.getTextWidth(cta) + cta.length * 0.18 + 14;
+  doc.setFillColor(...EMBER);
+  doc.roundedRect(M + 7, y + 26, ctaW, 10, 5, 5, 'F');
+  doc.setTextColor(...CARBON);
+  doc.text(cta, M + 14, y + 32.4);
+  doc.setCharSpace(0);
+  doc.link(M + 7, y + 26, ctaW, 10, { url: reopen });
+  body();
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTE);
+  doc.text(reopen, M + 7 + ctaW + 5, y + 32.2);
+  doc.link(M + 7 + ctaW + 5, y + 28.5, doc.getTextWidth(reopen), 5, { url: reopen });
   footer();
 
   doc.save(`${BRAND.name.toLowerCase()}-${input.car.id}-${input.code}.pdf`);
