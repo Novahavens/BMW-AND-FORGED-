@@ -4,7 +4,8 @@
  */
 
 import * as THREE from 'three';
-import { WebGLPathTracer } from 'three-gpu-pathtracer';
+import { DenoiseMaterial, WebGLPathTracer } from 'three-gpu-pathtracer';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 /**
@@ -24,6 +25,7 @@ export class PhotorealRenderer {
   private building = false;
   private tracing = false;
   private canBuildAsync = false;
+  private disposeDenoise: () => void = () => {};
 
   /** Samples to accumulate before the image is considered finished (stops spending GPU). */
   maxSamples = 400;
@@ -42,7 +44,7 @@ export class PhotorealRenderer {
     const pt = new WebGLPathTracer(renderer);
     pt.bounces = 6;
     pt.transmissiveBounces = 4;
-    pt.filterGlossyFactor = 0.4; // fewer fireflies on the clearcoat
+    pt.filterGlossyFactor = 0.6; // fewer fireflies on the clearcoat
     pt.minSamples = 3;
     pt.renderDelay = 0;
     pt.fadeDuration = 450;
@@ -57,10 +59,37 @@ export class PhotorealRenderer {
     }
     this.pathTracer = pt;
 
-    // Seamless studio floor: dark satin concrete that catches real reflections and shadows.
+    // Edge-preserving denoise on the way to the screen, strongest while few samples have landed
+    const denoise = new DenoiseMaterial({ sigma: 3, threshold: 0.2, kSigma: 1.2 });
+    const denoiseQuad = new FullScreenQuad(denoise);
+    const fallback = pt.renderToCanvasCallback;
+    pt.renderToCanvasCallback = (target, r, quad) => {
+      if (quad.material.opacity < 1) return fallback(target, r, quad);
+      denoise.map = target.texture;
+      denoise.sigma = Math.max(0.8, 4 * Math.sqrt(8 / Math.max(8, this.pathTracer.samples)));
+      const autoClear = r.autoClear;
+      r.autoClear = false;
+      denoiseQuad.render(r);
+      r.autoClear = autoClear;
+    };
+    this.disposeDenoise = () => {
+      denoise.dispose();
+      denoiseQuad.dispose();
+    };
+
+    // Studio floor: dark satin that catches real reflections and shadows, fading out into the
+    // backdrop so there is no horizon line (like the pool of light on the page).
     this.floor = new THREE.Mesh(
-      new THREE.CircleGeometry(40, 64).rotateX(-Math.PI / 2),
-      new THREE.MeshPhysicalMaterial({ color: 0x0b0b0b, roughness: 0.55, metalness: 0, clearcoat: 0.15, clearcoatRoughness: 0.6 })
+      new THREE.CircleGeometry(16, 96).rotateX(-Math.PI / 2),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x0d0d0d,
+        roughness: 0.5,
+        metalness: 0,
+        clearcoat: 0.12,
+        clearcoatRoughness: 0.6,
+        transparent: true,
+        alphaMap: radialFade()
+      })
     );
     this.floor.name = 'photoreal_floor';
     this.floor.visible = false;
@@ -157,6 +186,7 @@ export class PhotorealRenderer {
   }
 
   dispose() {
+    this.disposeDenoise();
     this.pathTracer.dispose();
     this.floor.geometry.dispose();
     (this.floor.material as THREE.Material).dispose();
@@ -183,4 +213,18 @@ function dequantize(geometry: THREE.BufferGeometry) {
     geometry.setAttribute(name, new THREE.BufferAttribute(out, itemSize));
   }
   geometry.userData.photorealDequantized = true;
+}
+
+/** White centre fading to black at the rim: the floor's opacity (alpha is read from the green channel). */
+function radialFade() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(256, 256, 0, 256, 256, 256);
+  grad.addColorStop(0, '#fff');
+  grad.addColorStop(0.35, '#fff');
+  grad.addColorStop(1, '#000');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 512, 512);
+  return new THREE.CanvasTexture(c);
 }

@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       optimizeDeps: {
         include: ['@gltf-transform/core', '@gltf-transform/extensions', '@gltf-transform/functions', 'meshoptimizer'],
         // The photoreal mode's BVH worker is loaded via new URL(..., import.meta.url), which pre-bundling breaks
-        exclude: ['three-mesh-bvh', 'three-gpu-pathtracer']
+        exclude: ['three-mesh-bvh/worker']
       },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
