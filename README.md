@@ -100,6 +100,15 @@ You can also add a car directly with SQL if you're comfortable with it — inser
 `public.cars` with the same columns (snake_case); see `supabase/migrations/` for worked examples of
 real cars being added this way.
 
+## Leads and lead emails
+
+The PDF gate (email + mobile required) and the enquiry form both insert into `public.leads`
+(`source` = `pdf` / `enquiry`); admins read them in `/admin` → Enquiries. An `AFTER INSERT` trigger
+posts each lead, enriched with paint hex, wheel image and price, to the n8n workflow
+*FORGEDSA · Lead email*, which emails forgedsa1@gmail.com a branded HTML summary through Gmail. The
+webhook URL lives in Supabase Vault (`lead_webhook_url`), and the template is in
+`n8n/lead-email.code.js`. Details: `docs/HANDOVER.md` §5a.
+
 ## Rendering notes
 
 - The studio (lighting, HDRI reflections, camera, contact shadow, paint/wheel materials) lives in
@@ -117,6 +126,7 @@ services/                    3D engine, procedural wheels, pricing, Supabase cat
 components/journey/          Welcome → showroom → configurator → summary screens
 components/admin/            /admin UI (AdminPage.tsx, entityConfig.ts defines every field)
 supabase/migrations/         Database schema, RLS policies, and catalogue changes over time
+n8n/lead-email.code.js       Copy of the n8n Code node that builds the branded lead email
 public/models/CREDITS.md     Licence and attribution for every 3D car model
 docs/HANDOVER.md             Full handover guide: setup, workflow, pre-handover checklist
 ```

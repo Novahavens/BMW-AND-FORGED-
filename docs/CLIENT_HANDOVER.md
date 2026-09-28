@@ -2,7 +2,7 @@
 
 **Live site:** <https://forged-configurator.vercel.app>
 **Admin:** <https://forged-configurator.vercel.app/admin>
-**Handed over:** 27 September 2026
+**Handed over:** 28 September 2026
 
 This document explains, in plain language, what has been built for FORGEDSA, how your customers use
 it, how you run it day to day, and what is still needed from you before launch. No technical
@@ -16,7 +16,8 @@ knowledge is needed to read it. The technical companion for a developer is
 A premium, 3D online showroom where a BMW M owner picks their exact car and factory paint colour,
 then tries your forged wheels on it in real time: design, size and finish, from any angle, on a
 laptop or phone. When they are happy, they get a summary of their build with studio images and the
-price, can download a branded PDF, share a link, and send you an enquiry. Behind it sits a secure
+price, can download a branded PDF, share a link, and send you an enquiry. Every PDF download and enquiry
+is emailed to you straight away as a branded lead summary. Behind it sits a secure
 **back end** (database, file storage and logins) and an **admin panel** where you add wheels, cars
 and prices yourself, and read customer enquiries. No developer is needed for day-to-day changes.
 
@@ -35,8 +36,8 @@ We mapped and built every step a customer takes, from the first second to the PD
 | **5. Configurator** | Four simple steps in a side panel (bottom sheet on phones): **Paint** → **Wheels** → **Size** → **Finish**. Picking a wheel, size or finish cuts the camera to a close-up of the wheel. A running price is always visible. | The heart of the experience: they see *their* car on *your* wheels. |
 | **6. 360° wheel view** | Any wheel on its own, rotating, with its finishes, sizes and price. | Lets them study the design up close. |
 | **7. Summary** | Three studio images of their build, every option chosen, the price, and buttons to share, download the PDF or enquire. | Turns interest into a lead. |
-| **8. The PDF** | Before it downloads, the customer enters their **email address and mobile number** (name optional). Then a two-page, dark, gold FORGEDSA spec sheet is generated instantly in their browser: studio images, options, price, wheel story, next steps, a link back to their exact build, your social channels and contact details. | Something they keep and forward, and every download gives you a lead with their contact details and exact build. |
-| **9. Enquiry** | A short form (name, email, phone, message, "I'd like a consultation"). Their full configuration is attached automatically. | You receive a qualified lead with the exact build. |
+| **8. The PDF** | Before it downloads, the customer enters their **email address and mobile number** (name optional). Then a two-page, dark, gold FORGEDSA spec sheet is generated instantly in their browser: studio images, options, price, wheel story, next steps, a link back to their exact build, your social channels and contact details. | Something they keep and forward, and every download gives you a lead with their contact details and exact build, emailed to you straight away. |
+| **9. Enquiry** | A short form (name, email, phone, message, "I'd like a consultation"). Their full configuration is attached automatically. | You receive a qualified lead with the exact build, by email within seconds (section 6). |
 | **10. Share link / code** | Every build gets a short code and link that reopens it exactly. | Customers can send their build to friends; you can open it from an enquiry. |
 
 Also on the site: **The collection** (all wheel designs), **Delivery & fitment**, **Terms &
@@ -50,7 +51,7 @@ conditions**, and a footer with your social channels and contact details on ever
   credited) was prepared instead.
 - **Paint:** the exact BMW South Africa factory colours offered for that car (64 colours in total, researched
   from BMW's own configurator). A customer can match what they specced at the dealer.
-- **Wheel design:** your real FORGEDSA wheels (9 live now, see section 6).
+- **Wheel design:** your real FORGEDSA wheels (9 live now, see section 7).
 - **Size:** only the sizes you offer for that wheel, each with its own price.
 - **Finish:** Liquid Metal (chrome), Bronze Matte, Black Gloss and Silver.
 
@@ -81,7 +82,8 @@ We set up a proper back end so the site is secure and you can manage it without 
 | **File storage** | Holds the 3D car files, wheel images and wheel 3D models. | Supabase Storage |
 | **Logins** | Only people on your admin list can change anything. The protection is enforced by the database itself, not just hidden buttons. | Supabase Auth |
 | **Hosting** | Serves the website worldwide, fast. | Vercel |
-| **Wheel pipeline** | Turns wheel photos plus a Google Sheet into wheels in the app automatically (section 6). | n8n automation + Google Sheet |
+| **Lead emails** | Emails forgedsa1@gmail.com a branded summary of every PDF download and enquiry (section 6). | Database trigger + n8n + Gmail |
+| **Wheel pipeline** | Turns wheel photos plus a Google Sheet into wheels in the app automatically (section 7). | n8n automation + Google Sheet |
 
 If the database were ever unreachable, the site falls back to a built-in copy of the catalogue, so a
 customer never sees an empty page.
@@ -119,7 +121,7 @@ provider under Authentication → Emails.
   with the bin icon → **Save**.
 - **Hide something without deleting it:** untick **Visible in configurator** → **Save**.
 - **Change the order:** set **Sort order** (lower numbers appear first).
-- **Add a new wheel:** see section 6.
+- **Add a new wheel:** see section 7.
 - **Add a new car:** Cars → **New** → fill in the name → upload the car's 3D file (.glb) → pick its
   factory paints → **Save**. A developer may need to fine-tune which parts of the model take the paint
   colour the first time (explained in `HANDOVER.md`).
@@ -128,7 +130,53 @@ provider under Authentication → Emails.
 
 ---
 
-## 6. Your wheels
+## 6. New-lead emails
+
+Every time a customer **downloads the PDF** or **sends an enquiry**, a branded email lands in
+**forgedsa1@gmail.com** within a few seconds. You don't need to check the admin panel to know
+someone is interested.
+
+**What the email shows**
+
+- The subject says which kind of lead it is: **"New PDF download: Thabo Mokoena · BMW M4 Competition"**
+  or **"New enquiry: …"**. The same label appears at the top of the email.
+- The customer's **name, email and mobile** (tap to email or call), when they came in (SA time), and
+  whether they asked for a consultation.
+- Their message, for enquiries.
+- **Their build:** the wheel image, car and generation, paint (with a colour swatch and whether it's
+  metallic, uni or frozen), wheel design and code, size, finish (with a swatch) and region.
+- The **wheel set price** in the currency they chose, and their **build code**.
+- Two buttons: **Reply to [name]** (an email already addressed to them) and **Open their build**
+  (their exact configuration on the site). Pressing Reply in Gmail also goes straight to the customer.
+
+The email uses the brand look: Matte Carbon background, Forged Gold accents, the FORGEDSA wordmark,
+and a layout that works on a phone.
+
+**How it works**
+
+1. The customer's details and build are saved in the database (the Enquiries tab), exactly as before.
+2. The moment the lead is saved, the database passes it to an **n8n** automation called
+   *FORGEDSA · Lead email (PDF downloads + enquiries)*.
+3. n8n builds the email and sends it through the connected Gmail account (currently
+   fazal@novahavens.com, shown as "FORGEDSA Leads").
+
+If the email ever fails (for example, Gmail disconnects), the lead is **still saved** in the admin
+panel. Nothing is lost and the customer never sees an error.
+
+**Good to know**
+
+- **Change who receives the emails:** in n8n open the workflow → the *Email forgedsa1@gmail.com* step →
+  change **To** (add more addresses separated by commas) → **Publish**.
+- **Send from a different Gmail account** (for example forgedsa1@gmail.com itself): connect that account
+  as a Gmail credential in n8n and select it in the same step.
+- **Check it is working:** n8n → the workflow → **Executions** lists every lead email with a green
+  tick or a red error.
+- The first time emails come from a new sender, Gmail may file them under Promotions or Updates. Drag one
+  to Primary and choose "Do this for future messages".
+
+---
+
+## 7. Your wheels
 
 ### Live today
 
@@ -175,7 +223,7 @@ Tips:
 
 ---
 
-## 7. Terms & conditions and Delivery & fitment
+## 8. Terms & conditions and Delivery & fitment
 
 Both pages are live at **/terms** and **/delivery**, linked from the menu, the footer and the PDF.
 
@@ -193,11 +241,11 @@ Before launch:
 
 ---
 
-## 8. What we still need from you
+## 9. What we still need from you
 
 | # | Item | Why |
 |---|---|---|
-| 1 | **CAD files** for each wheel design from your manufacturer | Photoreal 3D wheels (section 6) |
+| 1 | **CAD files** for each wheel design from your manufacturer | Photoreal 3D wheels (section 7) |
 | 2 | Real wheel **names, codes, sizes and prices** | The current ones are placeholders |
 | 3 | Your real **email and phone number** | The site shows placeholders (info@forgedsa.com, +27 00 000 0000) |
 | 4 | **Legal review** of Terms and Delivery, and the [bracketed] details | Required before taking orders |
@@ -207,19 +255,20 @@ Before launch:
 
 ---
 
-## 9. Accounts and running costs
+## 10. Accounts and running costs
 
 | Service | Used for | Plan |
 |---|---|---|
 | Vercel | Hosting the website | Free tier (upgrade if traffic grows) |
 | Supabase | Database, storage, logins | Free tier. Free projects pause after a week with no visits; open the site or admin weekly, or upgrade to Pro (about US$25/month) at launch. |
-| n8n | Wheel pipeline automation | Your existing n8n account |
+| n8n | Wheel pipeline and new-lead emails | Your existing n8n account |
 | Google Drive | Wheels sheet and photos | Your existing account |
+| Gmail | Sends the new-lead emails (via n8n) | Free |
 | OpenRouter | AI image tools used by the wheel pipeline | Pay per use (about US$0.15–0.30 per wheel). Its privacy settings must allow the Sourceful and Google providers. |
 
 ---
 
-## 10. Quick glossary
+## 11. Quick glossary
 
 - **Back end:** the behind-the-scenes part (database, storage, logins) that customers never see.
 - **Admin panel:** your private page for editing the catalogue and reading enquiries.
@@ -227,3 +276,5 @@ Before launch:
 - **CAD file / STEP:** the engineering drawing your manufacturer machines the wheel from.
 - **Configuration code:** the short code that reopens a customer's exact build.
 - **Pipeline:** an automation that turns photos plus a spreadsheet into wheels in the app.
+- **Webhook:** a private web address one system calls to hand information to another, here how the database
+  passes each new lead to n8n.

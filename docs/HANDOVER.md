@@ -15,6 +15,8 @@ Follow the sections in order. Each step has a **Check** line; do not move on unt
 | Web app (React + Three.js, Vite) | this repo | free |
 | Database, logins, file storage | Supabase project **Apex Forged Configurator** (`qxlfkfhzpqbxffuqqewg`, org *nova havens*) | free tier |
 | Hosting | Vercel (step 5) | free Hobby tier |
+| Lead emails | n8n workflow *FORGEDSA · Lead email (PDF downloads + enquiries)* (`Le68biVptAvswzqq`, novahavensai.app.n8n.cloud) + Gmail | existing n8n plan |
+| Wheel pipeline | n8n workflow *FORGED wheel pipeline (automated)* + Google Sheet `wheels` | existing n8n plan |
 
 **Pages**
 
@@ -29,7 +31,7 @@ Follow the sections in order. Each step has a **Check** line; do not move on unt
 | `/rims/<rim-id>` | 360° view of one wheel: finish, size, price, "See it on my car" |
 | `/delivery` | Delivery & fitment (copy in `config/pages.ts`) |
 | `/terms` | Terms & conditions (copy in `config/pages.ts`) |
-| `/admin` | Admin sign-in, then edit cars, wheels, finishes and paints, and upload GLBs and rim PNGs |
+| `/admin` | Admin sign-in (with emailed set-password link), then edit cars, wheels, finishes and paints, upload GLBs, rim PNGs or CAD, and read Enquiries |
 
 **Only cars with a 3D file appear in the showroom.** Nine of the 11 cars have one; the M4 Convertible
 and M5 Touring appear automatically as soon as you upload a GLB for them in `/admin`. Model credits
@@ -198,6 +200,40 @@ Build settings: framework **Vite**, build `vite build`, output `dist`. No enviro
 
 ---
 
+## 5a. New-lead email automation
+
+Every insert into `public.leads` (the PDF gate, `source = 'pdf'`, and the enquiry form, `source = 'enquiry'`)
+emails forgedsa1@gmail.com a branded HTML summary.
+
+```
+browser ── insert ──▶ public.leads ── AFTER INSERT trigger leads_notify_webhook
+                                        └─ private.notify_lead_webhook()  (SECURITY DEFINER)
+                                             · looks up car / paint / wheel / finish by the names stored in
+                                               leads.configuration (generation, hex, type, image, price for the size)
+                                             · pg_net net.http_post (async, never blocks or fails the insert)
+                                                  ▼
+n8n "FORGEDSA · Lead email" ── Webhook (POST) ─▶ Code "Build branded email" ─▶ Gmail "Email forgedsa1@gmail.com"
+```
+
+- **Migration:** `supabase/migrations/20260928090000_lead_email_webhook.sql` (enables `pg_net`, creates the
+  function and trigger).
+- **Webhook URL:** a secret, kept only in **Supabase Vault** as `lead_webhook_url`, never in the repo. The
+  path is random, so it acts as the key. With no secret the trigger is a no-op. To rotate: change the
+  Webhook node path in n8n, publish, then
+  `select vault.update_secret(id, '<new production URL>') from vault.secrets where name = 'lead_webhook_url';`
+- **Email template:** the n8n Code node. A copy is in `n8n/lead-email.code.js` (excluded from `tsc`), built with
+  table-based, inline-styled HTML for Gmail/Outlook/Apple Mail. The brand tokens (#121212, #1A1A1A, #CF9F52,
+  #F2EEE6, #9C978E) and region rates mirror `config/brand.ts`, so **if you change region rates or colours
+  there, change them in the Code node too.** All customer text is HTML-escaped.
+- **Sender:** n8n credential *Gmail account* (fazal@novahavens.com), display name "FORGEDSA Leads",
+  Reply-To set to the customer.
+- **Debugging:** `select * from net._http_response order by created desc limit 5;` shows each call and its
+  status (n8n replies 200 "Workflow was started"); n8n → workflow → Executions shows each email.
+- **New project / restore:** apply the migration, publish the workflow, then
+  `select vault.create_secret('<n8n production webhook URL>', 'lead_webhook_url');`
+
+---
+
 ## 6. Pre-handover checklist (do it on the live URL, on a laptop **and** a phone)
 
 - [ ] Loader → welcome in a few seconds; the car turns slowly on the welcome screen
@@ -207,7 +243,9 @@ Build settings: framework **Vite**, build `vite build`, output `dist`. No enviro
 - [ ] Prices and currency match the region chosen on the welcome screen
 - [ ] Summary shows three stills; **Share** shows a code; opening `/?config=CODE` in a private window restores it
 - [ ] **PDF** downloads a two-page spec sheet
-- [ ] An enquiry appears in Supabase → `leads`
+- [ ] PDF asks for email + mobile first; the lead appears in `/admin` → Enquiries as "PDF download"
+- [ ] An enquiry appears in `/admin` → Enquiries
+- [ ] Both send a branded email to forgedsa1@gmail.com within a few seconds (n8n → Executions shows green)
 - [ ] `/admin` sign-in works for you **and** the client; sign-ups disabled (step 1.3)
 
 ---
