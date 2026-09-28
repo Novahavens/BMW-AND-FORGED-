@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three';
+import type { PhotorealRenderer } from './photorealRenderer';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -141,6 +142,11 @@ export class CarConfiguratorEngine {
 
   // Studio extras
   static HDRI_URL = '/env/studio_small_09_1k.hdr';
+  /** Photoreal (path traced) stills when the camera rests. Proof of concept; also enabled by ?photoreal=1. */
+  static PHOTOREAL = typeof window !== 'undefined' && /[?&]photoreal=1/.test(window.location.search);
+  private photoreal: PhotorealRenderer | null = null;
+  private envEquirect: THREE.Texture | null = null;
+  private sceneVersion = 0;
   static DEFAULT_HIDE = '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|calliper|rotor|lugs?)';
   private isDisposed = false;
   private contactShadow: {
@@ -226,6 +232,20 @@ export class CarConfiguratorEngine {
 
     // Generate procedural studio environment reflection
     this.generateStudioEnvironment();
+
+    if (CarConfiguratorEngine.PHOTOREAL && !this.isShowcase) {
+      // Loaded on demand so the path tracer isn't in every visitor's download
+      import('./photorealRenderer').then(({ PhotorealRenderer }) => {
+        if (this.isDisposed) return;
+        this.photoreal = new PhotorealRenderer(
+          this.renderer,
+          this.scene,
+          this.camera,
+          () => this.envEquirect,
+          () => (this.contactShadow ? [this.contactShadow.group] : [])
+        );
+      });
+    }
 
     // Start loop
     this.animate = this.animate.bind(this);
@@ -423,6 +443,7 @@ export class CarConfiguratorEngine {
 
   /** Re-render the contact shadow for the next few frames (async wheel/model loads settle in that time). */
   private markShadowDirty(frames = 45) {
+    this.sceneVersion++;
     this.shadowFrames = Math.max(this.shadowFrames, frames);
   }
 
@@ -595,7 +616,13 @@ export class CarConfiguratorEngine {
       .then((hdr) => {
         if (this.isDisposed) return;
         const envTarget = pmrem.fromEquirectangular(hdr);
-        hdr.dispose();
+        if (this.photoreal || CarConfiguratorEngine.PHOTOREAL) {
+          hdr.mapping = THREE.EquirectangularReflectionMapping;
+          this.envEquirect = hdr;
+          this.sceneVersion++;
+        } else {
+          hdr.dispose();
+        }
         this.scene.environment = envTarget.texture;
         this.scene.environmentIntensity = 1.0;
         this.scene.environmentRotation.set(0, Math.PI * 0.35, 0);
@@ -1644,6 +1671,7 @@ export class CarConfiguratorEngine {
   static BODY_ENV_INTENSITY = 0.45;
 
   public applyPaintColor(paint: PaintColor) {
+    this.sceneVersion++;
     this.carBodyMaterial.envMapIntensity = CarConfiguratorEngine.BODY_ENV_INTENSITY;
     this.carBodyMaterial.color.set(paint.hex);
     this.carBodyMaterial.roughness = paint.roughness;
@@ -1654,6 +1682,7 @@ export class CarConfiguratorEngine {
   }
 
   public applyWheelFinish(finish: WheelFinish) {
+    this.sceneVersion++;
     this.wheelMaterial.color.set(finish.hex);
     this.wheelMaterial.roughness = finish.roughness;
     this.wheelMaterial.metalness = finish.metalness;
@@ -1676,6 +1705,7 @@ export class CarConfiguratorEngine {
   }
 
   public applyCaliperColor(caliper: CaliperColor) {
+    this.sceneVersion++;
     this.caliperMaterial.color.set(caliper.hex);
     this.caliperMaterial.needsUpdate = true;
   }
@@ -1982,6 +2012,15 @@ export class CarConfiguratorEngine {
       });
     }
 
+    // Photoreal mode path traces the still frame once the camera rests (and nothing is animating)
+    const animating = this.isSpinningWheels || !!this.drive || this.shadowFrames > 0 || (this.isAutoRotate && !this.isUserInteracting);
+    if (this.photoreal && !animating && this.contactShadow) {
+      const floorY = this.contactShadow.group.getWorldPosition(new THREE.Vector3()).y;
+      if (this.photoreal.frame(performance.now(), this.sceneVersion, floorY)) return;
+    } else if (this.photoreal?.isTracing) {
+      this.photoreal.stop();
+    }
+
     // Render frame through Post-Processing Bloom composer or direct WebGL fallback
     if (this.isBloomEnabled && this.composer) {
       this.composer.render();
@@ -1995,6 +2034,9 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   public cleanup() {
     this.isDisposed = true;
+    this.photoreal?.dispose();
+    this.photoreal = null;
+    this.envEquirect?.dispose();
     this.drive?.resolve();
     this.drive = null;
     if (this.contactShadow) {

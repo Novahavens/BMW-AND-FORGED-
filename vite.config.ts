@@ -13,7 +13,9 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       // Only reached through the admin's CAD-conversion worker, so pre-bundle them for the dev server.
       optimizeDeps: {
-        include: ['@gltf-transform/core', '@gltf-transform/extensions', '@gltf-transform/functions', 'meshoptimizer']
+        include: ['@gltf-transform/core', '@gltf-transform/extensions', '@gltf-transform/functions', 'meshoptimizer'],
+        // The photoreal mode's BVH worker is loaded via new URL(..., import.meta.url), which pre-bundling breaks
+        exclude: ['three-mesh-bvh', 'three-gpu-pathtracer']
       },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

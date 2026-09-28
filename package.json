@@ -16,7 +16,9 @@
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "three": "^0.181.1"
+    "three": "^0.181.1",
+    "three-gpu-pathtracer": "^0.0.24",
+    "three-mesh-bvh": "^0.9.15"
   },
   "devDependencies": {
     "@gltf-transform/core": "^4.5.0",
