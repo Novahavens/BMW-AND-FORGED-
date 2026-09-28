@@ -16,7 +16,7 @@ import {
 } from '../../services/catalogService';
 import { ENTITIES, EntitySpec, FieldSpec } from './entityConfig';
 import { EnquiriesPanel } from './EnquiriesPanel';
-import { ASSET_BUCKETS } from '../../services/supabaseClient';
+import { ASSET_BUCKETS, authFlags } from '../../services/supabaseClient';
 import { CAD_EXTENSIONS, convertCadFile, isCadFile } from '../../services/cadToGlb';
 
 type Row = Record<string, unknown>;
@@ -34,13 +34,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBack, onCatalogChanged }
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  // Arrived from a "set your password" email: ask for the new password before anything else.
+  const [recovering, setRecovering] = useState(authFlags.passwordRecovery);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setAuthChecked(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -70,6 +75,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBack, onCatalogChanged }
 
       {!authChecked ? (
         <Centered><Loader2 className="w-6 h-6 animate-spin text-[#CF9F52]" /></Centered>
+      ) : session && recovering ? (
+        <SetPasswordForm
+          email={session.user.email ?? ''}
+          onDone={() => {
+            authFlags.passwordRecovery = false;
+            setRecovering(false);
+          }}
+        />
       ) : !session ? (
         <LoginForm />
       ) : isAdmin === null ? (
@@ -96,30 +109,117 @@ const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'signin' | 'reset' | 'sent'>('signin');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) setError(err.message);
+    if (mode === 'reset') {
+      // Supabase emails a one-time link back to /admin, where the new password is chosen.
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/admin`
+      });
+      if (err) setError(err.message);
+      else setMode('sent');
+    } else {
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) setError(err.message);
+    }
     setBusy(false);
+  };
+
+  if (mode === 'sent') {
+    return (
+      <Centered>
+        <div className="w-full max-w-sm space-y-4 p-6 rounded-xl border border-white/10 bg-[#080808]">
+          <h1 className="text-lg font-bold text-white">Check your inbox</h1>
+          <p className="text-sm text-neutral-400">
+            If {email} is an admin account, a link to set your password is on its way. Open it on this device; it brings you
+            back here to choose the password. The link works once and expires after an hour.
+          </p>
+          <button onClick={() => setMode('signin')} className="text-xs uppercase tracking-widest text-[#E8C37D] hover:text-white">
+            Back to sign in
+          </button>
+        </div>
+      </Centered>
+    );
+  }
+
+  return (
+    <Centered>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 p-6 rounded-xl border border-white/10 bg-[#080808]">
+        <div>
+          <h1 className="text-lg font-bold text-white">{mode === 'reset' ? 'Set or reset your password' : 'Admin sign in'}</h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            {mode === 'reset'
+              ? 'Enter your admin email and we will email you a link to choose a password.'
+              : 'Manage cars, wheels, prices, finishes, paints, 3D assets and enquiries.'}
+          </p>
+        </div>
+        <label className="block space-y-1">
+          <span className="text-xs text-neutral-400">Email</span>
+          <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+        </label>
+        {mode === 'signin' && (
+          <label className="block space-y-1">
+            <span className="text-xs text-neutral-400">Password</span>
+            <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
+          </label>
+        )}
+        {error && <p className="text-xs text-red-400">{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full flex items-center justify-center gap-2 bg-[#CF9F52] hover:bg-[#E8C37D] disabled:opacity-60 text-black font-bold text-sm rounded-md py-2"
+        >
+          {busy && <Loader2 className="w-4 h-4 animate-spin" />} {mode === 'reset' ? 'Email me a link' : 'Sign in'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode(mode === 'reset' ? 'signin' : 'reset'); setError(null); }}
+          className="w-full text-center text-xs text-neutral-400 hover:text-white"
+        >
+          {mode === 'reset' ? 'Back to sign in' : 'First time here, or forgot your password?'}
+        </button>
+      </form>
+    </Centered>
+  );
+};
+
+/** Shown after following a "set your password" email link (the link signs the admin in once). */
+const SetPasswordForm: React.FC<{ email: string; onDone: () => void }> = ({ email, onDone }) => {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 10) return setError('Use at least 10 characters.');
+    if (password !== confirm) return setError('The two passwords do not match.');
+    setBusy(true);
+    setError(null);
+    const { error: err } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (err) setError(err.message);
+    else onDone();
   };
 
   return (
     <Centered>
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 p-6 rounded-xl border border-white/10 bg-[#080808]">
         <div>
-          <h1 className="text-lg font-bold text-white">Admin sign in</h1>
-          <p className="text-xs text-neutral-500 mt-1">Manage cars, wheels, prices, finishes, paints, 3D assets and enquiries.</p>
+          <h1 className="text-lg font-bold text-white">Choose your password</h1>
+          <p className="text-xs text-neutral-500 mt-1">For {email}. You will use it to sign in to the admin from now on.</p>
         </div>
         <label className="block space-y-1">
-          <span className="text-xs text-neutral-400">Email</span>
-          <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+          <span className="text-xs text-neutral-400">New password</span>
+          <input type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
         </label>
         <label className="block space-y-1">
-          <span className="text-xs text-neutral-400">Password</span>
-          <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
+          <span className="text-xs text-neutral-400">Repeat it</span>
+          <input type="password" required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputCls} />
         </label>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button
@@ -127,7 +227,7 @@ const LoginForm: React.FC = () => {
           disabled={busy}
           className="w-full flex items-center justify-center gap-2 bg-[#CF9F52] hover:bg-[#E8C37D] disabled:opacity-60 text-black font-bold text-sm rounded-md py-2"
         >
-          {busy && <Loader2 className="w-4 h-4 animate-spin" />} Sign in
+          {busy && <Loader2 className="w-4 h-4 animate-spin" />} Save password
         </button>
       </form>
     </Centered>
