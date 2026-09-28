@@ -92,13 +92,16 @@ customer never sees an empty page.
 
 Go to **/admin** and sign in with your admin email and password. You will see five tabs.
 
-**First sign-in (once):** your email must be on the admin list (fazal@novahavens.com already is) and
-have a login. Create the login in Supabase: open the project's
-[Authentication → Users](https://supabase.com/dashboard/project/qxlfkfhzpqbxffuqqewg/auth/users) page →
-**Add user → Create new user** → your email, a strong password, tick **Auto Confirm User**. Then sign in
-at /admin. To add another admin, create their login the same way and add their email to the admin list
-(one line of SQL, in `HANDOVER.md` section 1). Also switch off public sign-ups (Authentication → Sign In /
-Providers → Email → untick *Allow new users to sign up*).
+**First sign-in, or a forgotten password:** on the /admin sign-in click **First time here, or forgot your
+password?**, enter your admin email and press **Email me a link**. Open the email on the same device; it
+brings you back to /admin to choose your password. (Your account, fazal@novahavens.com, already exists.)
+
+**Adding another admin:** create their account in Supabase
+([Authentication → Users](https://supabase.com/dashboard/project/qxlfkfhzpqbxffuqqewg/auth/users) →
+**Add user**, tick **Auto Confirm User**), then add their email to the admin list (one line of SQL, in
+`HANDOVER.md` section 1). They then use the same "First time here" link to set their password. Supabase's
+built-in email only delivers to members of your Supabase team; to email other admins, add your own SMTP
+provider under Authentication → Emails.
 
 | Tab | What you can do |
 |---|---|
