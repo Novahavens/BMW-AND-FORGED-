@@ -9,6 +9,36 @@ it, how you run it day to day, and what is still needed from you before launch. 
 knowledge is needed to read it. The technical companion for a developer is
 [`HANDOVER.md`](HANDOVER.md).
 
+
+A branded PDF version of this document, for sending to the client, is in
+[`FORGEDSA-Client-Handover.pdf`](FORGEDSA-Client-Handover.pdf). Its source is `docs/handover/handover.html`,
+rebuilt with `node scripts/build-handover-pdf.mjs`.
+
+---
+
+## Outstanding work
+
+The configurator is live and works end to end. **Three pieces of work are outstanding:**
+
+1. **Improve the fidelity of the wheels.** The nine live wheels are built from straight-on photos. They
+   look convincing on the car, but spoke depth, the barrel and bolts are approximated up close and in the
+   360° view. The next step is real 3D models built from the manufacturer's CAD files (section 7). The
+   upload and conversion route is already built. FSA-10 to FSA-17 go live the same way.
+   *Needed:* one CAD file per design (STEP ideal), rim only.
+2. **Improve the fidelity of the vehicle rendering.** Nine cars have licensed community 3D bodies of
+   varying detail; the M5 is closest to photoreal. The work:
+   - Replace the weaker bodies with higher-detail, commercially licensed models.
+   - Refine materials (glass, lights, tyres, brakes, trim).
+   - Raise lighting and reflections, and render the summary and PDF stills at higher quality.
+   - Source the M4 Convertible and M5 Touring.
+   - Confirm every model's licence.
+
+   *Needed:* your priority order of cars and approval for any paid models.
+3. **Check the Terms & conditions and Delivery pages for content accuracy.** Both are live drafts
+   (section 8). Every statement must match how FORGEDSA actually trades, the bracketed details must be
+   filled in, and your attorney must review them. Then the draft note comes off.
+   *Needed:* the bracketed details and legal sign-off.
+
 ---
 
 ## 1. What you have, in one paragraph
@@ -245,17 +275,18 @@ Before launch:
 
 ---
 
-## 9. What we still need from you
+## 9. Details to send us before launch
 
 | # | Item | Why |
 |---|---|---|
-| 1 | **CAD files** for each wheel design from your manufacturer | Photoreal 3D wheels (section 7) |
-| 2 | Real wheel **names, codes, sizes and prices** | The current ones are placeholders |
-| 3 | Your real **email and phone number** | The site shows placeholders (info@forgedsa.com, +27 00 000 0000) |
-| 4 | **Legal review** of Terms and Delivery, and the [bracketed] details | Required before taking orders |
-| 5 | The **hexagon monogram** file (PNG or SVG with transparency) | Browser tab icon and social avatar |
-| 6 | **Wheel weights**, if you want them shown | The weight panel appears automatically once a wheel has weights |
-| 7 | Your own domain (e.g. configure.forgedsa.com), if wanted | We can point it at the site in minutes |
+| 1 | **CAD files** for each wheel design from your manufacturer | Outstanding work 1: photoreal 3D wheels (section 7) |
+| 2 | **Car priority** and approval for paid 3D models | Outstanding work 2: vehicle rendering |
+| 3 | Real wheel **names, codes, sizes and prices** | The current ones are placeholders |
+| 4 | Your real **email and phone number** | The site shows placeholders (info@forgedsa.com, +27 00 000 0000) |
+| 5 | **Legal review** of Terms and Delivery, and the [bracketed] details | Outstanding work 3; required before taking orders |
+| 6 | The **hexagon monogram** file (PNG or SVG with transparency) | Browser tab icon and social avatar |
+| 7 | **Wheel weights**, if you want them shown | The weight panel appears automatically once a wheel has weights |
+| 8 | Your own domain (e.g. configure.forgedsa.com), if wanted | We can point it at the site in minutes |
 
 ---
 

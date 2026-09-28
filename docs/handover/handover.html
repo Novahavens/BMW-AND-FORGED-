@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FORGEDSA Configurator · Client Handover</title>
+<!-- Source of docs/FORGEDSA-Client-Handover.pdf. Rebuild with: node scripts/build-handover-pdf.mjs -->
+<style>
+  @font-face { font-family: 'Satoshi'; font-weight: 500; src: url('../../public/fonts/satoshi-500.woff2') format('woff2'); }
+  @font-face { font-family: 'Satoshi'; font-weight: 700; src: url('../../public/fonts/satoshi-700.woff2') format('woff2'); }
+  @font-face { font-family: 'Satoshi'; font-weight: 900; src: url('../../public/fonts/satoshi-900.woff2') format('woff2'); }
+  @font-face { font-family: 'Inter'; font-weight: 100 900; src: url('../../public/fonts/inter-latin-wght-normal.woff2') format('woff2'); }
+
+  :root {
+    --carbon: #121212; --surface: #1A1A1A; --gunmetal: #2A2A2A; --line: rgba(255,255,255,0.10);
+    --gold: #CF9F52; --brass: #E8C37D; --ember: #FF5A00; --ink: #F2EEE6; --mute: #9C978E;
+  }
+  @page {
+    size: A4; margin: 22mm 18mm 20mm; background: var(--carbon);
+    @top-left { content: url('img/logo-header.svg'); }
+    @top-right { content: "Client handover · September 2026"; font: 500 7.5pt 'Inter'; color: #6f6b64; letter-spacing: 0.08em; }
+    @bottom-left { content: "forged-configurator.vercel.app"; font: 500 7.5pt 'Inter'; color: #6f6b64; }
+    @bottom-right { content: counter(page, decimal-leading-zero); font: 700 8pt 'Satoshi'; color: var(--gold); letter-spacing: 0.1em; }
+  }
+  @page cover { margin: 0; @top-left { content: none; } @top-right { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--carbon); color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font: 400 9.4pt/1.55 'Inter', sans-serif; }
+  h1, h2, h3, .display { font-family: 'Satoshi', sans-serif; }
+  a { color: var(--gold); text-decoration: none; }
+  strong { color: #fff; font-weight: 600; }
+  p { margin: 0 0 3mm; }
+
+  /* Cover */
+  .cover { page: cover; position: relative; width: 210mm; height: 297mm; overflow: hidden; break-after: page; background: #0d0d0d; }
+  .cover .shot { position: absolute; inset: 0 0 auto 0; height: 190mm; background: url('img/cover.jpg') center 38% / cover no-repeat; }
+  .cover .fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(13,13,13,0.92) 0%, rgba(13,13,13,0.55) 11%, rgba(13,13,13,0) 26%, rgba(13,13,13,0.85) 58%, #0d0d0d 66%); }
+  .cover .logo { position: absolute; top: 18mm; left: 18mm; width: 58mm; }
+  .cover .body { position: absolute; left: 18mm; right: 18mm; bottom: 24mm; }
+  .eyebrow { font: 700 7.4pt 'Inter'; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold); }
+  .cover h1 { font-weight: 900; font-size: 40pt; line-height: 1.02; margin: 5mm 0 6mm; letter-spacing: -0.01em; }
+  .cover .lede { color: #c9c4ba; font-size: 11pt; line-height: 1.55; max-width: 150mm; margin-bottom: 11mm; }
+  .meta { display: grid; grid-template-columns: 1fr 1.25fr 0.8fr; gap: 5mm; border-top: 1px solid var(--line); padding-top: 6mm; }
+  .meta div span { display: block; font: 600 6.8pt 'Inter'; letter-spacing: 0.24em; text-transform: uppercase; color: var(--mute); margin-bottom: 1.5mm; }
+  .meta div { font-size: 9pt; }
+  .rule { width: 18mm; height: 2px; background: var(--ember); margin-top: 5mm; }
+
+  /* Sections */
+  section { break-before: page; }
+  section.flow { break-before: auto; margin-top: 12mm; }
+  .num { font: 900 9pt 'Satoshi'; color: var(--gold); letter-spacing: 0.2em; }
+  h2 { font-weight: 900; font-size: 22pt; line-height: 1.1; margin: 2mm 0 5mm; letter-spacing: -0.005em; }
+  h3 { font-weight: 700; font-size: 11.5pt; margin: 7mm 0 2.5mm; color: #fff; }
+  .intro { font-size: 10.5pt; color: #d6d1c7; max-width: 160mm; margin-bottom: 6mm; }
+  ul { margin: 0 0 3mm; padding-left: 4.5mm; }
+  li { margin-bottom: 1.4mm; }
+  li::marker { color: var(--gold); }
+  .muted { color: var(--mute); }
+  .small { font-size: 8.4pt; }
+
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; font-size: 8.7pt; }
+  th { text-align: left; font: 600 6.8pt 'Inter'; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute); padding: 0 3mm 2.5mm 0; border-bottom: 1px solid var(--line); }
+  td { padding: 2.6mm 3mm 2.6mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { color: #fff; font-weight: 600; white-space: nowrap; }
+  tr { break-inside: avoid; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 4mm; padding: 6mm 7mm; margin-bottom: 5mm; break-inside: avoid; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 3mm; padding: 4.5mm 5mm; }
+  .stat b { display: block; font: 900 18pt 'Satoshi'; color: var(--gold); line-height: 1; margin-bottom: 1.6mm; }
+  .stat span { font-size: 8.2pt; color: #cfcac0; }
+
+  /* Outstanding work */
+  .task { font-size: 8.7pt; line-height: 1.5; position: relative; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--ember); border-radius: 4mm; padding: 5mm 6.5mm 4.5mm; margin-bottom: 4mm; break-inside: avoid; }
+  .task li { margin-bottom: 0.9mm; }
+  .task .tag { font: 700 6.8pt 'Inter'; letter-spacing: 0.26em; text-transform: uppercase; color: var(--ember); }
+  .task h3 { margin: 1.2mm 0 2.5mm; font-size: 12.5pt; font-weight: 900; }
+  .task .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .task .cols h4 { font: 600 6.8pt 'Inter'; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mute); margin: 0 0 2mm; }
+  .task .need { margin-top: 3mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 8.8pt; }
+  .task .need b { color: var(--gold); font-weight: 700; }
+  .pill { display: inline-block; font: 700 6.8pt 'Inter'; letter-spacing: 0.18em; text-transform: uppercase; padding: 1.2mm 3mm; border-radius: 99px; }
+  .pill.done { background: rgba(207,159,82,0.14); color: var(--brass); }
+  .pill.open { background: rgba(255,90,0,0.14); color: #ff8a4d; }
+
+  .shot { border-radius: 3mm; border: 1px solid var(--line); overflow: hidden; background: #000; }
+  .shot img { display: block; width: 100%; }
+  figure { margin: 0; break-inside: avoid; }
+  figcaption { font-size: 7.6pt; color: var(--mute); margin-top: 2mm; }
+  .swatches { display: flex; gap: 3mm; margin: 2mm 0 4mm; }
+  .sw { flex: 1; border-radius: 3mm; padding: 12mm 3.5mm 3mm; font-size: 7.4pt; border: 1px solid var(--line); }
+  .sw b { display: block; font: 700 8.4pt 'Satoshi'; }
+  .callout { border: 1px solid rgba(207,159,82,0.35); background: rgba(207,159,82,0.06); border-radius: 3mm; padding: 4mm 5mm; font-size: 8.8pt; margin: 3mm 0 5mm; break-inside: avoid; }
+  .check li { list-style: none; position: relative; padding-left: 5.5mm; }
+  .check li::before { content: ''; position: absolute; left: 0; top: 1.2mm; width: 2.6mm; height: 2.6mm; border: 1.2px solid var(--gold); border-radius: 0.6mm; }
+  .check { padding-left: 0; }
+  .keep { break-inside: avoid; }
+  .num, h2, h3 { break-after: avoid; }
+  .intro, .swatches, h2 + table, h3 + table, h3 + p, h3 + ul { break-before: avoid; }
+  .float-fig { float: right; width: 68mm; margin: 0 0 4mm 7mm; }
+  .float-fig + div .callout, .float-fig + div ul { overflow: hidden; }
+</style>
+</head>
+<body>
+<img src="img/logo-header.svg" alt="" style="position:absolute;width:1px;height:1px;opacity:0">
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="shot"></div>
+  <div class="fade"></div>
+  <img class="logo" src="../../public/brand/forgedsa-wordmark.png" alt="FORGEDSA">
+  <div class="body">
+    <div class="eyebrow">Client handover</div>
+    <h1>The FORGEDSA<br>Wheel Configurator</h1>
+    <p class="lede">What we built, how your customers use it, how you run it day to day, and the work
+      still outstanding before launch. Written for business owners. No technical knowledge needed.</p>
+    <div class="meta">
+      <div><span>Live site</span>forged-configurator.vercel.app</div>
+      <div><span>Admin</span>forged-configurator.vercel.app/admin</div>
+      <div><span>Handed over</span>28 September 2026</div>
+    </div>
+    <div class="rule"></div>
+  </div>
+</div>
+
+<!-- ============ 01 AT A GLANCE ============ -->
+<section style="break-before:auto">
+  <div class="num">01</div>
+  <h2>At a glance</h2>
+  <p class="intro">A premium online 3D showroom. A BMW M owner picks their exact car and factory paint, then
+    tries your forged wheels on it in real time: design, size and finish, from any angle, on a laptop or
+    phone. They get a summary of their build with studio images and the price, a branded PDF, a share link
+    and an enquiry form. Every PDF download and enquiry is emailed to you as a branded lead summary. Behind
+    it is a secure back end and an admin panel, so day-to-day changes need no developer.</p>
+
+  <div class="grid3" style="margin-bottom:6mm">
+    <div class="stat"><b>11</b><span>BMW M models, 9 with a real 3D body</span></div>
+    <div class="stat"><b>64</b><span>BMW South Africa factory paints, matched per car</span></div>
+    <div class="stat"><b>9</b><span>FORGEDSA wheel designs live (FSA-01 to FSA-09)</span></div>
+    <div class="stat"><b>4</b><span>Finishes: Liquid Metal, Bronze Matte, Black Gloss, Silver</span></div>
+    <div class="stat"><b>5</b><span>Regions and currencies, South Africa and Rand by default</span></div>
+    <div class="stat"><b>&lt;10s</b><span>From PDF download or enquiry to a lead email in your inbox</span></div>
+  </div>
+
+  <h3>Where things stand</h3>
+  <table>
+    <tr><th>Area</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>Customer journey</td><td><span class="pill done">Live</span></td><td>Welcome → showroom → configurator → summary → PDF / enquiry / share, on desktop and mobile.</td></tr>
+    <tr><td>Brand</td><td><span class="pill done">Live</span></td><td>FORGEDSA brand kit applied across the site, the PDF and the lead email.</td></tr>
+    <tr><td>Back end and admin</td><td><span class="pill done">Live</span></td><td>Database, storage, secure logins, and an admin panel for cars, wheels, prices, finishes, paints and enquiries.</td></tr>
+    <tr><td>Leads</td><td><span class="pill done">Live</span></td><td>PDF gated on email and mobile. Every lead is saved and emailed to forgedsa1@gmail.com.</td></tr>
+    <tr><td>Wheel fidelity</td><td><span class="pill open">Outstanding</span></td><td>Photo-based 3D today; true CAD-based 3D wheels next. See section 02.</td></tr>
+    <tr><td>Vehicle rendering</td><td><span class="pill open">Outstanding</span></td><td>Good at normal distance; body models and lighting to be raised to photoreal. See section 02.</td></tr>
+    <tr><td>Terms and Delivery</td><td><span class="pill open">Outstanding</span></td><td>Live as drafts; content to be checked for accuracy. See section 02.</td></tr>
+  </table>
+</section>
+
+<!-- ============ 02 OUTSTANDING ============ -->
+<section>
+  <div class="num">02</div>
+  <h2>Outstanding work</h2>
+  <p class="intro">The configurator is live and working end to end. <strong>Three pieces of work are
+    outstanding</strong> before we consider it finished. They are listed here first so nothing is missed.</p>
+
+  <div class="task">
+    <div class="tag">Outstanding · 1 of 3</div>
+    <h3>Improve the fidelity of the wheels</h3>
+    <div class="cols">
+      <div>
+        <h4>Where it is today</h4>
+        <ul>
+          <li>The nine live wheels (FSA-01 to FSA-09) are built from straight-on photos. The app turns each photo into 3D spokes.</li>
+          <li>On the car, at normal viewing distance, they look convincing. Up close, and in the 360° view, spoke depth, the inner barrel and bolt detail are approximated.</li>
+          <li>FSA-10 to FSA-17 only have angled photos, so they are not live yet.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>What we will do</h4>
+        <ul>
+          <li>Build every design as a real 3D model from the manufacturer's CAD files: true spoke depth, barrel, lip, bolts and edges, photoreal from every angle.</li>
+          <li>The route is already built. Uploading a CAD file in the admin panel converts it into a web-ready 3D wheel automatically, and it replaces the photo version on every car immediately.</li>
+          <li>Bring FSA-10 to FSA-17 live the same way.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="need"><b>Needed from you:</b> the CAD file for each design from your manufacturer (STEP/STP ideal; IGES, STL or OBJ also work), rim only, no tyre. One file per design.</div>
+  </div>
+
+  <div class="task">
+    <div class="tag">Outstanding · 2 of 3</div>
+    <h3>Improve the fidelity of the vehicle rendering</h3>
+    <div class="cols">
+      <div>
+        <h4>Where it is today</h4>
+        <ul>
+          <li>Nine cars have licensed community 3D bodies. Quality varies from model to model: the M5 is closest to photoreal, others show simpler interiors, lights and panel detail up close.</li>
+          <li>Paint, reflections and lighting have been tuned for a realistic metallic and clearcoat look, but they are real-time approximations.</li>
+          <li>The M4 Convertible and M5 Touring have no commercially licensed model yet, so they are hidden from the showroom.</li>
+          <li>Several community models appear to derive from game assets, so a formal licence check is advisable before a large launch.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>What we will do</h4>
+        <ul>
+          <li>Replace the weaker bodies with higher-detail, commercially licensed models (purchased where needed), prioritising your best-selling cars.</li>
+          <li>Refine materials per car: glass, lights, tyres and brakes, badges, trim and paint break-up.</li>
+          <li>Raise studio lighting, shadows and reflections, and render the summary and PDF stills at a higher quality than the live view.</li>
+          <li>Source the M4 Convertible and M5 Touring, and confirm the licence of every model.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="need"><b>Needed from you:</b> the priority order of models (which cars your customers drive most), and approval for any paid model purchases.</div>
+  </div>
+
+  <div class="task">
+    <div class="tag">Outstanding · 3 of 3</div>
+    <h3>Check the Terms &amp; conditions and Delivery pages for accuracy</h3>
+    <div class="cols">
+      <div>
+        <h4>Where it is today</h4>
+        <ul>
+          <li>Both pages are live at <strong>/terms</strong> and <strong>/delivery</strong>, linked from the menu, the footer and the PDF.</li>
+          <li>They are <strong>drafts</strong>: a sensible South African starting point (Consumer Protection Act, POPIA, deposits for made-to-order goods, cancellations, warranty, fitment, courier delivery, inspection on arrival).</li>
+          <li>Each page shows a "Draft for review" note until approved.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>What needs checking</h4>
+        <ul>
+          <li>Every statement matches how FORGEDSA actually trades: deposits, payment, lead times, delivery areas and costs, fitment, returns and warranty.</li>
+          <li>Fill in all bracketed details: registered company name, registration and VAT numbers, deposit percentage, payment methods, warranty periods, lead times, delivery costs, collection and fitment address, Information Officer.</li>
+          <li>Legal review by your attorney, then we update the text and remove the draft note.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="need"><b>Needed from you:</b> your answers to the bracketed items and your attorney's sign-off. The change itself is quick: one file (<span class="muted">config/pages.ts</span>).</div>
+  </div>
+</section>
+
+<!-- ============ 03 JOURNEY ============ -->
+<section class="flow">
+  <div class="num">03</div>
+  <h2>The customer journey</h2>
+  <p class="intro">We mapped and built every step a customer takes, from the first second to the PDF they keep.</p>
+  <div class="grid3" style="margin-bottom:5mm">
+    <figure><div class="shot"><img src="img/showroom.jpg" alt=""></div><figcaption>Showroom: one car at a time</figcaption></figure>
+    <figure><div class="shot"><img src="img/configure.jpg" alt=""></div><figcaption>Configurator: paint, wheels, size, finish</figcaption></figure>
+    <figure><div class="shot"><img src="img/summary.jpg" alt=""></div><figcaption>Summary: their build, price and actions</figcaption></figure>
+  </div>
+  <table>
+    <tr><th>Step</th><th>What the customer sees</th><th>Why it matters</th></tr>
+    <tr><td>1 · Loading</td><td>A FORGEDSA wheel drawn in fine gold lines while the 3D studio loads.</td><td>On-brand from the first second.</td></tr>
+    <tr><td>2 · Welcome</td><td>A BMW M turning in a dark studio, the logo, a region and currency picker and <strong>Enter</strong>. Social links underneath.</td><td>Sets the tone and the right currency.</td></tr>
+    <tr><td>3 · Showroom</td><td>One car at a time, model name large behind it. Arrows drive the car out and the next in. <strong>Explore</strong> or <strong>Build</strong>.</td><td>Customers find <em>their</em> car.</td></tr>
+    <tr><td>4 · Notice</td><td>A one-line note that cars are visualisations and fitment is confirmed by your team.</td><td>Manages expectations.</td></tr>
+    <tr><td>5 · Configurator</td><td>Four steps: <strong>Paint → Wheels → Size → Finish</strong>. Wheel choices cut to a close-up. Running price always visible.</td><td>Their car on your wheels.</td></tr>
+    <tr><td>6 · 360° view</td><td>Any wheel on its own, rotating, with finishes, sizes and price.</td><td>Study the design up close.</td></tr>
+    <tr><td>7 · Summary</td><td>Three studio images, every option, the price, and Share, PDF and Enquire.</td><td>Turns interest into a lead.</td></tr>
+    <tr><td>8 · PDF</td><td>They enter <strong>email and mobile</strong> (name optional), then a two-page branded spec sheet downloads instantly.</td><td>Every download is a lead, emailed to you.</td></tr>
+    <tr><td>9 · Enquiry</td><td>Name, email, phone, message, "I'd like a consultation". Configuration attached automatically.</td><td>A qualified lead, by email in seconds.</td></tr>
+    <tr><td>10 · Share</td><td>A short code and link that reopens the exact build.</td><td>Easy to forward; you can open it too.</td></tr>
+  </table>
+  <p class="small muted">Also on the site: The collection (all wheel designs), Delivery &amp; fitment, Terms &amp; conditions, and a footer with your social channels and contact details.</p>
+</section>
+
+<section class="flow keep">
+  <h3 style="margin-top:0">What customers choose</h3>
+  <table>
+    <tr><td>Car</td><td>11 BMW M models: M2, M235i, M3, M3 Touring, M4, M4 Convertible, M5, M5 Touring, M8, X3 M50, X5 M (2024 facelift X5 M Competition).</td></tr>
+    <tr><td>Paint</td><td>The exact BMW South Africa factory colours for that car, 64 in total, researched from BMW's own configurator.</td></tr>
+    <tr><td>Wheel</td><td>Your real FORGEDSA designs: 9 live now.</td></tr>
+    <tr><td>Size</td><td>Only the sizes you offer for that wheel, each with its own price.</td></tr>
+    <tr><td>Finish</td><td>Liquid Metal (chrome), Bronze Matte, Black Gloss and Silver.</td></tr>
+  </table>
+</section>
+
+<!-- ============ 04 BRAND ============ -->
+<section>
+  <div class="num">04</div>
+  <h2>Your brand, applied</h2>
+  <p class="intro">The whole experience follows the FORGEDSA Official Brand Design System: site, PDF brochure and lead email.</p>
+  <div class="swatches">
+    <div class="sw" style="background:#121212"><b>Matte Carbon</b>#121212 · backgrounds</div>
+    <div class="sw" style="background:#2A2A2A"><b>Gunmetal</b>#2A2A2A · surfaces</div>
+    <div class="sw" style="background:#CF9F52;color:#121212"><b>Forged Gold</b>#CF9F52 · logo, selections, prices</div>
+    <div class="sw" style="background:#E8C37D;color:#121212"><b>Brass Light</b>#E8C37D · hovers</div>
+    <div class="sw" style="background:#FF5A00;color:#121212"><b>Electric Orange</b>#FF5A00 · main action buttons</div>
+  </div>
+  <ul>
+    <li><strong>Electric Orange</strong> is the action colour. It is used only on the buttons that move a customer forward (Enter, Build, Confirm, View your build, Download PDF, Send enquiry), the "Open your build online" button in the PDF, and the Reply button in the lead email. <strong>Forged Gold</strong> marks everything else that stands out.</li>
+    <li><strong>Type:</strong> Satoshi for headlines, Inter for everything else, as the kit specifies. Both are hosted with the site, so they never fail to load.</li>
+    <li><strong>Logo:</strong> the gold FORGEDSA wordmark on every page, the PDF and the email. We cut it out of the supplied image, which had a printed checkerboard rather than real transparency.</li>
+    <li><strong>Social channels:</strong> Instagram @ForgedSA, TikTok @ForgedSA, YouTube /ForgedSA and www.forgedsa.com, on the welcome screen, menu, footer and PDF.</li>
+    <li><strong>Browser tab icon:</strong> a temporary gold "F" until we receive the hexagon monogram.</li>
+  </ul>
+  <div class="grid2" style="margin-top:5mm">
+    <figure><div class="shot"><img src="img/pdf.jpg" alt=""></div><figcaption>The customer's PDF brochure, page 1</figcaption></figure>
+    <figure><div class="shot"><img src="img/welcome.jpg" alt=""></div><figcaption>Welcome screen with the region picker and Enter</figcaption></figure>
+  </div>
+</section>
+
+<!-- ============ 05 BACK END ============ -->
+<section class="flow">
+  <div class="num">05</div>
+  <h2>Behind the scenes</h2>
+  <p class="intro">A proper back end keeps the site secure and lets you manage it without a developer.</p>
+  <table>
+    <tr><th>Part</th><th>What it does</th><th>Where it lives</th></tr>
+    <tr><td>Database</td><td>Every car, paint, wheel, finish and price, plus saved builds and customer enquiries.</td><td>Supabase</td></tr>
+    <tr><td>File storage</td><td>3D car files, wheel images and wheel 3D models.</td><td>Supabase Storage</td></tr>
+    <tr><td>Logins</td><td>Only people on your admin list can change anything, and the database itself enforces this.</td><td>Supabase Auth</td></tr>
+    <tr><td>Hosting</td><td>Serves the website worldwide, fast.</td><td>Vercel</td></tr>
+    <tr><td>Lead emails</td><td>Emails forgedsa1@gmail.com a branded summary of every PDF download and enquiry.</td><td>Database + n8n + Gmail</td></tr>
+    <tr><td>Wheel pipeline</td><td>Turns wheel photos plus a Google Sheet into wheels in the app automatically.</td><td>n8n + Google Sheet</td></tr>
+  </table>
+  <p class="small muted">If the database were ever unreachable, the site falls back to a built-in copy of the catalogue, so a customer never sees an empty page.</p>
+
+  <section class="flow" style="margin-top:9mm">
+    <div class="num">06</div>
+    <h2>Your admin panel</h2>
+    <p>Go to <strong>/admin</strong> and sign in with your admin email and password.</p>
+    <div class="callout"><strong>First sign-in or forgotten password:</strong> on the sign-in screen click <em>First time here, or forgot your password?</em>, enter your admin email and press <em>Email me a link</em>. Open the email on the same device; it brings you back to choose your password. Your account (fazal@novahavens.com) already exists.</div>
+    <table>
+      <tr><th>Tab</th><th>What you can do</th></tr>
+      <tr><td>Cars</td><td>Add a car, upload its 3D model, choose its factory paints, hide or reorder cars.</td></tr>
+      <tr><td>Wheels</td><td>Add a design, upload its image, 3D model or CAD file, write its copy, set <strong>sizes and prices</strong>, choose finishes, hide or reorder.</td></tr>
+      <tr><td>Finishes</td><td>Edit the four finishes: name, colour, gloss or matte.</td></tr>
+      <tr><td>Paints</td><td>Edit the factory paint list.</td></tr>
+      <tr><td>Enquiries</td><td>Every enquiry and PDF download, newest first: <strong>Reply</strong>, <strong>Open build</strong>, <strong>Export CSV</strong>.</td></tr>
+    </table>
+  </section>
+</section>
+
+<section class="flow keep">
+  <h3 style="margin-top:0">Everyday tasks</h3>
+  <table>
+    <tr><td>Change a price</td><td>Wheels → the wheel → change the price next to a size → Save. Live immediately; the "from" price updates itself.</td></tr>
+    <tr><td>Add or remove a size</td><td>In the same wheel, use the + size buttons or the bin icon → Save.</td></tr>
+    <tr><td>Hide something</td><td>Untick <em>Visible in configurator</em> → Save. Nothing is deleted.</td></tr>
+    <tr><td>Change the order</td><td>Set <em>Sort order</em>: lower numbers appear first.</td></tr>
+    <tr><td>Add a car</td><td>Cars → New → name → upload the 3D file (.glb) → pick its paints → Save. A developer may fine-tune which parts take the paint the first time.</td></tr>
+    <tr><td>Add an admin</td><td>Create their user in Supabase (Authentication → Users → Add user, Auto Confirm) and add their email to the admin list. They then use the "First time here" link.</td></tr>
+  </table>
+</section>
+
+<!-- ============ 07 LEAD EMAILS ============ -->
+<section>
+  <div class="num">07</div>
+  <h2>New-lead emails</h2>
+  <figure class="float-fig"><div class="shot"><img src="img/lead-email.jpg" alt=""></div><figcaption>A lead email (sample details)</figcaption></figure>
+  <div>
+      <p class="intro" style="font-size:10pt">Every time a customer <strong>downloads the PDF</strong> or <strong>sends an enquiry</strong>, a branded email lands in <strong>forgedsa1@gmail.com</strong> within seconds.</p>
+      <h3>What it shows</h3>
+      <ul>
+        <li>The subject says the kind of lead: <em>"New PDF download: …"</em> or <em>"New enquiry: …"</em>, with the name and car.</li>
+        <li>Name, email and mobile (tap to email or call), when they came in, and whether they asked for a consultation.</li>
+        <li>Their message, for enquiries.</li>
+        <li><strong>Their build:</strong> wheel image, car, paint with swatch, wheel and code, size, finish with swatch, region.</li>
+        <li>The wheel set price in their currency, and their build code.</li>
+        <li><strong>Reply to [name]</strong> and <strong>Open their build</strong> buttons. Pressing Reply in Gmail also goes straight to the customer.</li>
+      </ul>
+      <h3>How it works</h3>
+      <ul>
+        <li>The lead is saved in the database (the Enquiries tab), as before.</li>
+        <li>The moment it is saved, the database hands it to the n8n automation <em>FORGEDSA · Lead email</em>.</li>
+        <li>n8n builds the email and sends it through the connected Gmail account (currently fazal@novahavens.com, shown as "FORGEDSA Leads").</li>
+      </ul>
+      <div class="callout">If an email ever fails, the lead is <strong>still saved</strong> in the admin panel. Nothing is lost, and the customer never sees an error.</div>
+      <h3>Good to know</h3>
+      <ul class="small">
+        <li><strong>Change the recipient:</strong> n8n → the workflow → <em>Email forgedsa1@gmail.com</em> step → To → Publish.</li>
+        <li><strong>Send from another account</strong> (e.g. forgedsa1@gmail.com itself): connect it as a Gmail credential in n8n and select it in that step.</li>
+        <li><strong>Check it is working:</strong> n8n → the workflow → Executions.</li>
+        <li>If Gmail files the first emails under Promotions, drag one to Primary.</li>
+      </ul>
+  </div>
+</section>
+
+<!-- ============ 08 WHEELS ============ -->
+<section>
+  <div class="num">08</div>
+  <h2>Your wheels</h2>
+  <h3 style="margin-top:0">Live today</h3>
+  <p>Nine FORGEDSA designs are live (FSA-01 to FSA-09), made from the front-on photos in your <em>Wheel designs</em> zip. The names (South African circuits), codes and prices are <strong>placeholders</strong> so you could see the experience end to end. Change them in the admin panel or the wheels sheet.</p>
+  <h3>The wheels sheet</h3>
+  <p>An editable Google Sheet called <strong>wheels</strong> sits in your FORGEDSA Drive folder: one row per design, with photo file name, name, code, sizes, prices in Rand, finishes and product copy. The automated pipeline reads it to add new wheels. Rows marked <em>skip = yes</em> are left alone.</p>
+  <h3>The photoreal route: CAD files → real 3D wheels</h3>
+  <p>Forged wheels are machined from CAD drawings, so the exact 3D shape of every design already exists at your manufacturer. This is how the wheel-fidelity work in section 02 gets done:</p>
+  <table>
+    <tr><td>1 · Request</td><td>Ask your manufacturer for the CAD file of each design (STEP ideal; IGES, STL, OBJ fine). Rim only, no tyre.</td></tr>
+    <tr><td>2 · Upload</td><td>Admin → Wheels → the wheel → <em>Rim 3D model</em> → Upload the CAD file.</td></tr>
+    <tr><td>3 · Automatic</td><td>It is converted into a light, web-ready 3D wheel: turned to face outwards, sized, smoothed, and given one finish surface so all four finishes apply.</td></tr>
+    <tr><td>4 · Save</td><td>A 3D model always takes priority over the photo, so the wheel upgrades on every car immediately.</td></tr>
+  </table>
+  <p class="small muted">Tips: if the spokes ever face into the car, tick <em>Flip 3D rim</em> and Save. Very large files (over about 50 MB) are better converted by your developer with the included converter, which does the same thing on a computer.</p>
+</section>
+
+<!-- ============ 09 DETAILS ============ -->
+<section>
+  <div class="num">09</div>
+  <h2>Details to send us before launch</h2>
+  <p class="intro">Besides the three pieces of outstanding work, these details replace placeholders on the site.</p>
+  <ul class="check">
+    <li><strong>CAD files</strong> for each wheel design (for outstanding work 1).</li>
+    <li><strong>Car priority and approval</strong> for any paid 3D model purchases (for outstanding work 2).</li>
+    <li><strong>Bracketed Terms and Delivery details</strong> and your attorney's sign-off (for outstanding work 3).</li>
+    <li>Real wheel <strong>names, codes, sizes and prices</strong>. The current ones are placeholders.</li>
+    <li>Your real <strong>email address and phone number</strong>. The site shows info@forgedsa.com and +27 00 000 0000.</li>
+    <li>The <strong>hexagon monogram</strong> (PNG or SVG with transparency) for the browser tab icon.</li>
+    <li><strong>Wheel weights</strong>, if you want them shown. They appear automatically once entered.</li>
+    <li>Your own <strong>domain</strong> (e.g. configure.forgedsa.com), if wanted. We can point it at the site in minutes.</li>
+  </ul>
+
+  <section class="flow">
+    <div class="num">10</div>
+    <h2>Accounts and running costs</h2>
+    <table>
+      <tr><th>Service</th><th>Used for</th><th>Plan</th></tr>
+      <tr><td>Vercel</td><td>Hosting the website</td><td>Free tier; upgrade if traffic grows.</td></tr>
+      <tr><td>Supabase</td><td>Database, storage, logins</td><td>Free tier. Free projects pause after a week with no visits: open the site weekly, or upgrade to Pro (about US$25/month) at launch.</td></tr>
+      <tr><td>n8n</td><td>Wheel pipeline and lead emails</td><td>Your existing account.</td></tr>
+      <tr><td>Gmail</td><td>Sending lead emails</td><td>Free.</td></tr>
+      <tr><td>Google Drive</td><td>Wheels sheet and photos</td><td>Your existing account.</td></tr>
+      <tr><td>OpenRouter</td><td>AI image tools in the wheel pipeline</td><td>Pay per use, about US$0.15–0.30 per wheel.</td></tr>
+    </table>
+  </section>
+</section>
+
+<section class="flow keep">
+  <div class="num">11</div>
+  <h2>Quick glossary</h2>
+  <table>
+    <tr><td>Back end</td><td>The behind-the-scenes part (database, storage, logins) customers never see.</td></tr>
+    <tr><td>Admin panel</td><td>Your private page for editing the catalogue and reading enquiries.</td></tr>
+    <tr><td>3D model / GLB</td><td>A file describing an object's shape in 3D, like the cars and your wheels.</td></tr>
+    <tr><td>CAD file / STEP</td><td>The engineering drawing your manufacturer machines the wheel from.</td></tr>
+    <tr><td>Fidelity</td><td>How closely the on-screen image matches the real thing.</td></tr>
+    <tr><td>Build code</td><td>The short code that reopens a customer's exact build.</td></tr>
+    <tr><td>Pipeline</td><td>An automation that turns photos plus a spreadsheet into wheels in the app.</td></tr>
+    <tr><td>Webhook</td><td>A private web address one system calls to hand information to another.</td></tr>
+  </table>
+  <p class="small muted" style="margin-top:6mm">The technical companion for a developer is docs/HANDOVER.md in the project repository.</p>
+</section>
+
+</body>
+</html>
