@@ -119,6 +119,11 @@ We set up a proper back end so the site is secure and you can manage it without 
 | **Lead emails** | Emails forgedsa1@gmail.com a branded summary of every PDF download and enquiry (section 6). | Database trigger + n8n + Gmail |
 | **Wheel pipeline** | Turns wheel photos plus a Google Sheet into wheels in the app automatically (section 7). | n8n automation + Google Sheet |
 
+**Know-how written down:** every recurring job (adding a car or wheels, tuning the paint, the lead
+emails, publishing changes, keeping keys safe) is written up as a step-by-step playbook inside the
+project (`docs/SKILLS.md`). Any developer, or an AI assistant such as Claude, can pick up the work
+without starting from scratch.
+
 If the database were ever unreachable, the site falls back to a built-in copy of the catalogue, so a
 customer never sees an empty page.
 

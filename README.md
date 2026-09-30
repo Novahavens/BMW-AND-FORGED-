@@ -117,6 +117,13 @@ webhook URL lives in Supabase Vault (`lead_webhook_url`), and the template is in
   `services/proceduralRims.ts` and extruded in `services/rimExtrusion.ts`.
 - Pricing helpers (`rimPrice`, `rimSizes`, `nearestRimSize`) are in `services/pricing.ts`.
 
+## Project skills (for Claude Code and developers)
+
+Thirteen task playbooks in `.claude/skills/` capture how this project is built and run: adding cars
+and wheels, tuning paint, verifying renders, the PDF, lead emails, branding, docs, deploys and
+secrets. Claude Code loads them automatically; the index with when-to-use notes is
+[`docs/SKILLS.md`](docs/SKILLS.md).
+
 ## Repository layout
 
 ```
@@ -129,4 +136,6 @@ supabase/migrations/         Database schema, RLS policies, and catalogue change
 n8n/lead-email.code.js       Copy of the n8n Code node that builds the branded lead email
 public/models/CREDITS.md     Licence and attribution for every 3D car model
 docs/HANDOVER.md             Full handover guide: setup, workflow, pre-handover checklist
+docs/SKILLS.md               Index of the project skills in .claude/skills/ (task playbooks)
+.claude/skills/              Skills Claude Code loads when working in this repo
 ```

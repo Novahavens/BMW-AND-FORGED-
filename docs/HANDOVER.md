@@ -6,6 +6,11 @@
 
 Follow the sections in order. Each step has a **Check** line; do not move on until it passes.
 
+> **Task playbooks:** the recurring jobs (add a car, add wheels, tune paint, verify renders, lead
+> emails, deploy, secrets) are also written up as skills in `.claude/skills/`, indexed in
+> [`SKILLS.md`](SKILLS.md). Claude Code picks them up automatically; update the matching skill when a
+> process changes.
+
 ---
 
 ## 0. What you have
@@ -252,6 +257,7 @@ n8n "FORGEDSA · Lead email" ── Webhook (POST) ─▶ Code "Build branded em
 
 ## 7. Reference
 
+- Project skills (task playbooks): `.claude/skills/`, indexed in `docs/SKILLS.md`
 - Database schema & policies: `supabase/migrations/` (apply to a new project in order, via the Supabase SQL editor)
 - Catalogue loading & admin API: `services/catalogService.ts`
 - Admin UI & editable fields: `components/admin/AdminPage.tsx`, `components/admin/entityConfig.ts`
