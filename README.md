@@ -1,14 +1,53 @@
-# FORGED — BMW M wheel configurator
+# 🚗 BMW Wheel Configurator
 
-A real-time 3D configurator for forged wheels on BMW M cars: pick a car, paint, wheel design, size
-and finish, then share or download a spec sheet. Built with React 19, Vite and Three.js, backed by
-Supabase (catalogue, auth, file storage) and deployed on Vercel.
+> *Precision Engineering Meets Interactive Design*
 
-**Brand name, logo, colours, copy and regions/currencies all live in one file:** `config/brand.ts`.
-"FORGED" is a placeholder brand — rename it there.
+A modern, interactive wheel configurator for BMW vehicles, built with TypeScript. Configure premium wheels, visualize in real-time, and explore customization options with a sleek, intuitive interface.
 
-For the full step-by-step handover (first-time setup, a pre-handover checklist, the no-Blender
-workflow) see [`docs/HANDOVER.md`](docs/HANDOVER.md). This README is the quick reference.
+**Live:** <https://forged-configurator.vercel.app> · **Admin:** `/admin`
+
+A real-time 3D configurator for FORGEDSA forged wheels on BMW M cars: pick a car, factory paint,
+wheel design, size and finish, then share the build, download a branded PDF spec sheet or send an
+enquiry (every lead is emailed to the team). Built with React 19, Vite and Three.js, backed by
+Supabase (catalogue, auth, file storage), automated with n8n and deployed on Vercel.
+
+**Brand name, logo, colours, copy and regions/currencies live in one file:** `config/brand.ts`.
+For the full step-by-step handover see [`docs/HANDOVER.md`](docs/HANDOVER.md); the client-facing
+overview is [`docs/CLIENT_HANDOVER.md`](docs/CLIENT_HANDOVER.md) (branded PDF:
+[`docs/FORGEDSA-Client-Handover.pdf`](docs/FORGEDSA-Client-Handover.pdf)).
+
+---
+
+## 📖 The customer journey
+
+1. **Welcome** – pick a region and currency (South Africa / ZAR by default) and enter the studio.
+2. **Showroom** – choose one of 11 BMW M models.
+3. **Configure** – Paint → Wheels → Size → Finish, with a live price and wheel close-ups.
+4. **Summary** – studio stills of the build, share code and link, PDF spec sheet (email + mobile
+   required), enquiry form.
+
+---
+
+## 🌟 Outstanding Highlights
+
+- **Luxury Brand Experience** – Designed to match the premium look and feel of BMW styling.
+- **Real-Time Visual Feedback** – See updates instantly as wheel configuration changes are applied.
+- **High-End Customization Flow** – Tailor finish, size, style, and aesthetic preferences in a smooth experience.
+- **Interactive Product Storytelling** – Turns wheel selection into a premium digital showroom experience.
+- **TypeScript-Powered Reliability** – Maintains clean logic and scalable front-end architecture.
+- **Modern UI/UX Approach** – Built for a polished, responsive, and highly engaging user journey.
+
+---
+
+## ✨ Features
+
+- **🎨 Interactive Visualization** – Real-time wheel preview and customization
+- **⚡ TypeScript-First** – Fully typed codebase for reliability and maintainability
+- **📱 Responsive Design** – Seamless experience across desktop and mobile devices
+- **🔧 Advanced Configuration** – Deep customization options for wheel specifications
+- **🎯 User-Friendly Interface** – Intuitive controls and instant feedback
+
+---
 
 ## Stack
 
@@ -139,3 +178,30 @@ docs/HANDOVER.md             Full handover guide: setup, workflow, pre-handover 
 docs/SKILLS.md               Index of the project skills in .claude/skills/ (task playbooks)
 .claude/skills/              Skills Claude Code loads when working in this repo
 ```
+
+---
+
+## 🤝 Contributing
+
+1. Read [`agents.md`](agents.md), [`skills.md`](skills.md) and the task playbooks in
+   [`docs/SKILLS.md`](docs/SKILLS.md) (`.claude/skills/`).
+2. Work on a feature branch and open a Pull Request against `main`.
+3. Before pushing: `bun run lint` (TypeScript) and `bun run build` must pass; check visual changes
+   in the browser.
+4. Catalogue changes go in a Supabase migration **and** the fallback in `data/configuratorData.ts`.
+5. Never commit secrets (see `forgedsa-secrets-and-safety`).
+
+---
+
+## 🌟 Acknowledgments
+
+Built with precision and care for BMW M enthusiasts. 3D car model credits and licences:
+[`public/models/CREDITS.md`](public/models/CREDITS.md).
+
+**Happy configuring! 🏁**
+
+<div align="center">
+
+**[⬆ back to top](#-bmw-wheel-configurator)**
+
+</div>
