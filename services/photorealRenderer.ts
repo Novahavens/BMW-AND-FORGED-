@@ -82,11 +82,12 @@ export class PhotorealRenderer {
     this.floor = new THREE.Mesh(
       new THREE.CircleGeometry(16, 96).rotateX(-Math.PI / 2),
       new THREE.MeshPhysicalMaterial({
-        color: 0x0d0d0d,
-        roughness: 0.5,
+        color: 0x070707,
+        roughness: 0.72,
         metalness: 0,
-        clearcoat: 0.12,
-        clearcoatRoughness: 0.6,
+        clearcoat: 0.04,
+        clearcoatRoughness: 0.7,
+        envMapIntensity: 0.35, // the HDRI reflected too strongly in the first proof (floor read as grey)
         transparent: true,
         alphaMap: radialFade()
       })
