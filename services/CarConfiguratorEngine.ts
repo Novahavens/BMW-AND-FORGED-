@@ -4,10 +4,6 @@
  */
 
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
@@ -42,11 +38,6 @@ export class CarConfiguratorEngine {
   private renderer: THREE.WebGLRenderer;
   private animationFrameId: number | null = null;
   private clock: THREE.Clock;
-
-  // Post-Processing Bloom Pipeline
-  private composer!: EffectComposer;
-  private bloomPass!: UnrealBloomPass;
-  private isBloomEnabled: boolean = false; // UnrealBloomPass isn't alpha-aware; it breaks the transparent canvas
 
   // Car Hierarchy
   private carGroup: THREE.Group;
@@ -198,9 +189,6 @@ export class CarConfiguratorEngine {
     this.renderer.toneMappingExposure = 1.08;
     this.container.appendChild(this.renderer.domElement);
 
-    // Setup Post-Processing Specular Bloom Pass Pipeline
-    this.setupPostProcessing(w, h);
-
     // Groups
     this.carGroup = new THREE.Group();
     this.bodyMeshGroup = new THREE.Group();
@@ -234,41 +222,6 @@ export class CarConfiguratorEngine {
     if (this.onReady) {
       setTimeout(() => this.onReady?.(), 100);
     }
-  }
-
-  // ----------------------------------------------------
-  // POST-PROCESSING BLOOM PIPELINE
-  // ----------------------------------------------------
-  private setupPostProcessing(width: number, height: number) {
-    const renderTarget = new THREE.WebGLRenderTarget(width, height, {
-      type: THREE.HalfFloatType,
-      format: THREE.RGBAFormat,
-      samples: 4
-    });
-
-    this.composer = new EffectComposer(this.renderer, renderTarget);
-
-    // 1. Base Scene Pass
-    const renderPass = new RenderPass(this.scene, this.camera);
-    this.composer.addPass(renderPass);
-
-    // 2. Unreal Bloom Pass: a restrained sheen on real hotspots (chrome, clearcoat highlights),
-    // tuned for the light studio backdrop so it doesn't just glow the whole car.
-    // strength: 0.30 - a sheen, not a glow
-    // radius: 0.32 - tight, so it reads as gloss rather than haze
-    // threshold: 0.92 - only the brightest specular hits bloom
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(width, height),
-      0.30, // strength
-      0.32, // radius
-      0.92  // threshold
-    );
-    this.bloomPass.enabled = this.isBloomEnabled;
-    this.composer.addPass(this.bloomPass);
-
-    // 3. Final Output Pass with ACES Tone Mapping
-    const outputPass = new OutputPass();
-    this.composer.addPass(outputPass);
   }
 
   // ----------------------------------------------------
@@ -1931,13 +1884,7 @@ export class CarConfiguratorEngine {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
-    if (this.composer) {
-      this.composer.setSize(w, h);
-    }
     this.currentInset = { right: this.currentInset.right + 0.01, bottom: this.currentInset.bottom };
-    if (this.bloomPass) {
-      this.bloomPass.resolution.set(w, h);
-    }
   }
 
   // ----------------------------------------------------
@@ -1982,12 +1929,7 @@ export class CarConfiguratorEngine {
       });
     }
 
-    // Render frame through Post-Processing Bloom composer or direct WebGL fallback
-    if (this.isBloomEnabled && this.composer) {
-      this.composer.render();
-    } else {
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
   }
 
   // ----------------------------------------------------
@@ -2022,10 +1964,6 @@ export class CarConfiguratorEngine {
       this.container.removeEventListener('wheel', this.boundOnWheel);
     }
 
-    if (this.composer) {
-      this.composer.dispose();
-    }
-
     if (this.renderer) {
       if (this.renderer.domElement && this.renderer.domElement.parentNode === this.container) {
         this.container.removeChild(this.renderer.domElement);
@@ -2037,37 +1975,5 @@ export class CarConfiguratorEngine {
     this.rimFaceGeometryCache.forEach((g) => g.dispose());
     this.rimFaceGeometryCache.clear();
     this.dracoLoader?.dispose();
-  }
-
-  // ----------------------------------------------------
-  // PUBLIC BLOOM PASS CONTROLS
-  // ----------------------------------------------------
-  public setBloomEnabled(enabled: boolean) {
-    this.isBloomEnabled = enabled;
-    if (this.bloomPass) {
-      this.bloomPass.enabled = enabled;
-    }
-  }
-
-  public getBloomEnabled(): boolean {
-    return this.isBloomEnabled;
-  }
-
-  public setBloomStrength(strength: number) {
-    if (this.bloomPass) {
-      this.bloomPass.strength = strength;
-    }
-  }
-
-  public setBloomThreshold(threshold: number) {
-    if (this.bloomPass) {
-      this.bloomPass.threshold = threshold;
-    }
-  }
-
-  public setBloomRadius(radius: number) {
-    if (this.bloomPass) {
-      this.bloomPass.radius = radius;
-    }
   }
 }
