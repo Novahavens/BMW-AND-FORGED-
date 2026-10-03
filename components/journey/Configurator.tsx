@@ -83,14 +83,15 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
       </div>
 
       {/* Camera controls, centred under the car */}
-      <div className="absolute z-30 left-1/2 sm:left-[calc((100%-400px)/2)] -translate-x-1/2 bottom-[calc(50vh+14px)] sm:bottom-8 animate-rise delay-300">
-        <div className="flex items-center sm:gap-1 rounded-full bg-surface/85 backdrop-blur-md p-1 ring-1 ring-line shadow-float max-w-[calc(100vw-24px)]">
+      {/* Centred in the part of the screen the controls leave (panel mode), or just above the sheet */}
+      <div className="absolute z-30 left-[calc((100%-var(--panel-w))/2)] -translate-x-1/2 bottom-8 short:bottom-3 sheet:left-1/2 sheet:bottom-[calc(var(--sheet-h)+14px)] animate-rise delay-300">
+        <div className="flex items-center gap-0.5 rounded-full bg-surface/85 backdrop-blur-md p-1 ring-1 ring-line shadow-float max-w-[calc(100vw-var(--panel-w)-24px)] sheet:max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
           {VIEWS.map((v) => (
             <button
               key={v.id}
               onClick={() => p.onCamera(v.id)}
               className={cx(
-                'h-9 rounded-full px-2.5 sm:px-4 text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em] transition-all duration-300 ease-lux',
+                'h-10 shrink-0 rounded-full px-3 sm:px-4 text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em] transition-all duration-300 ease-lux',
                 p.cameraView === v.id ? 'bg-gold text-carbon' : 'text-mute hover:text-ink'
               )}
             >
@@ -98,7 +99,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
             </button>
           ))}
           <span className="mx-0.5 sm:mx-1 h-5 w-px bg-line" />
-          <IconButton label={p.autoRotate ? 'Stop turntable' : 'Turntable'} onClick={p.onToggleRotate} active={p.autoRotate} className="h-9 w-9">
+          <IconButton label={p.autoRotate ? 'Stop turntable' : 'Turntable'} onClick={p.onToggleRotate} active={p.autoRotate} className="h-10 w-10 shrink-0">
             {p.autoRotate ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
           </IconButton>
         </div>
@@ -107,14 +108,14 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
       {/* Panel: right column on desktop, bottom sheet on phones */}
       <aside
         className="absolute z-40 bg-surface/[0.97] backdrop-blur-xl shadow-panel flex flex-col animate-slide-in
-          inset-x-0 bottom-0 h-[50vh] rounded-t-[26px]
-          sm:inset-x-auto sm:right-0 sm:top-0 sm:bottom-0 sm:h-auto sm:w-[400px] sm:rounded-none sm:border-l sm:border-line"
+          right-0 top-0 bottom-0 w-[var(--panel-w)] border-l border-line
+          sheet:inset-x-0 sheet:top-auto sheet:right-auto sheet:w-auto sheet:h-[var(--sheet-h)] sheet:rounded-t-[26px] sheet:border-l-0"
       >
-        <div className="sm:hidden mx-auto mt-2.5 h-1 w-10 rounded-full bg-ink/15" />
-        <div className="flex items-start justify-between gap-3 px-6 sm:px-7 pt-4 sm:pt-7">
+        <div className="hidden sheet:block mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-ink/15" />
+        <div className="flex items-start justify-between gap-3 px-7 pt-7 short:pt-3 sheet:px-6 sheet:pt-3">
           <div className="min-w-0">
             <Eyebrow>Your build</Eyebrow>
-            <div className="mt-1.5 truncate font-display text-[19px] font-extrabold tracking-[-0.01em]">{p.car.name}</div>
+            <div className="mt-1.5 short:mt-0.5 truncate font-display text-[19px] short:text-[16px] font-extrabold tracking-[-0.01em]">{p.car.name}</div>
           </div>
           <div className="flex items-center -mr-2">
             <IconButton label="More options" onClick={p.onOpenMore}>
@@ -127,9 +128,9 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
         </div>
 
         {/* Stepper */}
-        <nav className="mt-4 sm:mt-6 px-6 sm:px-7">
+        <nav className="mt-6 short:mt-1 sheet:mt-2 px-7 sheet:px-6">
           <div className="flex items-center justify-between">
-            <button onClick={() => p.onStep('overview')} className="font-display text-[13px] font-bold uppercase tracking-[0.12em]">
+            <button onClick={() => p.onStep('overview')} className="flex h-10 items-center font-display text-[13px] font-bold uppercase tracking-[0.12em]">
               Exterior
             </button>
             <div className="flex items-center gap-1">
@@ -138,12 +139,17 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
                   key={s.id}
                   onClick={() => p.onStep(s.id)}
                   aria-label={`Step ${i + 1}: ${s.label}`}
-                  className={cx(
-                    'h-7 w-7 rounded-full text-[11px] font-semibold tabular-nums transition-all duration-300 ease-lux',
-                    i === stepIndex ? 'bg-gold text-carbon' : i < stepIndex ? 'text-ink' : 'text-mute hover:text-ink'
-                  )}
+                  className="group flex h-10 w-10 items-center justify-center"
                 >
-                  {i + 1}
+                  {/* 40 px to tap, 28 px to look at */}
+                  <span
+                    className={cx(
+                      'flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-all duration-300 ease-lux',
+                      i === stepIndex ? 'bg-gold text-carbon' : i < stepIndex ? 'text-ink' : 'text-mute group-hover:text-ink'
+                    )}
+                  >
+                    {i + 1}
+                  </span>
                 </button>
               ))}
             </div>
@@ -156,7 +162,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
           </div>
         </nav>
 
-        <div key={p.step} className="flex-1 overflow-y-auto px-6 sm:px-7 pt-5 pb-6">
+        <div key={p.step} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-7 pt-5 pb-6 short:pt-3 short:pb-3 sheet:px-6">
           <div className="animate-step">
             {p.step === 'overview' && <Overview {...p} />}
             {p.step === 'paint' && <PaintStep {...p} />}
@@ -167,17 +173,17 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
         </div>
 
         {/* Sticky total + primary action */}
-        <div className="border-t border-line px-6 sm:px-7 py-4 sm:py-5 bg-surface">
-          <div className="flex items-end justify-between gap-3">
+        <div className="shrink-0 border-t border-line px-7 py-5 short:py-2 sheet:px-6 sheet:py-3 bg-surface sheet:flex sheet:items-center sheet:gap-4">
+          <div className="flex items-end justify-between gap-3 sheet:flex-col sheet:items-start sheet:gap-0 sheet:shrink-0">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">Wheel set of four</div>
-              <div className="mt-1 truncate text-[12px] text-mute">
+              <div className="mt-1 truncate text-[12px] text-mute short:hidden sheet:hidden">
                 {p.wheel.name} · {p.size} · {p.finish.name}
               </div>
             </div>
-            <div className="shrink-0 font-display text-[20px] font-extrabold tabular-nums">{formatMoney(price, p.region)}</div>
+            <div className="shrink-0 font-display text-[20px] short:text-[17px] font-extrabold tabular-nums">{formatMoney(price, p.region)}</div>
           </div>
-          <Button className="mt-4 w-full" size="lg" onClick={p.onSummary} icon={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}>
+          <Button className="mt-4 short:mt-2 sheet:mt-0 w-full sheet:flex-1 short:h-11 sheet:h-12" size="lg" onClick={p.onSummary} icon={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}>
             View your {shortModelName(p.car)}
           </Button>
         </div>

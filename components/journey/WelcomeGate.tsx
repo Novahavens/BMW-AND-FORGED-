@@ -25,21 +25,21 @@ export const WelcomeGate: React.FC<{
       <Logo />
       <button
         onClick={onOpenForged}
-        className="pointer-events-auto text-[10.5px] font-semibold uppercase tracking-[0.24em] text-mute hover:text-ink transition-colors"
+        className="pointer-events-auto flex h-10 items-center px-3 -mr-3 text-[10.5px] font-semibold uppercase tracking-[0.24em] text-mute hover:text-ink transition-colors"
       >
         The wheels
       </button>
     </header>
 
-    <div className="absolute left-0 bottom-0 w-full sm:max-w-xl px-6 sm:px-12 pb-10 sm:pb-16 pointer-events-auto">
+    <div className="absolute left-0 bottom-0 w-full sm:max-w-xl px-6 sm:px-12 pb-10 sm:pb-16 short:pb-4 short:max-w-md pointer-events-auto">
       <div className="text-[10.5px] font-semibold uppercase tracking-[0.34em] text-bronze animate-rise">{BRAND.descriptor}</div>
-      <h1 className="mt-4 font-display text-[34px] leading-[1.02] sm:text-[56px] font-extrabold tracking-[-0.03em] text-ink animate-rise delay-100">
+      <h1 className="mt-4 short:mt-2 font-display text-[34px] leading-[1.02] sm:text-[56px] short:text-[32px] font-extrabold tracking-[-0.03em] text-ink animate-rise delay-100">
         {BRAND.welcomeTitle}
       </h1>
-      <p className="mt-5 max-w-md text-[14.5px] leading-relaxed text-mute animate-rise delay-200">{BRAND.welcomeBody}</p>
+      <p className="mt-5 short:mt-2 max-w-md text-[14.5px] short:text-[13px] leading-relaxed text-mute animate-rise delay-200 short:hidden lg:block">{BRAND.welcomeBody}</p>
 
-      <div className="mt-8 flex flex-col sm:flex-row gap-3 animate-rise delay-300">
-        <label className="relative flex h-14 w-full sm:flex-1 shrink-0 items-center rounded-full bg-surface ring-1 ring-line pl-5 pr-11 hover:ring-ink/25 transition">
+      <div className="mt-8 short:mt-3 flex flex-col sm:flex-row short:flex-row gap-3 animate-rise delay-300">
+        <label className="relative flex h-14 short:h-11 w-full sm:flex-1 shrink-0 items-center rounded-full bg-surface ring-1 ring-line pl-5 pr-11 hover:ring-ink/25 transition">
           <Globe className="h-4 w-4 text-mute shrink-0" strokeWidth={1.6} />
           <span className="sr-only">Region</span>
           <select
@@ -59,7 +59,7 @@ export const WelcomeGate: React.FC<{
           Enter
         </Button>
       </div>
-      <SocialLinks size="sm" className="mt-7 animate-rise delay-500" />
+      <SocialLinks size="sm" className="mt-7 short:mt-3 animate-rise delay-500" />
     </div>
   </div>
 );

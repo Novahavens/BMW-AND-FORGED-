@@ -29,7 +29,8 @@ description: Apply or change the FORGEDSA brand across the site, PDF brochure, l
 
 1. `config/brand.ts`: name, `logoUrl`, colours, contact (placeholders: `info@forgedsa.com`, `+27 00 000 0000`),
    `social` links, regions and rates. Social icon paths are in `config/socialIcons.ts`.
-2. `index.html`: the Tailwind CDN config (`colors`, `boxShadow`), `@font-face`, favicons, meta.
+2. `tailwind.config.cjs` (the Tailwind tokens: `colors`, `boxShadow`, fonts), `index.css` (`@font-face`,
+   studio backdrop, motion) and `index.html` (favicons, meta, the no-flash body colour).
 3. `services/brochurePdf.ts`: reads `BRAND.colors` and embeds `satoshi-700/900.ttf`.
 4. `n8n/lead-email.code.js` and the live n8n Code node: hard-coded copies.
 5. `docs/handover/handover.html`: CSS variables for the branded handover PDF.

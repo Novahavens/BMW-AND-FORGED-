@@ -158,17 +158,28 @@ webhook URL lives in Supabase Vault (`lead_webhook_url`), and the template is in
 
 ## Project skills (for Claude Code and developers)
 
-Thirteen task playbooks in `.claude/skills/` capture how this project is built and run: adding cars
-and wheels, tuning paint, verifying renders, the PDF, lead emails, branding, docs, deploys and
-secrets. Claude Code loads them automatically; the index with when-to-use notes is
+Eighteen task playbooks in `.claude/skills/` capture how this project is built and run: adding cars
+and wheels (including turning a rim photo into a swappable 3D rim, and the wheel finishes), tuning
+paint, verifying renders, the PDF, lead emails, branding, docs, deploys and secrets. Claude Code loads them automatically; the index with when-to-use notes is
 [`docs/SKILLS.md`](docs/SKILLS.md).
+
+**A new wheel:** `/wheel3d` (`.claude/skills/wheel3d`) takes any wheel from a photo to a clean,
+photoreal rim on every car, size and finish. `visual-qa` is the general quality check behind it:
+measured checks (`scripts/render/wheel-qa.cjs`), then a render matrix over every combination
+(`scripts/render/qa-matrix.py`) with contact sheets.
+
+**Photorealism.** How the cars, wheels, tyres and brakes are made to look like studio photos, with
+the numbers and the pitfalls, is in [`docs/PHOTOREAL_METHOD.md`](docs/PHOTOREAL_METHOD.md). The
+step-by-step skill is `3d-car-perfect`, and the research behind it is in
+[`docs/research/`](docs/research/).
 
 ## Repository layout
 
 ```
 config/brand.ts              Brand name, logo, colours, copy, regions/currencies — one file
 data/configuratorData.ts     Bundled fallback catalogue (cars, paints, wheels, finishes)
-services/                    3D engine, procedural wheels, pricing, Supabase catalogue access
+services/                    3D engine, wheel kit (tyres, rims, brakes), studio, paint, pricing, catalogue
+scripts/render/              Headless render harness (engine page + batch screenshots) for visual checks
 components/journey/          Welcome → showroom → configurator → summary screens
 components/admin/            /admin UI (AdminPage.tsx, entityConfig.ts defines every field)
 supabase/migrations/         Database schema, RLS policies, and catalogue changes over time
@@ -176,6 +187,7 @@ n8n/lead-email.code.js       Copy of the n8n Code node that builds the branded l
 public/models/CREDITS.md     Licence and attribution for every 3D car model
 docs/HANDOVER.md             Full handover guide: setup, workflow, pre-handover checklist
 docs/SKILLS.md               Index of the project skills in .claude/skills/ (task playbooks)
+docs/PHOTOREAL_METHOD.md     The validated photoreal method (studio, paint, wheels, materials, checks)
 .claude/skills/              Skills Claude Code loads when working in this repo
 ```
 

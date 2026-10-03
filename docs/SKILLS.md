@@ -7,9 +7,14 @@ exact files, commands, values and pitfalls for its task.
 
 | Skill | Use it when… |
 |---|---|
+| [`3d-car-perfect`](../.claude/skills/3d-car-perfect/SKILL.md) | making cars, wheels, tyres, brakes, paint or the studio look photoreal; anything that "looks fake" |
 | [`forgedsa-codebase-map`](../.claude/skills/forgedsa-codebase-map/SKILL.md) | starting any task; finding which file owns a behaviour |
 | [`forgedsa-add-car-model`](../.claude/skills/forgedsa-add-car-model/SKILL.md) | adding or replacing a car; unpainted panels, wrong wheels, scale or rotation |
 | [`forgedsa-wheel-pipeline`](../.claude/skills/forgedsa-wheel-pipeline/SKILL.md) | adding wheels from photos (sheet + n8n + ingest-wheel) or CAD files |
+| [`forgedsa-rim-from-photo`](../.claude/skills/forgedsa-rim-from-photo/SKILL.md) | turning one rim photo into a swappable 3D rim: photo rules, cut-out, QA, symptom → fix |
+| [`wheel3d`](../.claude/skills/wheel3d/SKILL.md) | perfecting any new wheel (or one that looks wrong): measure the face, pick the route (photo, options, bar face, AI face mask), render matrix, go live; `/wheel3d` |
+| [`visual-qa`](../.claude/skills/visual-qa/SKILL.md) | proving any visual 3D change is right: measured checks first, a render matrix over every combination, contact sheets, then by eye |
+| [`forgedsa-rim-finishes`](../.claude/skills/forgedsa-rim-finishes/SKILL.md) | how Liquid Metal, Black Gloss, Bronze Matte and Silver are built; adding or tuning a finish |
 | [`forgedsa-catalogue-admin`](../.claude/skills/forgedsa-catalogue-admin/SKILL.md) | prices, sizes, finishes, paints; admin accounts and sign-in problems |
 | [`forgedsa-paint-and-lighting`](../.claude/skills/forgedsa-paint-and-lighting/SKILL.md) | paint looks plastic, blotchy or washed out; tuning the studio |
 | [`forgedsa-photoreal-mode`](../.claude/skills/forgedsa-photoreal-mode/SKILL.md) | path-traced photorealism (proof branch `claude/photoreal-proof`) |

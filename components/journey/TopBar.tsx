@@ -24,7 +24,7 @@ export const TopBar: React.FC<{
   const [open, setOpen] = useState(false);
   return (
     <>
-      <header className={cx('absolute top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20', className)}>
+      <header className={cx('absolute top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 short:h-14', className)}>
         <button
           onClick={() => setOpen(true)}
           aria-label="Menu"
@@ -33,7 +33,7 @@ export const TopBar: React.FC<{
           <Menu className="h-5 w-5" strokeWidth={1.5} />
           <span className="hidden sm:inline text-[10.5px] font-semibold uppercase tracking-[0.24em]">Menu</span>
         </button>
-        <button onClick={onLogo} className="absolute left-1/2 -translate-x-1/2" aria-label={`${BRAND.name} home`}>
+        <button onClick={onLogo} className="absolute left-1/2 flex h-10 -translate-x-1/2 items-center" aria-label={`${BRAND.name} home`}>
           <Logo />
         </button>
         <div className="flex items-center gap-2">{actions}</div>

@@ -25,8 +25,23 @@ mirrors the live ones.
 4. Read `wheel-report.csv` in the "(processed)" folder. Fix hidden rows and rerun; the same `code`
    updates the wheel rather than duplicating it.
 
-Why grey: the app multiplies the image by the chosen finish colour and uses it as the metal's
-reflectance. A gold photo tints every finish gold.
+How a photo becomes the 3D wheel on the car (since Oct 2026, `services/wheelKit.ts`):
+- The photo is **not** used as a texture any more.
+- `processRimPhoto` cuts away the photo's outer ring (lip plus the barrel wall seen in
+  perspective) and stretches the spokes to the 3D lip.
+- It then detects the rotational symmetry and median-filters the photo across it, smoothing
+  the result along the radius. `traceMaskShapes` smooths the outlines (corners kept), and
+  `buildSpokeFace` extrudes a bevelled, concave face in the finish material.
+- Where the photo shows the barrel solid behind the outer spokes (most photos), the arms are
+  traced across it to the lip instead of stretching the inner spokes.
+- The step-by-step for one photo, with QA and a symptom → fix table, is the
+  `forgedsa-rim-from-photo` skill. How the finishes look is `forgedsa-rim-finishes`.
+- Tyre, lip and barrel, disc, caliper, lug nuts and centre cap are all generated.
+- Details and pitfalls: the `3d-car-perfect` skill and `docs/PHOTOREAL_METHOD.md`.
+
+So the cut-out (alpha) shape is what matters; the photo's colour no longer shows. Front-on photos
+give the cleanest spokes, while angled photos (FSA-01, FSA-07) keep some irregular edges. After any
+new batch, dump the processed masks and render close-ups of every design (see the skill).
 
 Prefer front-on photos. Three-quarter photos need an AI redraw (FSA-10…FSA-17), which risks design
 drift, so always inspect those by eye.

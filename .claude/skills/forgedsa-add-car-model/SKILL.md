@@ -54,8 +54,31 @@ the model's own wheels via `hide_mesh_match`, default `DEFAULT_HIDE`
 - Mirror the same values in `data/configuratorData.ts`.
 - Or, for non-developers: `/admin` → Cars → Upload GLB → set the fields → Save.
 
-## 5. Verify
+## 5. Material pass (automatic, but check it)
 
-Use the `forgedsa-render-verification` skill. Render front three-quarter, side and rear in at
-least one metallic and one black paint. Check: one consistent paint colour, no floating
-unpainted panels, forged wheels seated in the arches, correct scale.
+Every non-paint part goes through `services/carMaterials.ts` (`passMaterial`). It classifies the
+part by mesh, parent and material names and sets studio values:
+- tinted glass with an additive reflection overlay;
+- clear lens; red tail lens; neutral chrome; gloss carbon; gloss "shadow line" black;
+- interior at envMapIntensity 0.35.
+
+Names lie (the M3's front windows use `Taillightglass21Mtl`). After adding a car, load it in
+`scripts/render/engine.html`, group `window.e.bodyMeshGroup` meshes by `material.userData.partKind`,
+and fix any misfiled part by tightening the rules (colour-gate them), never with per-mesh hacks.
+
+## 6. Verify
+
+Use the `forgedsa-render-verification` skill and the full checklist in `3d-car-perfect`. Render
+front three-quarter, side and rear in at least one metallic and one black paint. Check:
+- one consistent paint colour and no floating unpainted panels;
+- glass tinted, not coloured;
+- red tail lights, clear headlight covers;
+- forged wheels seated in the arches, with the caliper visible behind the spokes;
+- correct scale.
+
+## Current line-up (Oct 2026)
+
+**Active:** M4 G82, M3 G80, M3 Touring G81, M5 G90, M8 F92.
+
+**Inactive in Supabase:** M2, M235i, X3 M50, X5 M, M4 Convertible and M5 Touring (the last two
+have no model). Reactivate a car only with a model that passes the checks above.

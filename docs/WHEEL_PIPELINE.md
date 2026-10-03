@@ -5,17 +5,25 @@ covers what the app needs from an image, the tools that prepare one, and how to 
 
 ## What the app needs
 
-The configurator builds each rim face in 3D from a single PNG (`services/rimExtrusion.ts`):
+The configurator builds each rim face in 3D from a single PNG (`services/wheelKit.ts`,
+`processRimPhoto`). The step-by-step for one photo, with QA and a symptom → fix table, is the
+`forgedsa-rim-from-photo` skill.
 
-- **Straight-on face view**, square, the outer lip touching all four edges.
+- **Straight-on face view**, square, the outer lip touching all four edges. A clearly angled photo
+  tears the spokes (FSA-07).
 - **Transparent background and transparent gaps between the spokes.** The app traces the see-through
   areas into solid, bevelled spokes with a concave dish. With no transparency it shows a flat disc.
-- **Neutral light grey, not the wheel's own colour.** The app multiplies the image by the finish the
-  customer picks (Liquid Metal, Bronze Matte, Black Gloss, Silver). A gold photo would tint every finish
-  gold, and a dark photo would make chrome look black. The image also acts as the metal's reflectance,
-  so it has to stay light.
+- **The barrel behind the outer spokes** may stay in the photo. The app traces the arms across it to
+  the lip. Cutting it out between the arms gives the cleanest result.
+- **Only the cut-out's shape is used for the 3D face.** Its colour comes from the finish the customer
+  picks (Liquid Metal, Bronze Matte, Black Gloss, Silver; see the `forgedsa-rim-finishes` skill).
+  - The ingest still maps every photo to **neutral light grey**, because the flat fallback (no
+    transparency, or 3D spokes switched off) shows the photo itself, multiplied by the finish.
+  - A gold photo would tint every finish gold there.
 
-You never prepare that last part by hand: the ingest function (below) converts any cut-out into it.
+You never prepare the grey by hand: the ingest function (below) converts any cut-out into it.
+The admin's own *Rim image* upload does not normalise or check the image, so upload a prepared PNG
+there.
 
 ## The pieces
 

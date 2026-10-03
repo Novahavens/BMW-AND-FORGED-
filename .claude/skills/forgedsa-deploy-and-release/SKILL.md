@@ -8,7 +8,7 @@ description: Ship FORGEDSA changes safely. Covers the pre-push checks (tsc, vite
 ## Branches
 
 - **Work branch:** `claude/vigilant-brahmagupta-8sy04u` → PR
-  [Novahavens/BMW-AND-FORGED-#1](https://github.com/Novahavens/BMW-AND-FORGED-/pull/1) into `main`.
+  [Novahavens/BMW-AND-FORGED-#2](https://github.com/Novahavens/BMW-AND-FORGED-/pull/2) into `main`.
 - **Experiments go on their own branch** (e.g. `claude/photoreal-proof`), created from the work
   branch.
   - Commit locally and **don't push until the owner approves**. Then push, and preview on Vercel
@@ -20,7 +20,9 @@ description: Ship FORGEDSA changes safely. Covers the pre-push checks (tsc, vite
 1. `bun run lint` (this is `tsc --noEmit`) prints nothing.
 2. `bun run build` ends with "built in …". Watch the chunk list: heavy libraries (OpenCascade,
    the path tracer) must stay in their own lazily loaded chunks, not in `index-*.js`.
-3. Render any visual change (`forgedsa-render-verification`).
+3. `node scripts/render/journey.cjs <out> <rimCache> both`: the customer journey at phone and
+   desktop size, no FAILED step, no page error, no long task (`visual-qa`, layer 0). Then render
+   any visual change (`forgedsa-render-verification`, `visual-qa`).
 4. `git diff` read adversarially. No secrets:
    `grep -rn "sk-or-v1\|forgedsa-lead-\|INGEST" --exclude-dir=node_modules .` should find only
    docs mentioning names, never values.

@@ -12,6 +12,7 @@ import { BRAND, DEFAULT_REGION, Region } from './config/brand';
 import { DELIVERY, TERMS } from './config/pages';
 import { SavedConfiguration, configKey, loadConfiguration, saveConfiguration, submitEnquiry } from './services/journeyService';
 import { downloadBrochurePdf } from './services/brochurePdf';
+import { controlsInset, layoutMode } from './services/layout';
 import { BootLoader } from './components/journey/BootLoader';
 import { WelcomeGate } from './components/journey/WelcomeGate';
 import { Showroom, ShowroomBackdrop } from './components/journey/Showroom';
@@ -88,8 +89,6 @@ const showroomCars = (cars: CarModel[]) => {
 /** First-visit paint when the car offers it (otherwise the car's first factory paint). */
 const DEFAULT_PAINT_ID = 'isle_of_man_green';
 
-const PANEL_WIDTH = 400;
-const isPhone = () => window.innerWidth < 640;
 
 export const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -138,7 +137,9 @@ export const App: React.FC = () => {
   const [moreOpen, setMoreOpen] = useState(false);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [summaryImages, setSummaryImages] = useState<string[]>([]);
-  const [configCode, setConfigCode] = useState<{ key: string; code: string } | null>(null);
+  // shared: undefined while the copy every device can open is being written, false if it could not be
+  const [configCode, setConfigCode] = useState<{ key: string; code: string; shared?: boolean } | null>(null);
+  const saveToken = useRef(0);
 
   const carIndex = Math.max(0, cars.findIndex((c) => c.id === selectedCar.id));
 
@@ -189,9 +190,19 @@ export const App: React.FC = () => {
       setTimeout(() => setBooted(true), Math.max(0, 1500 - (performance.now() - started)));
     });
 
+    // Rotating a phone or resizing a window can change the layout (sheet <-> panel) or the aspect: the
+    // camera's inset and framing follow, instead of keeping the previous orientation's composition
+    let shape = `${layoutMode()}|${window.innerWidth > window.innerHeight}`;
+    let reframe: ReturnType<typeof setTimeout> | undefined;
     const onResize = () => {
       engine.handleResize();
       applyInsetRef.current();
+      const now = `${layoutMode()}|${window.innerWidth > window.innerHeight}`;
+      if (now !== shape) {
+        shape = now;
+        clearTimeout(reframe);
+        reframe = setTimeout(() => applyCameraRef.current(), 120);
+      }
     };
     window.addEventListener('resize', onResize);
     return () => {
@@ -243,13 +254,26 @@ export const App: React.FC = () => {
     const engine = engineRef.current;
     if (!engine) return;
     if (route.name === 'configure') {
-      if (isPhone()) engine.setViewInset(0, window.innerHeight * 0.5);
-      else engine.setViewInset(PANEL_WIDTH, 0);
+      // the same sheet/panel rule and sizes as the CSS (services/layout.ts)
+      const inset = controlsInset();
+      engine.setViewInset(inset.right, inset.bottom);
     } else if (route.name === 'welcome') {
-      // Car to the right of the welcome copy (above it on phones)
-      if (isPhone()) engine.setViewInset(0, window.innerHeight * 0.42);
+      // Car to the right of the welcome copy (above it when the copy sits underneath)
+      if (layoutMode() === 'sheet') engine.setViewInset(0, window.innerHeight * 0.42);
       else engine.setViewInset(-window.innerWidth * 0.34, 0);
+    } else if (route.name === 'showroom' && window.innerHeight < 520) {
+      // a phone on its side: the model card takes the lower third, the car sits above it
+      engine.setViewInset(0, window.innerHeight * 0.32);
     } else engine.setViewInset(0, 0);
+  };
+  // The current stage's camera preset (re-applied when the layout changes)
+  const applyCameraRef = useRef<() => void>(() => {});
+  applyCameraRef.current = () => {
+    const engine = engineRef.current;
+    if (!engine || !booted) return;
+    if (route.name === 'welcome') engine.setCameraPreset('hero');
+    else if (route.name === 'showroom') engine.setCameraPreset('showroom');
+    else if (route.name === 'configure') engine.setCameraPreset(cameraView);
   };
 
   // Camera choreography per stage
@@ -433,7 +457,7 @@ export const App: React.FC = () => {
     async (code: string) => {
       const cfg = await loadConfiguration(code);
       if (!cfg || !applyConfig(cfg)) return false;
-      setConfigCode({ key: configKey(cfg), code: code.trim().toUpperCase() });
+      setConfigCode({ key: configKey(cfg), code: code.toUpperCase().replace(/[^A-Z0-9]/g, '') });
       setStep('overview');
       navigateTo({ name: 'configure' });
       return true;
@@ -451,14 +475,23 @@ export const App: React.FC = () => {
   }, [booted, catalogLoaded, loadCode]);
 
   const openSummary = useCallback(() => {
-    const engine = engineRef.current;
-    if (engine) setSummaryImages(engine.captureViews(['frontThreeQuarter', 'side', 'frontWheel']));
     navigateTo({ name: 'summary' });
+    // The three stills are a few hundred ms of rendering and JPEG encoding on a phone: taken on the
+    // next frame, after the summary page has painted, so the tap responds at once and the images
+    // drop in (the page shows their frames meanwhile)
+    const engine = engineRef.current;
+    if (engine) requestAnimationFrame(() => setSummaryImages(engine.captureViews(['frontThreeQuarter', 'side', 'frontWheel'])));
     const cfg = currentConfig();
     const key = configKey(cfg);
     if (configCode?.key !== key) {
-      setConfigCode(null);
-      saveConfiguration(cfg).then((code) => setConfigCode({ key, code }));
+      // The code is usable at once; only the shared copy is awaited, and a save started for an
+      // earlier configuration can no longer overwrite this one
+      const token = ++saveToken.current;
+      const saved = saveConfiguration(cfg);
+      setConfigCode({ key, code: saved.code });
+      saved.shared.then((shared) => {
+        if (token === saveToken.current) setConfigCode((c) => (c && c.code === saved.code ? { ...c, shared } : c));
+      });
     }
   }, [navigateTo, configCode, selectedCar, selectedPaint, selectedWheel, selectedFinish, selectedSize, region]);
 
@@ -562,11 +595,13 @@ export const App: React.FC = () => {
           region={region}
           images={summaryImages}
           code={configCode?.code ?? null}
+          codeShared={configCode?.shared}
           onBack={() => navigateTo({ name: 'configure' })}
           onEnquire={() => setEnquiryOpen(true)}
           onDownloadPdf={async (contact) => {
-            // Saved as a lead first (never blocks the PDF: submitEnquiry keeps a local copy if offline)
-            await submitEnquiry({
+            // Saved as a lead first (never blocks the PDF: submitEnquiry keeps a local copy if offline;
+            // only a refusal from the server, e.g. the rate limit, stops it and is shown)
+            const lead = await submitEnquiry({
               ...contact,
               consultation: false,
               source: 'pdf',
@@ -576,10 +611,15 @@ export const App: React.FC = () => {
                 paint: selectedPaint.name,
                 wheel: selectedWheel.name,
                 size: selectedSize,
-                finish: selectedFinish.name
+                finish: selectedFinish.name,
+                carId: selectedCar.id,
+                paintId: selectedPaint.id,
+                wheelId: selectedWheel.id,
+                finishId: selectedFinish.id
               },
               region: region.id
             });
+            if (lead.status === 'rejected') throw new Error(lead.message);
             await downloadBrochurePdf({
               car: selectedCar,
               paint: selectedPaint,
@@ -615,7 +655,12 @@ export const App: React.FC = () => {
             paint: selectedPaint.name,
             wheel: selectedWheel.name,
             size: selectedSize,
-            finish: selectedFinish.name
+            finish: selectedFinish.name,
+            // Ids too: some paint names are shared by two BMW codes, so the lead email looks these up
+            carId: selectedCar.id,
+            paintId: selectedPaint.id,
+            wheelId: selectedWheel.id,
+            finishId: selectedFinish.id
           },
           region: region.id
         }}

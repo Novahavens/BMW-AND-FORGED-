@@ -12,8 +12,17 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       // Only reached through the admin's CAD-conversion worker, so pre-bundle them for the dev server.
+      // three's BufferGeometryUtils is listed so the dev server bundles it with three up front
+      // (found late, it triggers a re-optimise and a second copy of three in the open page).
       optimizeDeps: {
-        include: ['@gltf-transform/core', '@gltf-transform/extensions', '@gltf-transform/functions', 'meshoptimizer']
+        include: [
+          '@gltf-transform/core',
+          '@gltf-transform/extensions',
+          '@gltf-transform/functions',
+          'meshoptimizer',
+          'three',
+          'three/examples/jsm/utils/BufferGeometryUtils.js'
+        ]
       },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

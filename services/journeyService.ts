@@ -44,18 +44,46 @@ export const newConfigCode = () => {
 export const configKey = (c: SavedConfiguration) =>
   [c.carId, c.paintId, c.wheelId, c.finishId, c.size].join('|');
 
-/** Stores the configuration under a new code (Supabase, plus this browser as a fallback). */
-export async function saveConfiguration(config: SavedConfiguration): Promise<string> {
+/** A configuration code: usable at once in this browser; `shared` says whether the copy every
+ * device can open (Supabase) was written. */
+export interface SavedCode {
+  code: string;
+  shared: Promise<boolean>;
+}
+
+const withTimeout = <T,>(p: PromiseLike<T>, ms: number): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    p.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); }
+    );
+  });
+
+/**
+ * Stores the configuration under a new code. The code is returned at once (kept in this browser), so
+ * the summary never waits on the network; the shared copy is written in the background, with retries,
+ * and `shared` resolves false when it could not be (the caller then says the link only works here).
+ */
+export function saveConfiguration(config: SavedConfiguration): SavedCode {
   const code = newConfigCode();
   const local = readLocal<Record<string, SavedConfiguration>>(LOCAL_CODES, {});
   local[code] = config;
   writeLocal(LOCAL_CODES, local);
-  // The code is usable straight away; the shared copy is written in the background.
-  supabase
-    .from('saved_configurations')
-    .insert({ code, payload: config })
-    .then(({ error }) => error && console.warn('Configuration saved in this browser only:', error.message));
-  return code;
+  const shared = (async () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { error } = await withTimeout(supabase.from('saved_configurations').insert({ code, payload: config }), 8000);
+        if (!error) return true;
+        console.warn(`Saving configuration ${code} failed (attempt ${attempt + 1}):`, error.message);
+        if (error.code === '23505') return false; // the code exists already (1 in 10^15): keep the local copy only
+      } catch (err) {
+        console.warn(`Saving configuration ${code} failed (attempt ${attempt + 1}):`, err);
+      }
+    }
+    return false;
+  })();
+  return { code, shared };
 }
 
 export async function loadConfiguration(code: string): Promise<SavedConfiguration | null> {
@@ -94,8 +122,15 @@ const LOCAL_PDF_CONTACT = 'forgedsa_pdf_contact';
 export const rememberedPdfContact = (): PdfContact => ({ name: '', email: '', phone: '', ...readLocal<Partial<PdfContact>>(LOCAL_PDF_CONTACT, {}) });
 export const rememberPdfContact = (c: PdfContact) => writeLocal(LOCAL_PDF_CONTACT, c);
 
+export type EnquiryResult =
+  | { status: 'sent' }
+  /** Network or server trouble: kept in this browser, to be sent later. */
+  | { status: 'saved-locally' }
+  /** The server refused it (e.g. the rate limit): nothing stored, the message is for the visitor. */
+  | { status: 'rejected'; message: string };
+
 /** Sends an enquiry to Supabase; keeps a copy in this browser if that fails. */
-export async function submitEnquiry(enquiry: Enquiry): Promise<'sent' | 'saved-locally'> {
+export async function submitEnquiry(enquiry: Enquiry): Promise<EnquiryResult> {
   const { error } = await supabase.from('leads').insert({
     name: enquiry.name.trim() || null,
     email: enquiry.email,
@@ -107,10 +142,15 @@ export async function submitEnquiry(enquiry: Enquiry): Promise<'sent' | 'saved-l
     region: enquiry.region ?? null,
     source: enquiry.source ?? 'enquiry'
   });
-  if (!error) return 'sent';
+  if (!error) return { status: 'sent' };
+  // A deliberate refusal (the lead rate limit raises P0001 with a visitor-facing message, a check
+  // constraint 23514) is shown, not hidden behind a "sent"
+  if (error.code === 'P0001' || error.code === '23514' || /too many/i.test(error.message)) {
+    return { status: 'rejected', message: error.code === 'P0001' ? error.message : 'This enquiry could not be accepted. Please check your details and try again.' };
+  }
   console.warn('Enquiry kept in this browser:', error.message);
   writeLocal(LOCAL_LEADS, [{ ...enquiry, at: new Date().toISOString() }, ...readLocal<unknown[]>(LOCAL_LEADS, [])]);
-  return 'saved-locally';
+  return { status: 'saved-locally' };
 }
 
 // ----------------------------------------------------

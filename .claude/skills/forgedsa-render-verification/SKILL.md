@@ -20,10 +20,25 @@ for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:5173/ && break; s
 - **Never run `pkill -f vite ...` in a command that also contains "vite"**: it kills its own shell
   (exit 144). Find PIDs with `pgrep -af bin/vite` and `kill` them in a separate call.
 
-## Harness pages (`.scratch/`, gitignored)
+## Committed harness (`scripts/render/`)
+
+- **`scripts/render/shoot.cjs <outDir> shots.json [rimCacheDir]`:** batch screenshots from a JSON
+  shot list (`car`, `paint`, `wheel`, `finish`, `size`, `view`, `q`, `cam`).
+  - It loads `scripts/render/engine.html`, routes Supabase storage to a local rim cache (curl
+    fallback) and waits for `window.done`.
+  - Waits use `domcontentloaded` with long timeouts.
+  - About a minute per shot. See `scripts/render/README.md` and the `3d-car-perfect` skill.
+- **App routes** (`/rims/<id>`, `/`): the CSS is built by Vite (Tailwind via PostCSS, `index.css`),
+  so the page is styled offline. Only `ERR_CERT_AUTHORITY_INVALID` (sandbox network) errors are
+  acceptable. (It used to need the Tailwind Play CDN routed to a local copy: that CDN is gone, and
+  must stay gone: it compiled the CSS in every visitor's browser.)
+- **Screenshot timeout:** pass `timeout: 180000` to `page.screenshot`. Continuous SwiftShader
+  frames on big pages can exceed the default 30 s.
+
+## Older harness pages (`.scratch/`, gitignored)
 
 - **`.scratch/engine.html?car=N&paint=N&wheel=N&finish=id&size=20"&view=frontThreeQuarter`**:
-  the bare engine. The page sets `window.done` when the car has loaded, and exposes `window.e`.
+  the bare engine (same as `scripts/render/engine.html`). The page sets `window.done` when the car has loaded, and exposes `window.e`.
   Extra params: `model=`, `rot=`, `len=`, `paintMatch=`, `hideMatch=` for ad-hoc GLBs, and
   `photoreal=1`.
 - **`.scratch/pdf-test.html`:** builds a brochure with `downloadBrochurePdf`. Load it through a
@@ -45,7 +60,7 @@ for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:5173/ && break; s
     r.fulfill({ body, contentType: u.endsWith('.png') ? 'image/png' : 'application/octet-stream',
                 headers: { 'access-control-allow-origin': '*' } }); });
   ```
-- Tailwind CDN: serve a local copy via `ctx.route('https://cdn.tailwindcss.com/**', ...)`.
+- Whole journey, both sizes: `node scripts/render/journey.cjs <out> <rimCache> both` (`visual-qa`).
 
 ## Reviewing output
 

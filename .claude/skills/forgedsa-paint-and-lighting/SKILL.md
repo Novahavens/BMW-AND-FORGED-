@@ -16,11 +16,21 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 | Uni (solid) | 0 | 0.5 | 1 | 0.05 |
 | Frozen (matte) | 0.4 | 0.55 | 0 | – |
 
-- `CarConfiguratorEngine.BODY_ENV_INTENSITY = 0.45`: the body's HDRI reflection strength.
+- `CarConfiguratorEngine.BODY_ENV_INTENSITY = 0.45`: the body's reflection strength.
   Higher values wash the bonnet out white.
-- Lights: softbox 0.6, rim lights 0.55 and 0.45. Tone mapping is ACES Filmic at exposure 1.08.
-- HDRI: `HDRI_URL = '/env/studio_small_09_1k.hdr'` (Poly Haven, CC0). A `RoomEnvironment` PMREM is
-  used until it loads.
+- **Reflections (since Oct 2026):** a generated **softbox studio** (`services/studioSoftbox.ts`).
+  - Feathered diffuser panels: overhead 2.3, side strips 2.4, low strips 1.3, kickers, a 0.08
+    floor bounce, in a dark room.
+  - Built with `PMREMGenerator.fromScene(..., { size: 512 })`.
+  - `?studio=hdri` brings back the old HDRI (`/env/studio_small_09_1k.hdr`, Poly Haven CC0) for
+    comparison.
+- **Paint layers** (`services/paintShader.ts`):
+  - metallic flake in **world space** (0.7 mm cells, strength 0.07, fading out below about
+    0.4 px) plus face/flop darkening; Frozen 0.03/0.78, Uni 0/0.92;
+  - the clear coat keeps the unperturbed normal.
+- **Studio lights:** softbox 0.6, rim lights 0.55 and 0.45.
+- **Tone mapping:** ACES Filmic at exposure 1.08 (the default after comparing AgX and Neutral);
+  `?tone=agx|neutral&exposure=` switches for reviews.
 - Paint changes go in a migration (e.g. `20260927100000_x5m_lci_and_photoreal_paint.sql`) **and**
   the fallback catalogue.
 
@@ -40,5 +50,8 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 - Normal smoothing or creasing (`toCreasedNormals`) creased the M5 bumper and was removed. Don't
   re-add it.
 - A panel that stays grey is a paint regex issue, not lighting (see `forgedsa-add-car-model`).
+- Flakes computed in model space take on the car file's units and show as coarse glitter.
+  They must stay in world space.
 - Real-time paint has a ceiling. Beyond it, use the path-traced mode (`forgedsa-photoreal-mode`)
-  and better models, rather than more parameter tweaking.
+  and better models, rather than more parameter tweaking. The whole photoreal process is in
+  `3d-car-perfect`.

@@ -50,9 +50,11 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   const [finish, setFinish] = useState<WheelFinish | undefined>(defaultFinish);
   const [size, setSize] = useState<string>(() => (wheel ? nearestRimSize(wheel, initialSize ?? '20"') : '20"'));
 
-  // One showcase engine for the page's lifetime
+  // One showcase engine for the page's lifetime. Waits for the wheel: on a direct link to a wheel
+  // that only exists in Supabase, the first render is "not found" and has no container yet.
+  const hasWheel = !!wheel;
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!hasWheel || !containerRef.current) return;
     const engine = new CarConfiguratorEngine(containerRef.current, () => setReady(true), { showcase: true });
     engineRef.current = engine;
     engine.setAutoRotate(true);
@@ -63,7 +65,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
       engine.cleanup();
       engineRef.current = null;
     };
-  }, []);
+  }, [hasWheel]);
 
   // Switching rims keeps the finish/size when the new rim offers them
   useEffect(() => {
@@ -94,9 +96,9 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   const money = (usd: number) => formatMoney(usd, region);
 
   return (
-    <div className="absolute inset-0 bg-studio text-ink flex flex-col md:flex-row select-none">
+    <div className="absolute inset-0 overflow-hidden bg-studio text-ink flex flex-col lg:flex-row short:flex-row select-none">
       {/* 360° turntable */}
-      <div className="relative flex-1 min-h-[48vh]">
+      <div className="relative h-[46dvh] shrink-0 lg:h-auto lg:flex-1 lg:min-h-0 short:h-auto short:flex-1 short:min-h-0">
         <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
         {!ready && (
           <div className="absolute inset-0 flex items-center justify-center bg-studio">
@@ -108,10 +110,10 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
             <ArrowLeft className="h-4 w-4" strokeWidth={1.8} /> Back to your build
           </Button>
         </div>
-        <div className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 hidden sm:block">
+        <div className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 hidden xl:block">
           <Eyebrow className="tracking-[0.34em]">360° view</Eyebrow>
         </div>
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1 rounded-full bg-surface/85 backdrop-blur p-1 ring-1 ring-line shadow-float">
             <IconButton label={`Previous: ${prev.name}`} onClick={() => onOpenRim(prev.id)}>
               <ChevronLeft className="h-4 w-4" />
@@ -131,7 +133,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
       </div>
 
       {/* Details */}
-      <aside className="w-full md:w-[400px] shrink-0 bg-surface md:border-l border-line overflow-y-auto px-6 sm:px-7 py-7 space-y-7 shadow-panel">
+      <aside className="w-full min-h-0 flex-1 lg:flex-none lg:w-[var(--panel-w)] short:flex-none short:w-[min(360px,46vw)] shrink-0 bg-surface lg:border-l short:border-l border-line overflow-y-auto overscroll-contain px-6 sm:px-7 py-7 space-y-7 shadow-panel">
         <div key={wheel.id} className="animate-rise">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-bronze">{wheel.code}</div>
           <h1 className="mt-2 font-display text-[26px] font-extrabold tracking-[-0.02em]">{wheel.name}</h1>

@@ -26,6 +26,7 @@ export const EnquiryModal: React.FC<{
 }> = ({ open, onClose, summary, context }) => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', consultation: true });
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
+  const [error, setError] = useState<string | null>(null);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: k === 'consultation' ? (e.target as HTMLInputElement).checked : e.target.value }));
 
@@ -54,7 +55,13 @@ export const EnquiryModal: React.FC<{
           onSubmit={async (e) => {
             e.preventDefault();
             setState('sending');
-            await submitEnquiry({ ...context, ...form });
+            setError(null);
+            const result = await submitEnquiry({ ...context, ...form });
+            if (result.status === 'rejected') {
+              setError(result.message);
+              setState('idle');
+              return;
+            }
             setState('done');
           }}
         >
@@ -77,6 +84,7 @@ export const EnquiryModal: React.FC<{
             <input type="checkbox" checked={form.consultation} onChange={set('consultation')} className="h-4 w-4 accent-[#CF9F52]" />
             I'd like a fitment consultation
           </label>
+          {error && <p className="text-[12.5px] text-red-400">{error}</p>}
           <Button type="submit" size="lg" className="w-full" disabled={state === 'sending'}>
             {state === 'sending' ? 'Sending…' : 'Send enquiry'}
           </Button>

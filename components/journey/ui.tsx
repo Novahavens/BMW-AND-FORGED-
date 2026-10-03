@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { useRimThumb } from '../../services/rimThumbs';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { BRAND } from '../../config/brand';
@@ -35,7 +36,7 @@ export const Button: React.FC<
     {...rest}
     className={cx(
       'group inline-flex items-center justify-center gap-2.5 rounded-full font-semibold uppercase tracking-[0.14em] transition-all duration-300 ease-lux disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98]',
-      size === 'sm' && 'h-9 px-4 text-[10.5px]',
+      size === 'sm' && 'h-10 px-4 text-[10.5px]',
       size === 'md' && 'h-11 px-6 text-[11px]',
       size === 'lg' && 'h-14 px-8 text-[12px]',
       variant === 'primary' && 'bg-ember text-carbon hover:bg-ember-light shadow-ember font-bold',
@@ -95,7 +96,7 @@ export const Modal: React.FC<{
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px] animate-fade" onClick={onClose} />
       <div
         className={cx(
-          'relative w-full bg-surface shadow-panel animate-rise rounded-t-[28px] sm:rounded-[28px] max-h-[88vh] overflow-y-auto',
+          'relative w-full bg-surface shadow-panel animate-rise rounded-t-[28px] sm:rounded-[28px] max-h-[88dvh] overflow-y-auto overscroll-contain',
           width
         )}
       >
@@ -173,14 +174,18 @@ export const RimThumb: React.FC<{ wheel: WheelDesign; finish?: WheelFinish; size
   size = 72,
   className
 }) => {
+  // The rim PNGs are 2048 px (1-2 MB each); a list of nine at 54 px loaded every one twice (image
+  // and mask). One downscaled copy per photo serves both.
+  const src = useRimThumb(wheel.imageUrl);
   if (!wheel.imageUrl) return <RimFaceSvg wheel={wheel} finishHex={finish?.hex} size={size} className={className} />;
   const tint = thumbTint(finish?.hex);
-  const mask = `url("${wheel.imageUrl}") center / contain no-repeat`;
+  if (!src) return <div className={className} style={{ width: size, height: size }} aria-hidden />;
+  const mask = `url("${src}") center / contain no-repeat`;
   return (
     <div className={cx('relative drop-shadow-[0_8px_14px_rgba(0,0,0,0.55)]', className)} style={{ width: size, height: size }}>
       {/* The image is a light neutral grey (it doubles as metal reflectance in 3D); a touch of contrast
           keeps it reading as metal rather than white on the dark theme. */}
-      <img src={wheel.imageUrl} alt="" className="h-full w-full object-contain" style={{ filter: 'contrast(1.18) brightness(0.9)' }} />
+      <img src={src} alt="" className="h-full w-full object-contain" style={{ filter: 'contrast(1.18) brightness(0.9)' }} />
       {tint && (
         <div
           aria-hidden

@@ -29,8 +29,18 @@ Shared UI lives in `components/journey/ui.tsx` (Button, Modal, PaintChip, RimThu
 - `services/CarConfiguratorEngine.ts`: scene, studio lights, HDRI, contact shadow, the camera
   presets (`setCameraPreset`), `loadCar`/`mountCarModel` (paint and hide regexes, wheel
   placement), `applyWheelDesign`, `setRimSize`, `captureViews` (stills for the summary and PDF).
-- Rims: `services/proceduralRims.ts` + `services/rimExtrusion.ts` (PNG → extruded spokes), a
-  GLB rim, or CAD → GLB (`services/cadToGlb*.ts|js`, `scripts/cad-to-glb.mjs`).
+- Wheels: `services/wheelKit.ts` builds the tyre, rim lip and barrel, brake disc, caliper, lug
+  nuts and centre cap, and turns rim photos into clean 3D spokes (`processRimPhoto` →
+  `traceMaskShapes` in `services/rimExtrusion.ts` → `buildSpokeFace`).
+  - Other sources: `services/proceduralRims.ts` for designs without a photo, a GLB rim, or CAD →
+    GLB (`services/cadToGlb*.ts|js`, `scripts/cad-to-glb.mjs`).
+- Look:
+  - `services/studioSoftbox.ts`: generated studio reflections;
+  - `services/paintShader.ts`: flake and flop;
+  - `services/carMaterials.ts`: glass, lenses, chrome, trim and interior for downloaded car
+    models.
+  - The method is in `docs/PHOTOREAL_METHOD.md` and the `3d-car-perfect` skill.
+- Render checks: `scripts/render/` (headless engine page + batch screenshot script).
 - Car models are in `public/models/*.glb` (credits in `CREDITS.md`), plus the `car-models` bucket.
 
 ## Data
@@ -49,7 +59,7 @@ Shared UI lives in `components/journey/ui.tsx` (Button, Modal, PaintChip, RimThu
 
 ## Docs
 
-`README.md`, `docs/HANDOVER.md` (technical), `docs/CLIENT_HANDOVER.md` + PDF (client),
+`docs/PHOTOREAL_SPEC.md` (photoreal goal + sprints), `README.md`, `docs/HANDOVER.md` (technical), `docs/CLIENT_HANDOVER.md` + PDF (client),
 `docs/WHEEL_PIPELINE.md`, `docs/SKILLS.md` (this skill set).
 
 ## Conventions

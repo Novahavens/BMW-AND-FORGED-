@@ -21,7 +21,14 @@ interface Lead {
   created_at: string;
 }
 
-const csvCell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+/** Quotes a CSV cell; visitor text that a spreadsheet would run as a formula (= @ tab CR, or + -
+ * not followed by a digit) is prefixed with ' (CSV injection). Phone numbers like +27 82… stay as
+ * they are. */
+const csvCell = (v: unknown) => {
+  let s = String(v ?? '');
+  if (/^[=@\t\r]/.test(s) || /^[+-](?![\d\s(])/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 
 /** Enquiries sent from the configurator (public.leads, readable by admins only), newest first. */
 export const EnquiriesPanel: React.FC = () => {

@@ -125,6 +125,77 @@ function simplify(loop: Loop, tolerance: number): Loop {
   return out;
 }
 
+/**
+ * Smooths a closed outline along its length (Gaussian, `sigma` px) after resampling it every
+ * pixel, so the steps and wobbles a photo cut-out leaves along a spoke edge become a clean line
+ * or arc. Corners (the outline turning more than 50° within ±2σ) stay where they are and the
+ * filter stops at them, so window corners and slot ends keep their shape.
+ */
+function smoothLoop(loop: Loop, sigma: number): Loop {
+  const n = loop.length / 2;
+  const seg = new Float32Array(n);
+  let perimeter = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    seg[i] = Math.hypot(loop[j * 2] - loop[i * 2], loop[j * 2 + 1] - loop[i * 2 + 1]);
+    perimeter += seg[i];
+  }
+  const m = Math.round(perimeter);
+  if (m < 12) return loop;
+  const step = perimeter / m;
+  const xs = new Float32Array(m);
+  const ys = new Float32Array(m);
+  for (let k = 0, i = 0, acc = 0; k < m; k++) {
+    const t = k * step;
+    while (i < n - 1 && acc + seg[i] < t) acc += seg[i++];
+    const f = seg[i] > 0 ? Math.min(1, (t - acc) / seg[i]) : 0;
+    const j = (i + 1) % n;
+    xs[k] = loop[i * 2] + (loop[j * 2] - loop[i * 2]) * f;
+    ys[k] = loop[i * 2 + 1] + (loop[j * 2 + 1] - loop[i * 2 + 1]) * f;
+  }
+  const s = Math.max(1, Math.round(sigma / step));
+  const L = 2 * s;
+  const at = (k: number) => ((k % m) + m) % m;
+  const turn = new Float32Array(m);
+  for (let k = 0; k < m; k++) {
+    const a = at(k - L), b = at(k + L);
+    const ux = xs[k] - xs[a], uy = ys[k] - ys[a];
+    const vx = xs[b] - xs[k], vy = ys[b] - ys[k];
+    const d = Math.hypot(ux, uy) * Math.hypot(vx, vy);
+    turn[k] = d > 0 ? Math.acos(THREE.MathUtils.clamp((ux * vx + uy * vy) / d, -1, 1)) : 0;
+  }
+  const corner = new Uint8Array(m);
+  const CORNER = THREE.MathUtils.degToRad(50);
+  for (let k = 0; k < m; k++) {
+    if (turn[k] < CORNER) continue;
+    let peak = true;
+    for (let d = 1; d <= L && peak; d++) peak = turn[at(k - d)] <= turn[k] && turn[at(k + d)] < turn[k];
+    if (peak) corner[k] = 1;
+  }
+  const R = 3 * s;
+  const wt = new Float32Array(R + 1);
+  for (let d = 0; d <= R; d++) wt[d] = Math.exp(-(d * d) / (2 * s * s));
+  const out: Loop = [];
+  for (let k = 0; k < m; k++) {
+    if (corner[k]) {
+      out.push(xs[k], ys[k]);
+      continue;
+    }
+    let sx = xs[k] * wt[0], sy = ys[k] * wt[0], sw = wt[0];
+    for (const dir of [-1, 1]) {
+      for (let d = 1; d <= R; d++) {
+        const q = at(k + dir * d);
+        sx += xs[q] * wt[d];
+        sy += ys[q] * wt[d];
+        sw += wt[d];
+        if (corner[q]) break;
+      }
+    }
+    out.push(sx / sw, sy / sw);
+  }
+  return out;
+}
+
 const signedArea = (l: Loop) => {
   let s = 0;
   for (let i = 0, n = l.length; i < n; i += 2) {
@@ -175,9 +246,19 @@ export function traceRimShapes(image: CanvasImageSource & { width: number; heigh
   // Nothing see-through between the spokes: not a cut-out image.
   if (insideCount === 0 || transparentInside / insideCount < 0.02) return null;
 
+  return traceMaskShapes(mask, w, h, threshold);
+}
+
+/**
+ * Outlines of a solid/empty mask (row-major, w x h, values 0..1) as shapes in rim-plane units
+ * (radius 1 = half the mask's larger side), with holes nested by even/odd depth. `smooth` > 0
+ * smooths each outline along its length by that many pixels, keeping its corners.
+ */
+export function traceMaskShapes(mask: Float32Array, w: number, h: number, threshold = 0.5, tolerance = 0.6, smooth = 0): THREE.Shape[] | null {
   const minArea = (w * h) * 0.00008;
   const loops = traceLoops(mask, w, h, threshold)
-    .map((l) => simplify(l, 0.6))
+    .map((l) => (smooth > 0 ? smoothLoop(l, smooth) : l))
+    .map((l) => simplify(l, tolerance))
     .map((l) => ({ l, area: Math.abs(signedArea(l)) }))
     .filter(({ area, l }) => area > minArea && l.length >= 6)
     .sort((a, b) => b.area - a.area);

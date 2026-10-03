@@ -97,7 +97,7 @@ export const Showroom: React.FC<{
         }}
       />
 
-      <div className="absolute top-20 sm:top-24 inset-x-0 text-center animate-fade">
+      <div className="absolute top-20 sm:top-24 inset-x-0 text-center animate-fade short:hidden">
         <Eyebrow className="tracking-[0.42em]">{BRAND.tagline}</Eyebrow>
       </div>
 
@@ -124,14 +124,14 @@ export const Showroom: React.FC<{
       )}
 
       {/* Model card */}
-      <div className="absolute inset-x-0 bottom-0 pb-8 sm:pb-12 px-6 flex flex-col items-center text-center pointer-events-auto">
+      <div className="absolute inset-x-0 bottom-0 pb-8 sm:pb-12 short:pb-3 px-6 flex flex-col items-center text-center pointer-events-auto">
         <div key={car.id} className="flex flex-col items-center">
-          <Eyebrow className="animate-rise">{BRAND.vehicleLine} · {car.generation}</Eyebrow>
-          <h2 className="mt-2 font-display text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] text-ink animate-rise delay-100">
+          <Eyebrow className="animate-rise short:hidden">{BRAND.vehicleLine} · {car.generation}</Eyebrow>
+          <h2 className="mt-2 short:mt-0 font-display text-[28px] sm:text-[40px] short:text-[22px] font-extrabold tracking-[-0.02em] text-ink animate-rise delay-100">
             {car.name}
           </h2>
           {headline.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[12px] text-mute animate-rise delay-200">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[12px] text-mute animate-rise delay-200 short:hidden">
               {headline.map((h, i) => (
                 <React.Fragment key={h.text}>
                   {i > 0 && <span className={cx('h-3 w-px bg-line', h.wide && 'hidden sm:block')} />}
@@ -142,7 +142,7 @@ export const Showroom: React.FC<{
           )}
         </div>
 
-        <div className="mt-7 flex items-center gap-3">
+        <div className="mt-7 short:mt-2 flex items-center gap-3">
           <Button variant="secondary" onClick={() => setExplore(true)} icon={<Info className="h-4 w-4" strokeWidth={1.6} />}>
             Explore
           </Button>
@@ -152,7 +152,7 @@ export const Showroom: React.FC<{
         </div>
 
         {n > 1 && (
-          <div className="mt-7 flex items-center gap-4">
+          <div className="mt-7 short:mt-2 flex items-center gap-4">
             <span className="font-mono text-[11px] text-mute tabular-nums">{String(index + 1).padStart(2, '0')}</span>
             <div className="flex items-center gap-2">
               {cars.map((c, i) => (

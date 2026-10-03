@@ -63,8 +63,12 @@ export function pickPaintForCar(paints: PaintColor[], car: Pick<CarModel, 'paint
   return palette.find((p) => p.id === wantedId) ?? palette[0] ?? paints[0];
 }
 
-async function selectTable<T>(table: CatalogTable): Promise<T[] | null> {
-  const { data, error } = await supabase.from(table).select('*').order('sort_order');
+async function selectTable<T>(table: CatalogTable, onlyActive = false): Promise<T[] | null> {
+  // RLS hides inactive rows from customers but not from a signed-in admin, so the public catalogue
+  // filters them itself (otherwise an admin's browser shows retired cars and hidden wheels).
+  let query = supabase.from(table).select('*');
+  if (onlyActive) query = query.eq('active', true);
+  const { data, error } = await query.order('sort_order');
   if (error || !data || data.length === 0) {
     if (error) console.warn(`Catalog: falling back to bundled ${table}`, error.message);
     return null;
@@ -75,10 +79,10 @@ async function selectTable<T>(table: CatalogTable): Promise<T[] | null> {
 export async function fetchCatalog(): Promise<{ catalog: Catalog; source: 'supabase' | 'static' }> {
   try {
     const [cars, paints, wheels, finishes, calipers] = await Promise.all([
-      selectTable<CarModel>('cars'),
+      selectTable<CarModel>('cars', true),
       selectTable<PaintColor>('paints'),
-      selectTable<WheelDesign>('wheels'),
-      selectTable<WheelFinish>('wheel_finishes'),
+      selectTable<WheelDesign>('wheels', true),
+      selectTable<WheelFinish>('wheel_finishes', true),
       selectTable<CaliperColor>('calipers')
     ]);
     const catalog: Catalog = {

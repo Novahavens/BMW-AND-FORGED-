@@ -14,7 +14,7 @@ export const SocialLinks: React.FC<{ className?: string; size?: 'sm' | 'md'; wit
   withWebsite = false
 }) => {
   const links = BRAND.social.filter((s) => withWebsite || s.id !== 'website');
-  const box = size === 'sm' ? 'h-9 w-9' : 'h-11 w-11';
+  const box = size === 'sm' ? 'h-10 w-10' : 'h-11 w-11';
   const icon = size === 'sm' ? 'h-[15px] w-[15px]' : 'h-[18px] w-[18px]';
   return (
     <ul className={cx('flex items-center gap-2', className)}>
