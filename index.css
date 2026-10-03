@@ -48,6 +48,14 @@ body {
     radial-gradient(70% 45% at 50% 64%, rgba(207,159,82,0.07) 0%, rgba(207,159,82,0) 60%),
     radial-gradient(120% 85% at 50% 58%, #2c2c2c 0%, #1b1b1b 40%, #121212 70%, #0b0b0b 100%);
 }
+/* Text and surface colours are variables so the parts that sit on the white 3D stage (welcome,
+   showroom, top bar) can flip to dark-on-light, and dialogs inside them flip back */
+:root, .stage-dark { --ink: 242 238 230; --mute: 156 151 142; --line: 255 255 255; --carbon: 18 18 18; --surface: 26 26 26; }
+.stage-light { --ink: 22 22 26; --mute: 92 92 100; --line: 0 0 0; --carbon: 255 255 255; --surface: 255 255 255; }
+.bg-stage {
+  /* White studio behind the 3D car: a bright seamless backdrop (the car's reflections are a white room too) */
+  background: radial-gradient(120% 85% at 50% 58%, #ffffff 0%, #f1f1f1 55%, #dedede 100%);
+}
 .text-gold-metal {
   background: linear-gradient(180deg, #E8C37D 0%, #CF9F52 55%, #9c7433 100%);
   -webkit-background-clip: text;

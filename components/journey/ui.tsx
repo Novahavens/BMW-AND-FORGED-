@@ -92,7 +92,7 @@ export const Modal: React.FC<{
   }, [open, onClose]);
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center pointer-events-auto select-text" role="dialog" aria-modal="true">
+    <div className="stage-dark fixed inset-0 z-[80] flex items-end sm:items-center justify-center pointer-events-auto select-text" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px] animate-fade" onClick={onClose} />
       <div
         className={cx(

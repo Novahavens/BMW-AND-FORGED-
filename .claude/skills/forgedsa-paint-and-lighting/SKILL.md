@@ -19,7 +19,15 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 - **`material.envMapIntensity` does nothing here.** In three r181 it only applies when the material
   has its own `envMap`; ours use `scene.environment`, so the strength is `scene.environmentIntensity`
   (`SOFTBOX_INTENSITY`, now 1.15). `BODY_ENV_INTENSITY` (`?bodyenv=`) is kept but has no effect.
-- **Studio room** (`?room=walls|dark|light`, default `walls`): a dark room plus tall soft panels either
+- **White studio (current default, `?room=white`):** white page backdrop (`.bg-stage`; parts of the UI
+  on it use `.stage-light`, dialogs `.stage-dark`) with a mid-grey reflection room lit by big bright
+  softboxes. A uniformly white room washes paint out; contrast between softboxes and room is what
+  reads as gloss. `SOFTBOX_INTENSITY` 0.8 (`?envi=`).
+- **Clear-coat boost (`COAT_BOOST` 1.8, `?coat=`):** `paintShader.ts` multiplies the clear coat's
+  indirect reflection. `clearcoat` can't go above 1, and a plain 4% reflection of a soft room looks
+  matte. Glossy paints also get base roughness x `GLOSS` 0.65 (`?gloss=`) and clearcoatRoughness
+  at most 0.025; Frozen is unchanged.
+- **Studio room** (`?room=walls|dark|light|white`; older `walls` = dark room with side panels): a dark room plus tall soft panels either
   side of the car, so doors and flanks show broad gradients. The light-grey room washed the paint out
   and a dark room alone read as satin: paint only looks glossy when something big and bright is
   reflected in it. White paints blow out above about 1.3 environment intensity.
