@@ -146,6 +146,10 @@ export class CarConfiguratorEngine {
     vBlur: THREE.ShaderMaterial;
   } | null = null;
   private shadowFrames = 0;
+  // The loop idles when nothing is moving. Anything that changes what's on screen asks for frames.
+  private renderFrames = 0;
+  private wasGliding = false;
+  private lastRenderAt = 0;
   private modelCache = new Map<string, Promise<THREE.Object3D>>();
   private drive: {
     from: number;
@@ -217,6 +221,7 @@ export class CarConfiguratorEngine {
 
     // Start loop
     this.animate = this.animate.bind(this);
+    this.invalidate();
     this.animationFrameId = requestAnimationFrame(this.animate);
 
     if (this.onReady) {
@@ -374,9 +379,17 @@ export class CarConfiguratorEngine {
     this.markShadowDirty();
   }
 
-  /** Re-render the contact shadow for the next few frames (async wheel/model loads settle in that time). */
-  private markShadowDirty(frames = 45) {
+  /**
+   * Re-render the contact shadow for the next few frames. Call whenever the car's shape or position
+   * changes, including when an async wheel or model load finishes and adds geometry.
+   */
+  private markShadowDirty(frames = 4) {
     this.shadowFrames = Math.max(this.shadowFrames, frames);
+  }
+
+  /** Draw the next few frames even if nothing is animating (paint, finish, resize, a finished load). */
+  private invalidate(frames = 3) {
+    this.renderFrames = Math.max(this.renderFrames, frames);
   }
 
   private renderContactShadow() {
@@ -416,6 +429,7 @@ export class CarConfiguratorEngine {
   }
 
   public setupStudioLighting(theme: StudioTheme) {
+    this.invalidate();
     // Clear existing
     while (this.studioLightsGroup.children.length > 0) {
       this.studioLightsGroup.remove(this.studioLightsGroup.children[0]);
@@ -553,6 +567,7 @@ export class CarConfiguratorEngine {
         this.scene.environmentIntensity = 1.0;
         this.scene.environmentRotation.set(0, Math.PI * 0.35, 0);
         pmrem.dispose();
+        this.invalidate();
       })
       .catch((err) => {
         console.warn('Studio HDRI unavailable; keeping the procedural studio reflections.', err);
@@ -1099,6 +1114,7 @@ export class CarConfiguratorEngine {
   /** Stops rendering while the canvas is hidden (e.g. another page is on top). */
   public setPaused(paused: boolean) {
     this.isPaused = paused;
+    if (!paused) this.invalidate();
   }
 
   /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
@@ -1299,7 +1315,7 @@ export class CarConfiguratorEngine {
     const inches = parseFloat(size);
     this.rimScale = THREE.MathUtils.clamp(Number.isFinite(inches) ? inches / 20 : 1, 0.8, 1.2);
     this.applyRimScale();
-    this.markShadowDirty(10);
+    this.markShadowDirty();
   }
 
   private applyRimScale() {
@@ -1329,7 +1345,7 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   public applyWheelDesign(wheel: WheelDesign, custom2DConfig?: Custom2DWheelConfig) {
     const token = ++this.wheelDesignToken;
-    this.markShadowDirty(90);
+    this.markShadowDirty();
     this.customFaceMaterials = [];
 
     // A 2D guide image wins; otherwise an uploaded rim PNG replaces the procedural spokes.
@@ -1357,6 +1373,7 @@ export class CarConfiguratorEngine {
         (template) => {
           if (token !== this.wheelDesignToken) return;
           this.wheelAssemblies.forEach((a) => this.mountRimModel(a.spokeMeshGroup, template, !!wheel.modelFlip));
+          this.markShadowDirty();
         },
         (err) => {
           console.warn(`Failed to load 3D rim for ${wheel.name}; falling back.`, err);
@@ -1545,6 +1562,7 @@ export class CarConfiguratorEngine {
           face.castShadow = true;
           face.receiveShadow = true;
           parent.add(face);
+          this.markShadowDirty();
           return;
         }
 
@@ -1579,6 +1597,7 @@ export class CarConfiguratorEngine {
         supportRing.position.x = -concavity * 0.6;
         supportRing.rotation.y = Math.PI / 2;
         parent.add(supportRing);
+        this.markShadowDirty();
       },
       (err) => {
         console.warn('Failed to load custom 2D wheel texture:', err);
@@ -1604,6 +1623,7 @@ export class CarConfiguratorEngine {
     this.carBodyMaterial.clearcoat = paint.clearcoat;
     this.carBodyMaterial.clearcoatRoughness = paint.clearcoatRoughness;
     this.carBodyMaterial.needsUpdate = true;
+    this.invalidate();
   }
 
   public applyWheelFinish(finish: WheelFinish) {
@@ -1626,18 +1646,20 @@ export class CarConfiguratorEngine {
       m.clearcoat = finish.clearcoat;
       m.needsUpdate = true;
     });
+    this.invalidate();
   }
 
   public applyCaliperColor(caliper: CaliperColor) {
     this.caliperMaterial.color.set(caliper.hex);
     this.caliperMaterial.needsUpdate = true;
+    this.invalidate();
   }
 
   public setRideHeight(dropMeters: number) {
     this.rideHeightOffset = dropMeters;
     // Lower car chassis relative to wheels
     this.bodyMeshGroup.position.y = dropMeters;
-    this.markShadowDirty(10);
+    this.markShadowDirty();
   }
 
   // ----------------------------------------------------
@@ -1704,6 +1726,7 @@ export class CarConfiguratorEngine {
     this.targetSpherical.phi = Math.acos(THREE.MathUtils.clamp(offset.y / this.targetSpherical.radius, -1, 1));
     this.zoomRange = { min: Math.min(1.0, this.targetSpherical.radius), max: Math.max(12, this.targetSpherical.radius) };
     this.cameraDamping = 0.045; // slow, cinematic glide for programmatic moves
+    this.invalidate();
 
     if (opts.instant) {
       this.spherical = { ...this.targetSpherical };
@@ -1726,6 +1749,7 @@ export class CarConfiguratorEngine {
    */
   public setViewInset(right: number, bottom = 0) {
     this.viewInset = { right, bottom: Math.max(0, bottom) }; // negative right = shift the car right
+    this.invalidate();
   }
 
   private applyViewInset(delta: number) {
@@ -1802,15 +1826,18 @@ export class CarConfiguratorEngine {
     this.viewInset = savedInset;
     this.currentInset = { right: 0, bottom: 0 }; // re-applied smoothly on the next frame
     this.updateCameraTransform();
+    this.invalidate(); // the canvas still shows the last still
     return shots;
   }
 
   public setAutoRotate(enabled: boolean) {
     this.isAutoRotate = enabled;
+    this.invalidate();
   }
 
   public setSpinningWheels(enabled: boolean, kmh: number = 50) {
     this.isSpinningWheels = enabled;
+    this.invalidate();
     // Calculate angular velocity rad/sec based on tire circumference ~ 2.2m
     this.spinSpeed = enabled ? (kmh * 1000 / 3600) / 0.35 : 0;
   }
@@ -1883,7 +1910,8 @@ export class CarConfiguratorEngine {
     if (h <= 0) return;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    this.renderer.setSize(w, h); // clears the canvas, so it has to be redrawn
+    this.invalidate();
     this.currentInset = { right: this.currentInset.right + 0.01, bottom: this.currentInset.bottom };
   }
 
@@ -1895,15 +1923,46 @@ export class CarConfiguratorEngine {
     const delta = this.clock.getDelta();
     if (this.isPaused) return;
 
+    // The loop keeps the camera maths ticking every frame but only draws when something changed.
+    // Idling saves battery and heat, and a settled scene looks exactly the same.
+    let draw = this.renderFrames > 0 || this.shadowFrames > 0;
+    if (this.renderFrames > 0) this.renderFrames--;
+
     // Auto turntable rotation if idle. The rim showcase sways in front of the rim face
     // rather than orbiting, so the spokes stay in view.
     if (this.isAutoRotate && !this.isUserInteracting) {
+      draw = true;
       if (this.isShowcase) {
         this.showcaseSwayTime += delta;
         this.targetSpherical.theta = Math.PI / 2 + Math.sin(this.showcaseSwayTime * 0.45) * 0.7;
       } else {
         this.targetSpherical.theta += 0.25 * delta;
       }
+    }
+
+    // Still gliding towards the target orbit or inset?
+    const s = this.spherical;
+    const t = this.targetSpherical;
+    const gliding =
+      Math.abs(t.radius - s.radius) > 1e-4 ||
+      Math.abs(t.theta - s.theta) > 1e-5 ||
+      Math.abs(t.phi - s.phi) > 1e-5 ||
+      this.currentLookAt.distanceToSquared(this.targetLookAt) > 1e-8 ||
+      Math.abs(this.viewInset.right - this.currentInset.right) > 0.01 ||
+      Math.abs(this.viewInset.bottom - this.currentInset.bottom) > 0.01;
+    if (gliding) {
+      draw = true;
+      this.wasGliding = true;
+    } else if (this.wasGliding) {
+      // The glide is over: land exactly on the target and draw that final frame.
+      this.wasGliding = false;
+      s.radius = t.radius;
+      s.theta = t.theta;
+      s.phi = t.phi;
+      this.currentLookAt.copy(this.targetLookAt);
+      this.currentInset.right = this.viewInset.right;
+      this.currentInset.bottom = this.viewInset.bottom;
+      draw = true;
     }
 
     // Frame-rate independent glide towards the target orbit
@@ -1915,6 +1974,7 @@ export class CarConfiguratorEngine {
     this.updateCameraTransform();
     this.applyViewInset(Math.min(delta, 0.1));
 
+    if (this.drive) draw = true;
     this.stepDrive(Math.min(delta, 0.1));
     if (this.shadowFrames > 0) {
       this.shadowFrames--;
@@ -1923,14 +1983,21 @@ export class CarConfiguratorEngine {
 
     // Wheel spin animation
     if (this.isSpinningWheels) {
+      draw = true;
       this.wheelAssemblies.forEach((assembly) => {
         // Spin around the axle (local X; the tyre cylinder is rotated onto X)
         assembly.spinGroup.rotation.x += this.spinSpeed * delta * (assembly.isRight ? -1 : 1);
       });
     }
 
+    // Safety net: a slow heartbeat so a missed invalidate() can never leave a stale view for long.
+    const now = performance.now();
+    if (!draw && now - this.lastRenderAt < CarConfiguratorEngine.IDLE_REFRESH_MS) return;
+    this.lastRenderAt = now;
     this.renderer.render(this.scene, this.camera);
   }
+
+  private static readonly IDLE_REFRESH_MS = 500;
 
   // ----------------------------------------------------
   // CLEANUP
