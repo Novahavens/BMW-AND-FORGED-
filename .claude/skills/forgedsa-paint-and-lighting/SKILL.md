@@ -16,8 +16,13 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 | Uni (solid) | 0 | 0.5 | 1 | 0.05 |
 | Frozen (matte) | 0.4 | 0.55 | 0 | – |
 
-- `CarConfiguratorEngine.BODY_ENV_INTENSITY = 0.45`: the body's reflection strength.
-  Higher values wash the bonnet out white.
+- **`material.envMapIntensity` does nothing here.** In three r181 it only applies when the material
+  has its own `envMap`; ours use `scene.environment`, so the strength is `scene.environmentIntensity`
+  (`SOFTBOX_INTENSITY`, now 1.15). `BODY_ENV_INTENSITY` (`?bodyenv=`) is kept but has no effect.
+- **Studio room** (`?room=walls|dark|light`, default `walls`): a dark room plus tall soft panels either
+  side of the car, so doors and flanks show broad gradients. The light-grey room washed the paint out
+  and a dark room alone read as satin: paint only looks glossy when something big and bright is
+  reflected in it. White paints blow out above about 1.3 environment intensity.
 - **Reflections (since Oct 2026):** a generated **softbox studio** (`services/studioSoftbox.ts`).
   - Feathered diffuser panels: overhead 2.3, side strips 2.4, low strips 1.3, kickers, a 0.08
     floor bounce, in a dark room.

@@ -14,7 +14,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyPaintLayers, installPaintLayers } from './paintShader';
-import { buildSoftboxStudio } from './studioSoftbox';
+import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS } from './studioSoftbox';
 import { glassReflectionMaterial, passMaterial } from './carMaterials';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
@@ -182,6 +182,11 @@ export class CarConfiguratorEngine {
    */
   static STUDIO: 'softbox' | 'hdri' =
     typeof window !== 'undefined' && /[?&]studio=hdri/.test(window.location.search) ? 'hdri' : 'softbox';
+  /** The reflected studio room: 'walls' (default: dark room with tall side panels), 'dark' or 'light'; ?room= compares. */
+  static ROOM: 'dark' | 'light' | 'walls' = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]room=(light|walls|dark)/.exec(window.location.search) : null;
+    return (m?.[1] as 'dark' | 'light' | 'walls') ?? 'walls';
+  })();
   /** Tone mapping: 'aces' (default), 'agx' or 'neutral'; ?tone=agx compares. */
   static TONE: 'aces' | 'agx' | 'neutral' = (() => {
     const m = typeof window !== 'undefined' ? /[?&]tone=(agx|neutral|aces)/.exec(window.location.search) : null;
@@ -647,7 +652,7 @@ export class CarConfiguratorEngine {
     room.dispose?.();
 
     if (CarConfiguratorEngine.STUDIO === 'softbox') {
-      const studio = buildSoftboxStudio();
+      const studio = buildSoftboxStudio(CarConfiguratorEngine.ROOM === 'light' ? ROOM_LIGHT : CarConfiguratorEngine.ROOM === 'walls' ? ROOM_WALLS : ROOM_DARK);
       const studioTarget = pmrem.fromScene(studio, 0.02, 0.1, 100, { size: 512 });
       studio.traverse((o) => {
         const m = o as THREE.Mesh;
@@ -1733,9 +1738,12 @@ export class CarConfiguratorEngine {
    * and roof out to flat white; ~0.45 keeps a crisp softbox reflection with the paint colour showing
    * through, which is how BMW's own studio renders read.
    */
-  static BODY_ENV_INTENSITY = 0.45;
+  static BODY_ENV_INTENSITY: number = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]bodyenv=([0-9.]+)/.exec(window.location.search) : null;
+    return m ? +m[1] : 0.45;
+  })();
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
-  static SOFTBOX_INTENSITY = 1.0;
+  static SOFTBOX_INTENSITY = 1.15;
 
   private currentPaint: PaintColor | null = null;
 
