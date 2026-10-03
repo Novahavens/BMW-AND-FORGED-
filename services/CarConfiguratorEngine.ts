@@ -893,6 +893,18 @@ export class CarConfiguratorEngine {
     }
   }
 
+  /** Drops every cached car except the one on screen (e.g. while another page has the GPU). */
+  private trimModelCache() {
+    for (const url of [...this.modelCache.keys()]) {
+      if (url === this.mountedModelUrl) continue;
+      const scene = this.modelScenes.get(url);
+      if (!scene) continue; // still downloading
+      this.modelCache.delete(url);
+      this.modelScenes.delete(url);
+      CarConfiguratorEngine.disposeScene(scene);
+    }
+  }
+
   /** Frees the GPU buffers and textures of a cached car scene that is no longer on screen. */
   private static disposeScene(scene: THREE.Object3D) {
     scene.traverse((obj) => {
@@ -1171,7 +1183,8 @@ export class CarConfiguratorEngine {
   /** Stops rendering while the canvas is hidden (e.g. another page is on top). */
   public setPaused(paused: boolean) {
     this.isPaused = paused;
-    if (!paused) this.invalidate();
+    if (paused) this.trimModelCache();
+    else this.invalidate();
   }
 
   /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
@@ -1854,12 +1867,14 @@ export class CarConfiguratorEngine {
     if (this.shadowFrames > 0) this.renderContactShadow();
 
     const src = this.renderer.domElement;
+    // Retina screens render at 2x; the summary and the A4 PDF don't need more than this many pixels.
+    const outScale = Math.min(1, CarConfiguratorEngine.STILL_MAX_WIDTH / src.width);
     const shots = views.map((view) => {
       this.setCameraPreset(view, { instant: true });
       this.renderer.render(this.scene, this.camera);
       const out = document.createElement('canvas');
-      out.width = src.width;
-      out.height = src.height;
+      out.width = Math.round(src.width * outScale);
+      out.height = Math.round(src.height * outScale);
       const ctx = out.getContext('2d')!;
       const g = ctx.createRadialGradient(
         out.width / 2, out.height * 0.6, 0,
@@ -1869,7 +1884,7 @@ export class CarConfiguratorEngine {
       g.addColorStop(1, background[1]);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, out.width, out.height);
-      ctx.drawImage(src, 0, 0);
+      ctx.drawImage(src, 0, 0, out.width, out.height);
       return out.toDataURL('image/jpeg', 0.9);
     });
 
@@ -2055,6 +2070,7 @@ export class CarConfiguratorEngine {
   }
 
   private static readonly IDLE_REFRESH_MS = 500;
+  private static readonly STILL_MAX_WIDTH = 1920;
 
   // ----------------------------------------------------
   // CLEANUP
