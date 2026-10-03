@@ -397,6 +397,17 @@ export const WHEEL_FINISHES: Record<FinishVariantKey, WheelFinish> = {
     clearcoat: 0.7,
     description: 'Classic bright silver with a soft metallic sheen.',
     badge: 'Classic'
+  },
+  satin_gold: {
+    id: 'satin_gold',
+    name: 'Satin Gold',
+    colorName: 'Champagne Gold',
+    hex: '#C5A059',
+    metalness: 0.9,
+    roughness: 0.3,
+    clearcoat: 0.85,
+    description: 'Soft champagne gold metallic with a smooth satin-gloss sheen.',
+    badge: 'New'
   }
 };
 
