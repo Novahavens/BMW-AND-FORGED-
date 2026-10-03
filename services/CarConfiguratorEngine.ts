@@ -150,7 +150,12 @@ export class CarConfiguratorEngine {
   private renderFrames = 0;
   private wasGliding = false;
   private lastRenderAt = 0;
+  // Car GLBs by URL, least recently used first. Resolved scenes are also kept in modelScenes so they
+  // can be disposed when evicted; mountedModelUrl is the car on screen and is never evicted.
   private modelCache = new Map<string, Promise<THREE.Object3D>>();
+  private modelScenes = new Map<string, THREE.Object3D>();
+  private mountedModelUrl: string | null = null;
+  private static readonly MODEL_CACHE_MAX = 4;
   private drive: {
     from: number;
     to: number;
@@ -830,13 +835,17 @@ export class CarConfiguratorEngine {
     if (car.modelUrl) {
       try {
         const template = await this.loadCarTemplate(car.modelUrl);
-        if (token === this.carLoadToken) this.mountCarModel(template.clone(true), car);
+        if (token === this.carLoadToken) {
+          this.mountCarModel(template.clone(true), car);
+          this.mountedModelUrl = car.modelUrl;
+        }
         return 'model';
       } catch (err) {
         console.warn(`Failed to load 3D model for ${car.name}; using procedural body.`, err);
       }
     }
     if (token === this.carLoadToken) {
+      this.mountedModelUrl = null;
       this.buildBMWCarBody(car.bodyStyle);
       this.resetWheelLayout();
       this.markShadowDirty();
@@ -847,22 +856,70 @@ export class CarConfiguratorEngine {
   /** Downloads a car GLB once; every later mount clones the cached scene (geometry is shared). */
   private loadCarTemplate(url: string): Promise<THREE.Object3D> {
     let p = this.modelCache.get(url);
-    if (!p) {
+    if (p) {
+      // Most recently used goes last
+      this.modelCache.delete(url);
+      this.modelCache.set(url, p);
+    } else {
       p = this.getGltfLoader()
         .loadAsync(url)
         .then((gltf) => {
           gltf.scene.userData.cachedModel = true;
+          if (this.isDisposed) {
+            CarConfiguratorEngine.disposeScene(gltf.scene);
+          } else {
+            this.modelScenes.set(url, gltf.scene);
+            this.evictModels(url);
+          }
           return gltf.scene;
         });
       p.catch(() => this.modelCache.delete(url));
       this.modelCache.set(url, p);
     }
+    this.evictModels(url);
     return p;
   }
 
-  /** Warms the model cache so switching to this car is instant. */
+  /** Keeps the cache to a few cars so browsing the showroom doesn't pile up GPU memory. */
+  private evictModels(keep: string) {
+    for (const url of this.modelCache.keys()) {
+      if (this.modelCache.size <= CarConfiguratorEngine.MODEL_CACHE_MAX) break;
+      if (url === keep || url === this.mountedModelUrl) continue;
+      const scene = this.modelScenes.get(url);
+      if (!scene) continue; // still downloading
+      this.modelCache.delete(url);
+      this.modelScenes.delete(url);
+      CarConfiguratorEngine.disposeScene(scene);
+    }
+  }
+
+  /** Frees the GPU buffers and textures of a cached car scene that is no longer on screen. */
+  private static disposeScene(scene: THREE.Object3D) {
+    scene.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.geometry?.dispose();
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((mat) => {
+        if (!mat) return;
+        Object.values(mat).forEach((v) => {
+          if (v instanceof THREE.Texture) v.dispose();
+        });
+        mat.dispose();
+      });
+    });
+  }
+
+  /** Warms the model cache so switching to this car is instant. Runs when the browser is idle. */
   public preloadCar(car: CarModel) {
-    if (car.modelUrl) this.loadCarTemplate(car.modelUrl).catch(() => {});
+    const url = car.modelUrl;
+    if (!url) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    const run = () => {
+      if (!this.isDisposed) this.loadCarTemplate(url).catch(() => {});
+    };
+    if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 3000 });
+    else setTimeout(run, 300);
   }
 
   /**
@@ -2037,6 +2094,9 @@ export class CarConfiguratorEngine {
       }
       this.renderer.dispose();
     }
+    this.modelScenes.forEach((scene) => CarConfiguratorEngine.disposeScene(scene));
+    this.modelScenes.clear();
+    this.modelCache.clear();
     this.wheelTextureCache.forEach((t) => t.dispose());
     this.wheelTextureCache.clear();
     this.rimFaceGeometryCache.forEach((g) => g.dispose());
