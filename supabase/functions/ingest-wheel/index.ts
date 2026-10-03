@@ -141,7 +141,10 @@ Deno.serve(async (req) => {
 
   const id = `forged_${slug(w.code || name)}`;
   const path = `pipeline/${id}-${Date.now()}.png`;
-  const { error: upErr } = await supabase.storage.from('rim-images').upload(path, finalPng, { contentType: 'image/png', upsert: false });
+  // The name carries a timestamp and is never overwritten, so the image can be cached for a year.
+  const { error: upErr } = await supabase.storage
+    .from('rim-images')
+    .upload(path, finalPng, { contentType: 'image/png', upsert: false, cacheControl: '31536000' });
   if (upErr) return json(500, { error: `upload failed: ${upErr.message}` });
   const imageUrl = supabase.storage.from('rim-images').getPublicUrl(path).data.publicUrl;
 
