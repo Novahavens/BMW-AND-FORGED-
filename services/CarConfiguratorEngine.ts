@@ -161,6 +161,7 @@ export class CarConfiguratorEngine {
   private boundOnPointerMove?: (e: MouseEvent | TouchEvent) => void;
   private boundOnPointerUp?: () => void;
   private boundOnWheel?: (e: WheelEvent) => void;
+  private boundOnContextRestored?: () => void;
 
   // Callbacks
   private onReady?: () => void;
@@ -245,6 +246,18 @@ export class CarConfiguratorEngine {
     this.renderer.toneMapping = tone === 'agx' ? THREE.AgXToneMapping : tone === 'neutral' ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = CarConfiguratorEngine.EXPOSURE ?? (tone === 'agx' ? 1.25 : tone === 'neutral' ? 0.95 : 1.08);
     this.container.appendChild(this.renderer.domElement);
+
+    // A phone can take the GPU away (app backgrounded, memory pressure) and hand it back empty.
+    // three.js re-creates its own state and re-uploads textures and geometry on demand, but the
+    // two things that only ever lived on the GPU are gone: the reflection environment and the
+    // contact shadow. Without this the car comes back dark with no studio reflections.
+    this.boundOnContextRestored = () => {
+      this.environmentTarget = null; // its GPU objects died with the old context; nothing to free
+      this.generateStudioEnvironment();
+      this.markShadowDirty();
+      this.requestRender();
+    };
+    this.renderer.domElement.addEventListener('webglcontextrestored', this.boundOnContextRestored);
 
     // Groups
     this.carGroup = new THREE.Group();
@@ -2032,6 +2045,9 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   private setupInputHandlers() {
     const el = this.container;
+    // The canvas is a drag surface: stop the browser turning touches on it into page scrolls,
+    // pull-to-refresh or pinch/double-tap zoom of the whole page.
+    el.style.touchAction = 'none';
 
     this.boundOnPointerDown = (e: MouseEvent | TouchEvent) => {
       this.isUserInteracting = true;
@@ -2198,6 +2214,9 @@ export class CarConfiguratorEngine {
     }
     if (this.container && this.boundOnWheel) {
       this.container.removeEventListener('wheel', this.boundOnWheel);
+    }
+    if (this.boundOnContextRestored) {
+      this.renderer?.domElement.removeEventListener('webglcontextrestored', this.boundOnContextRestored);
     }
 
     if (this.renderer) {
