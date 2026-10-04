@@ -14,7 +14,8 @@ import type { RimPhotoOptions } from './wheelKit';
  * straight-bar designs, make-face-mask.py otherwise).
  */
 export const RIM_FACE_MASKS: Record<string, string> = {
-  forged_fsa_07: '/rim-faces/forged_fsa_07.png'
+  forged_fsa_07: '/rim-faces/forged_fsa_07.png',
+  forged_fsa_10: '/rim-faces/forged_fsa_10.png'
 };
 
 /**
