@@ -13,6 +13,7 @@ exact files, commands, values and pitfalls for its task.
 | [`forgedsa-wheel-pipeline`](../.claude/skills/forgedsa-wheel-pipeline/SKILL.md) | adding wheels from photos (sheet + n8n + ingest-wheel) or CAD files |
 | [`forgedsa-rim-from-photo`](../.claude/skills/forgedsa-rim-from-photo/SKILL.md) | turning one rim photo into a swappable 3D rim: photo rules, cut-out, QA, symptom → fix |
 | [`wheel3d`](../.claude/skills/wheel3d/SKILL.md) | perfecting any new wheel (or one that looks wrong): measure the face, pick the route (photo, options, bar face, AI face mask), render matrix, go live; `/wheel3d` |
+| [`forgedsa-rim-3d-pipeline`](../.claude/skills/forgedsa-rim-3d-pipeline/SKILL.md) | making rims look like the "High poly Rims" template: CAD or photo → complete 3D rim file, engine rules, budget, QA |
 | [`visual-qa`](../.claude/skills/visual-qa/SKILL.md) | proving any visual 3D change is right: measured checks first, a render matrix over every combination, contact sheets, then by eye |
 | [`forgedsa-rim-finishes`](../.claude/skills/forgedsa-rim-finishes/SKILL.md) | how Liquid Metal, Black Gloss, Bronze Matte and Silver are built; adding or tuning a finish |
 | [`forgedsa-catalogue-admin`](../.claude/skills/forgedsa-catalogue-admin/SKILL.md) | prices, sizes, finishes, paints; admin accounts and sign-in problems |

@@ -1,0 +1,27 @@
+---
+name: forgedsa-rim-3d-pipeline
+description: Turn a FORGEDSA rim (CAD or product photo) into a complete, high-detail 3D rim GLB modelled on the "High poly Rims" template - flat bevelled face recessed behind a deep barrel and lip, polished metal. Covers the CAD-or-photo decision, the 11-step photo route, what the engine requires of a rim file, the measured template cross-section, the live triangle budget, QA and credits. Use when asked to improve how rims look in 3D, to convert a wheel photo to a real 3D rim, or to judge a new rim against the template.
+---
+
+# Rim → 3D rim (template: "High poly Rims")
+
+Full process: `docs/RIM_3D_PROCESS.md`. Template numbers and the CC-BY credit: `docs/rim-template/PROFILE.md`.
+
+## Rules the engine imposes (`CarConfiguratorEngine.mountRimModel`)
+- `wheel.modelUrl` always beats the photo. The file must be a **complete rim** (face + barrel + lip + centre) with **no tyre**: the engine hides its own barrel, lip and centre.
+- Thinnest axis = axle; widest of Y/Z is scaled to the 20" base diameter. Units don't matter, proportions do.
+- One finish material is applied to every mesh, so all four finishes keep working. Don't bake photo colour into it.
+- Spokes facing inward → **Flip 3D rim** (`model_flip`).
+
+## Do this
+1. CAD available? Admin → Rim 3D model, or `bun run rim:convert`. Stop here.
+2. Photo only: front-on rim-only photo → existing cut-out (`loadRimFace`, `RIM_FACE_MASKS`) → `outlines.cjs` / `wheel-qa.cjs`.
+3. Build face (one sector repeated by symmetry) + barrel/lip/centre to the template: face plate 7–9 % of R thick; face front 24 % of R behind the lip; width 0.51 × diameter.
+4. Export GLB, decimate to about 40k triangles (confirm on a phone), meshopt.
+5. Upload, QA with `visual-qa` (3 cars × 2 sizes × 4 finishes + M4 close-up against the template), fix lighting to match the Blender studio.
+
+## Limits (say them out loud)
+A photo has no depth: complex or concave designs need CAD. The template is another maker's design: benchmark and proportions only, credit it if its geometry is ever shown.
+
+## Status
+The Blender builder (`scripts/rim3d/build_rim.py`) is **not written yet**; the process is. See "Not built yet" in the doc.

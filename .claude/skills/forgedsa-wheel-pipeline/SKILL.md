@@ -57,6 +57,7 @@ drift, so always inspect those by eye.
 - A model always wins over the photo on the car. If the spokes face inwards, tick **Flip 3D
   rim**.
 - Ask manufacturers for the **rim only, no tyre**.
+- To make a photo-only wheel look like the detailed template rim, see `forgedsa-rim-3d-pipeline` and `docs/RIM_3D_PROCESS.md`.
 
 ## Prices and sizes
 
