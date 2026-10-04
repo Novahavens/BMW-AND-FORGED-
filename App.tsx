@@ -161,7 +161,7 @@ export const App: React.FC = () => {
       !!wheel.imageUrl && !wheel.modelUrl && stageAvailable(stageManifest, selectedCar.id, selectedPaint.id, size),
     [stageManifest, selectedCar.id, selectedPaint.id, selectedWheel]
   );
-  const stageOn = booted && route.name === 'configure' && cameraView === 'side' && stageFor(selectedSize);
+  const stageOn = booted && route.name === 'configure' && (cameraView === 'side' || cameraView === 'frontWheel') && stageFor(selectedSize);
 
   // ----------------------------------------------------
   // Routing
@@ -554,7 +554,7 @@ export const App: React.FC = () => {
       />
 
       {stageOn && (
-        <WheelStage car={selectedCar} paint={selectedPaint} wheel={selectedWheel} finish={selectedFinish} size={selectedSize} inset={controlsInset()} />
+        <WheelStage car={selectedCar} paint={selectedPaint} wheel={selectedWheel} finish={selectedFinish} size={selectedSize} framing={cameraView === 'frontWheel' ? 'wheel' : 'car'} inset={controlsInset()} />
       )}
 
       {booted && route.name === 'welcome' && (
