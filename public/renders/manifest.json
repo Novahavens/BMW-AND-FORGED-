@@ -13,17 +13,7 @@
   "side",
   "top"
  ],
- "m3_g80": [
-  "frontThreeQuarter"
- ],
  "m3_touring_g81": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m4_convertible_g83": [
   "frontThreeQuarter",
   "frontWheel",
   "rearThreeQuarter",
