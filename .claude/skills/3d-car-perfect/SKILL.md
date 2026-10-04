@@ -150,6 +150,43 @@ spoke), then `scripts/render/qa-matrix.py` on the car. Look for:
   - If something odd shows inside a wheel, find it by elimination: hide the hub group, tint the
     spoke face, hide `bodyMeshGroup`, recolour the paint. A raycast also reports hidden meshes,
     so don't trust it alone.
+- **Shared surface detail, not per-car textures** (`services/detailTextures.ts`):
+  - carbon 2x2 twill (normal, tow direction, tone), grille honeycomb (normal, cavity, alpha) and
+    leather/suede grain (normal, crease roughness) are generated once per page (256², module-level
+    cache like the wheel kit's) and never changed per engine or material;
+  - they are projected in the shader (`installDetail`, `onBeforeCompile`, cache key
+    `forgedsa-detail-<kind>`) by box/triplanar projection in **metre-scaled object space**: a tow
+    is 4.5 mm and a grain cell 1.2 mm on every file whatever its units or UVs, and the pattern moves
+    with the car (world space would swim while it drives in). No per-material repeat, no clones;
+  - each detail fades out once its features drop under a few pixels (no moiré at distance; the
+    footprint is the geometric mean of the two screen axes, `length(fwidth())` killed the weave on
+    every surface seen at an angle) and is added on top of the part's own normal; carbon also sets
+    the GGX anisotropy along the fibres of the tow on top (needs `anisotropy > 0` for the define);
+  - carbon reads as carbon from the **albedo checker** (every other tow darker), not from the
+    normals: with only normals and anisotropy it was a smooth grey under the white studio;
+  - the textures live only in shader uniforms, never in material slots, so `disposeScene` (which
+    disposes every texture a car material holds) can't free them for the other cars.
+- **What a texture holds decides what happens to it** (cached per image, ~0.2 s on the M3's first
+  mount in SwiftShader):
+  - `maybeSolid` (16x16 point samples), then `textureStats` (a filtered 32² probe for structure,
+    then a 256² sample grid for spread and mean) and `exactExtent` (every pixel, early exit);
+  - one colour (every pixel within 12 levels): folded into the factor and dropped, on every part
+    (`flattenSolidMaps`, after the switch so the look is identical). Use every pixel for this: a
+    sampled check dropped the M4 CS's black texture with one small green light on it;
+  - a material tile (≥256², uniform at a 32² scale: leather, suede grain): its mean colour plus the
+    shared grain, on interior parts **whose every texture is a tile** (the M3's seat map carries
+    perforations at the same scale: kept); a ≤256² carbon swatch: the shared twill;
+  - an atlas or a patterned tile (the M2/M3 Touring/M8 64-128² grille tiles): kept, it is the
+    car's design.
+  - Measured (Oct 2026, visible car textures, mipmapped RGBA): M2 75.9 → 53.8 MB, M3 150.2 →
+    140.1 MB, all ten cars 409.5 → 377.6 MB; the three shared textures add 0.75 MB once per page.
+    Most of what is left is real 1024² atlases.
+- **Generic atlas names (the M3 game rip):** materials named after the first part that used them
+  (`Steeringwheelcarbon11Mtl_1` is the front bumper's honeycomb) are placed by position: load the
+  car in `engine.html`, print each mesh's bounding-box centre in car space (z forward, y up) with
+  its material, then add one `NAME_OVERRIDES` line per material. A material shared by outside and
+  cabin parts (`Steeringwheelgloss1Mtl_5`: arch liners and dashboard) stays as it is: gloss black
+  made the arch liners grey.
 - **After the pass, list the parts per kind:** load the car in `engine.html`, traverse
   `window.e.bodyMeshGroup` and group by `userData.partKind`. Look for misfiled parts, then render
   front and rear 3/4.

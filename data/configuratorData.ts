@@ -117,7 +117,7 @@ export const BMW_MODELS: CarModel[] = [
     modelUrl: '/models/bmw-m3-competition.glb',
     modelRotationDeg: 180,
     modelLengthM: 4.79,
-    paintMeshMatch: 'merged_materials',
+    paintMeshMatch: 'merged_materials|hoodpainttextured1mtl',
     hideMeshMatch: '(^|[^a-z])(wheelcolor1mtl|lugs1mtl|calliperpaintrl1mtl|union2mtl|stem1mtl|tyre1mtl)'
   },
   {
@@ -269,7 +269,7 @@ export const BMW_MODELS: CarModel[] = [
     modelUrl: '/models/bmw-m8-competition-f92.glb',
     modelLengthM: 4.87,
     paintMeshMatch: 'carpaint',
-    hideMeshMatch: 'm8f92_(wheel|caliper|brakedisc)'
+    hideMeshMatch: 'm8f92_(wheel|cal?liper|brakedisc)'
   },
   {
     id: 'x3m50_g45',

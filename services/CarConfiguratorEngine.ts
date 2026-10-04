@@ -1164,8 +1164,9 @@ export class CarConfiguratorEngine {
 
       const ownNames = `${mesh.name} ${materialNames}`;
       // A car whose hide pattern leaves its own calipers visible keeps them: the painted body of the
-      // caliper takes the caliper colour (like ours), its hardware keeps a metal look
-      if (/caliper|calliper/i.test(materialNames)) {
+      // caliper takes the caliper colour (like ours), its hardware keeps a metal look. Both spellings;
+      // a caliper's logo decal ("m8f92_CalliperBadge") is a badge, not caliper paint.
+      if (/cal?liper/i.test(materialNames) && !/badge|logo|decal/i.test(materialNames)) {
         mesh.material = this.kit.caliper;
         mesh.userData.modelCaliper = true;
         modelCalipers = true;
