@@ -196,6 +196,10 @@ export function passMaterial(material: THREE.Material, names: string): THREE.Mat
       if (m.metalness <= 0.06 && m.roughness >= 0.98) m.roughness = 0.45;
       break;
   }
+  // An emissive map is multiplied by the emissive colour. Exporters often attach one with the
+  // colour left at the glTF default (black), which adds nothing but still costs a texture upload
+  // (the M3 carries about 90 MB of them). Tail lenses set a red emissive colour above and keep theirs.
+  if (m.emissiveMap && m.emissive.r + m.emissive.g + m.emissive.b === 0) m.emissiveMap = null;
   m.userData.forgedPass = true;
   m.userData.partKind = kind;
   m.needsUpdate = true;
