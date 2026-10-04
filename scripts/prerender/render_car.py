@@ -8,7 +8,7 @@ Background is transparent; the floor is a shadow catcher.
 
   python3 scripts/prerender/render_car.py scene.glb public/renders/<carId> [--samples 32] [--width 1440]
 """
-import argparse, math, os, sys
+import argparse, math, os, re, sys
 import bpy, bmesh
 
 ap = argparse.ArgumentParser()
@@ -17,11 +17,25 @@ ap.add_argument('--samples', type=int, default=32)
 ap.add_argument('--width', type=int, default=1440)
 ap.add_argument('--views', default='')
 ap.add_argument('--no-subdiv', action='store_true', help='for very dense models that run out of memory')
+ap.add_argument('--car', default='', help='car id for the per-car fixes below (default: the output folder name)')
+ap.add_argument('--hide', default=None, help='regex of mesh names to drop (overrides the per-car default)')
 a = ap.parse_args()
+
+# Multi-variant source models stack alternative parts (tuner kits, CS/Competition panels) on the
+# same surface. Coincident painted copies z-fight into a crumpled, mottled panel once subdivided,
+# so drop all but one variant.
+HIDE = {
+    # four front-fender variants (stock, Competition, CS, Keyvany): keep the Competition one
+    'm8_f92': r'^(PAINT_)?(m8f92_fender_[LR](_cs)?(00\d)?_m8f92_|keyvany_fender_[LR])',
+}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=a.glb)
 sc = bpy.context.scene
+hide = a.hide if a.hide is not None else HIDE.get(a.car or os.path.basename(os.path.normpath(a.out)))
+if hide:
+    for o in [o for o in sc.objects if o.type == 'MESH' and re.search(hide, o.name)]:
+        bpy.data.objects.remove(o, do_unlink=True)
 objs = list(sc.objects)
 cams = {o.name.split('CAM_', 1)[1].split('.')[0]: o for o in objs if o.type == 'CAMERA' and 'CAM_' in o.name}
 meshes = [o for o in objs if o.type == 'MESH']
