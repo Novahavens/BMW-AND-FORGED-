@@ -460,76 +460,76 @@ The 2026-09-27 hexes were solved for a different paint model (metalness 0.45 / r
 3. **New paints** (P92, P9E, P7L): the target is the nearest render-checked or calibrated sibling scaled by the ratio of BMW's chips (P92 from C4G; P9E and P7L from P5C). Chips sampled from BMW's Individual Visualizer: P92 #115B43, P9E #60BCDC, P7L #3892D4.
 4. **Solve.** With the new finish classes, under the same neutral HDRI studio the targets were measured in (the base colour is a property of the paint; the app's white softbox studio then lights it), the base colour is iterated per channel in linear light until the door matches.
 
-Result: median ΔE00 0.28, mean 0.72; 60 of 66 within 2. Out of reach (the satin coat or clear coat puts a floor under very deep, saturated colours): P92 (7.7), X1G (5.3), X1E (4.0), P9C (3.9), P9R (3.9), 405 (2.2).
+Result: median ΔE00 0.32, mean 0.70; 62 of 66 within 2. Out of reach (the satin coat puts a floor under very deep, saturated frozen colours): P92 (7.5), X1G (5.1), X1E (4.1), P9C (3.9).
 
 | Code | Paint | Target from | Old hex | New hex | ΔE00 |
 |---|---|---|---|---|---|
-| 300 | alpine_white | BMW render | #c8c8c9 | #c3c2c3 | 0.21 |
-| P9R | anglesey_green | swatch, hue −6° | #024b3a | #395641 | 3.93 |
-| C4F | arctic_race_blue | BMW render | #30495b | #3b5568 | 0.15 |
-| X15 | aventurin_red | swatch, hue −6° | #530202 | #601324 | 0.25 |
-| C57 | aventurine_red_iii | BMW render | #630f1c | #711d28 | 0.10 |
-| C38 | barcelona_blue | swatch, hue −6° | #636f78 | #717f88 | 0.29 |
-| C3E | bernina_grey_amber_effect | swatch, hue −6° | #575852 | #575751 | 0.23 |
-| 475 | black_sapphire | BMW render | #151617 | #212223 | 0.06 |
-| P9E | borusan_turkish_blue | sibling chip | — | #016786 | 0.15 |
-| T42 | brewster_green | swatch, hue −6° | #1a2c26 | #18221d | 0.31 |
-| C4P | brooklyn_grey | BMW render | #889296 | #9da8ad | 0.18 |
-| 416 | carbon_black | BMW render | #0e1b2b | #1c2736 | 0.12 |
-| B03 | damast_red | swatch, hue −6° | #45231f | #502e2f | 0.34 |
-| C36 | dravit_grey | BMW render | #3c4041 | #474c4d | 0.57 |
-| C7A | dune_grey | BMW render | #adada6 | #c9cac2 | 0.38 |
-| P7E | fire_orange_iii | swatch, hue −6° | #975305 | #985021 | 0.15 |
-| C68 | fire_red | BMW render | #8c2226 | #a03133 | 0.32 |
-| 375 | fire_red_ii | swatch, hue −6° | #742002 | #591617 | 0.30 |
-| U91 | frozen_black | swatch, hue −6° | #18191b | #050608 | 1.18 |
-| X16 | frozen_brilliant_white | swatch, hue −6° | #cbcec4 | #b2b3a9 | 0.14 |
-| P79 | frozen_dark_grey_ii | swatch, hue −6° | #2a3235 | #202d31 | 0.32 |
+| 300 | alpine_white | BMW render | #c8c8c9 | #c2c2c3 | 0.09 |
+| P9R | anglesey_green | swatch, hue −6° | #024b3a | #2d5641 | 1.42 |
+| C4F | arctic_race_blue | BMW render | #30495b | #3b5568 | 0.18 |
+| X15 | aventurin_red | swatch, hue −6° | #530202 | #601125 | 0.17 |
+| C57 | aventurine_red_iii | BMW render | #630f1c | #711d28 | 0.09 |
+| C38 | barcelona_blue | swatch, hue −6° | #636f78 | #717f89 | 0.69 |
+| C3E | bernina_grey_amber_effect | swatch, hue −6° | #575852 | #575751 | 0.22 |
+| 475 | black_sapphire | BMW render | #151617 | #222223 | 0.14 |
+| P9E | borusan_turkish_blue | sibling chip | — | #016686 | 0.67 |
+| T42 | brewster_green | swatch, hue −6° | #1a2c26 | #18231e | 0.33 |
+| C4P | brooklyn_grey | BMW render | #889296 | #9da8ac | 0.37 |
+| 416 | carbon_black | BMW render | #0e1b2b | #1b2736 | 0.30 |
+| B03 | damast_red | swatch, hue −6° | #45231f | #502e2f | 0.32 |
+| C36 | dravit_grey | BMW render | #3c4041 | #474c4c | 0.98 |
+| C7A | dune_grey | BMW render | #adada6 | #cacac2 | 0.22 |
+| P7E | fire_orange_iii | swatch, hue −6° | #975305 | #995122 | 0.37 |
+| C68 | fire_red | BMW render | #8c2226 | #9f2832 | 0.85 |
+| 375 | fire_red_ii | swatch, hue −6° | #742002 | #581816 | 0.50 |
+| U91 | frozen_black | swatch, hue −6° | #18191b | #010203 | 0.97 |
+| X16 | frozen_brilliant_white | swatch, hue −6° | #cbcec4 | #b2b4a9 | 0.48 |
+| P79 | frozen_dark_grey_ii | swatch, hue −6° | #2a3235 | #1f2d30 | 0.23 |
 | P80 | frozen_deep_green | swatch, hue −6° | #3f4d3c | #425139 | 0.09 |
-| P7X | frozen_deep_grey | swatch, hue −6° | #25292f | #171f28 | 0.33 |
-| C64 | frozen_deep_grey_c64 | swatch, hue −6° | #242628 | #161a1c | 0.38 |
-| P92 | frozen_isle_of_man_green | sibling chip | — | #01300b | 7.66 |
-| X1E | frozen_portimao_blue | swatch, hue −6° | #0e2357 | #011960 | 3.98 |
-| C6R | frozen_portimao_blue_c6r | BMW render | #0e2357 | #01145d | 1.58 |
+| P7X | frozen_deep_grey | swatch, hue −6° | #25292f | #141e28 | 0.17 |
+| C64 | frozen_deep_grey_c64 | swatch, hue −6° | #242628 | #13181c | 0.12 |
+| P92 | frozen_isle_of_man_green | sibling chip | — | #013004 | 7.52 |
+| X1E | frozen_portimao_blue | swatch, hue −6° | #0e2357 | #011760 | 4.10 |
+| C6R | frozen_portimao_blue_c6r | BMW render | #0e2357 | #01115d | 1.66 |
 | P9C | frozen_preciosa_red | swatch, hue −6° | #510202 | #550101 | 3.95 |
-| C5A | frozen_pure_grey | BMW render | #44494c | #464c50 | 0.31 |
-| X1F | frozen_pure_grey_ii | swatch, hue −6° | #717e82 | #7e8e92 | 0.20 |
-| X1G | frozen_tanzanite_blue | swatch, hue −6° | #02023f | #01013f | 5.26 |
-| P6M | grigio_telesto | BMW render | #555858 | #555757 | 0.56 |
-| 405 | imola_red | swatch, hue −6° | #6e1b0d | #6e2823 | 2.15 |
-| C4G | isle_of_man_green | BMW render | #0f5444 | #0f6150 | 0.14 |
-| P7V | java_green | swatch, hue −6° | #638954 | #7a9b5d | 0.14 |
-| 266 | lagoon_green | swatch, hue −6° | #135861 | #13656d | 0.53 |
-| 381 | le_mans_blue | swatch, hue −6° | #1c5185 | #1c6299 | 0.17 |
-| P85 | malachite_green_ii | swatch, hue −6° | #31433a | #3e4e43 | 0.37 |
-| C1K | marina_bay_blue | BMW render | #1c4085 | #204d98 | 0.04 |
-| A96 | mineral_white | BMW render | #ebeae9 | #adabaa | 0.23 |
-| W97 | mint_green | swatch, hue −6° | #409084 | #2f6a5d | 0.72 |
-| P6K | nardo_grey | swatch, hue −6° | #666869 | #4d4e4e | 0.64 |
-| 430 | oxford_green_ii | swatch, hue −6° | #1b3330 | #283d39 | 0.43 |
-| C31 | portimao_blue | BMW render | #1e3066 | #2a3c74 | 0.23 |
-| P5C | riviera_blue | swatch, hue −6° | #028fc1 | #016586 | 0.21 |
-| X03 | ruby_black | swatch, hue −6° | #24181c | #2f2427 | 0.39 |
-| P9L | ruby_star | swatch, hue −6° | #75084c | #56183d | 1.16 |
-| B51 | san_marino_blue | swatch, hue −6° | #092455 | #093263 | 0.06 |
+| C5A | frozen_pure_grey | BMW render | #44494c | #464d50 | 0.48 |
+| X1F | frozen_pure_grey_ii | swatch, hue −6° | #717e82 | #7d8e92 | 0.27 |
+| X1G | frozen_tanzanite_blue | swatch, hue −6° | #02023f | #010140 | 5.08 |
+| P6M | grigio_telesto | BMW render | #555858 | #545857 | 1.08 |
+| 405 | imola_red | swatch, hue −6° | #6e1b0d | #6e2123 | 0.21 |
+| C4G | isle_of_man_green | BMW render | #0f5444 | #0f614f | 0.50 |
+| P7V | java_green | swatch, hue −6° | #638954 | #7a9b5e | 0.10 |
+| 266 | lagoon_green | swatch, hue −6° | #135861 | #13656c | 0.18 |
+| 381 | le_mans_blue | swatch, hue −6° | #1c5185 | #1c629a | 0.12 |
+| P85 | malachite_green_ii | swatch, hue −6° | #31433a | #3d4e44 | 0.26 |
+| C1K | marina_bay_blue | BMW render | #1c4085 | #264e98 | 0.30 |
+| A96 | mineral_white | BMW render | #ebeae9 | #adabaa | 0.25 |
+| W97 | mint_green | swatch, hue −6° | #409084 | #34695d | 0.61 |
+| P6K | nardo_grey | swatch, hue −6° | #666869 | #4c4f4f | 1.29 |
+| 430 | oxford_green_ii | swatch, hue −6° | #1b3330 | #283e39 | 0.43 |
+| C31 | portimao_blue | BMW render | #1e3066 | #2a3c74 | 0.21 |
+| P5C | riviera_blue | swatch, hue −6° | #028fc1 | #016685 | 0.83 |
+| X03 | ruby_black | swatch, hue −6° | #24181c | #2e2427 | 0.43 |
+| P9L | ruby_star | swatch, hue −6° | #75084c | #550d3d | 0.59 |
+| B51 | san_marino_blue | swatch, hue −6° | #092455 | #093363 | 0.19 |
 | C4H | sao_paulo_yellow | BMW render | #88a11c | #859d25 | 0.09 |
-| A32 | sepang_bronze | swatch, hue −6° | #636054 | #736d61 | 0.77 |
-| S0N | sepia_iii | swatch, hue −6° | #4b494b | #575457 | 1.03 |
-| C4W | skyscraper_grey | BMW render | #555a5d | #62676a | 0.27 |
-| A90 | sophisto_grey_brilliant_effect | BMW render | #2b2c2b | #2d2c2b | 0.83 |
-| U96 | speed_yellow | swatch, hue −6° | #b09918 | #856b15 | 0.23 |
-| C3N | storm_bay | BMW render | #5f686e | #6d777e | 0.24 |
-| C3Z | tanzanite_blue_ii | BMW render | #151f32 | #222a3c | 0.15 |
-| P6L | thunder | swatch, hue −6° | #373f43 | #424b4e | 0.48 |
-| C56 | thundernight | swatch, hue −6° | #3a1f3d | #412b4a | 0.12 |
-| C3G | toronto_red | BMW render | #9d3307 | #b5421a | 0.30 |
-| P28 | twilight_purple | swatch, hue −6° | #5a2c4d | #562e50 | 0.21 |
-| P9P | urban_green_ii | swatch, hue −6° | #485037 | #4c5039 | 0.08 |
-| 379 | velvet_blue | swatch, hue −6° | #342f58 | #353c67 | 0.20 |
-| L74 | velvet_orchid_ii | swatch, hue −6° | #806c72 | #907d85 | 0.60 |
-| P7L | voodoo_blue | sibling chip | #888888 | #025582 | 0.22 |
+| A32 | sepang_bronze | swatch, hue −6° | #636054 | #726d62 | 0.68 |
+| S0N | sepia_iii | swatch, hue −6° | #4b494b | #565557 | 0.39 |
+| C4W | skyscraper_grey | BMW render | #555a5d | #62676b | 0.54 |
+| A90 | sophisto_grey_brilliant_effect | BMW render | #2b2c2b | #2c2c2b | 0.39 |
+| U96 | speed_yellow | swatch, hue −6° | #b09918 | #866b14 | 0.14 |
+| C3N | storm_bay | BMW render | #5f686e | #6d777e | 0.22 |
+| C3Z | tanzanite_blue_ii | BMW render | #151f32 | #222a3d | 0.30 |
+| P6L | thunder | swatch, hue −6° | #373f43 | #424b4e | 0.46 |
+| C56 | thundernight | swatch, hue −6° | #3a1f3d | #422b4a | 0.28 |
+| C3G | toronto_red | BMW render | #9d3307 | #b5411a | 0.10 |
+| P28 | twilight_purple | swatch, hue −6° | #5a2c4d | #552e50 | 0.44 |
+| P9P | urban_green_ii | swatch, hue −6° | #485037 | #4c5039 | 0.09 |
+| 379 | velvet_blue | swatch, hue −6° | #342f58 | #353d67 | 0.25 |
+| L74 | velvet_orchid_ii | swatch, hue −6° | #806c72 | #907c84 | 0.21 |
+| P7L | voodoo_blue | sibling chip | #888888 | #025482 | 0.45 |
 | T09 | wildberry | swatch, hue −6° | #5a2834 | #663343 | 0.12 |
-| C6E | zandvoort_blue | BMW render | #547bad | #5479a8 | 0.26 |
+| C6E | zandvoort_blue | BMW render | #547bad | #5478a8 | 0.36 |
 
 ## Renderer calibration (2026-09-27, superseded by the recalibration above)
 
