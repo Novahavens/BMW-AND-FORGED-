@@ -1342,6 +1342,15 @@ export class CarConfiguratorEngine {
 
   /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
   private disposeBody() {
+    // hand a cached model back with its own materials (see syncRenderedBody)
+    this.bodyMeshGroup.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh && mesh.userData.liveMaterial) {
+        mesh.material = mesh.userData.liveMaterial;
+        delete mesh.userData.liveMaterial;
+        mesh.renderOrder = 0;
+      }
+    });
     this.bodyMeshGroup.children.forEach((child) => {
       if (child.userData.cachedModel) return; // geometry shared with the cached GLB
       child.traverse((obj) => {
@@ -1993,6 +2002,7 @@ export class CarConfiguratorEngine {
    * background, from the exact camera the render used (fixed aspect, no orbit).
    */
   static RENDER_ASPECT = 1.6;
+  private static DEPTH_ONLY = new THREE.MeshBasicMaterial({ colorWrite: false });
   private renderedBody = false;
   public setRenderedBody(on: boolean) {
     if (on === this.renderedBody) return;
@@ -2003,7 +2013,20 @@ export class CarConfiguratorEngine {
   }
   private syncRenderedBody() {
     const on = this.renderedBody;
-    this.bodyMeshGroup.visible = !on;
+    // The body stays as an invisible depth mask, so the far-side wheels hide behind the rendered car
+    this.bodyMeshGroup.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (on && !mesh.userData.liveMaterial) {
+        mesh.userData.liveMaterial = mesh.material;
+        mesh.material = CarConfiguratorEngine.DEPTH_ONLY;
+        mesh.renderOrder = -1;
+      } else if (!on && mesh.userData.liveMaterial) {
+        mesh.material = mesh.userData.liveMaterial;
+        delete mesh.userData.liveMaterial;
+        mesh.renderOrder = 0;
+      }
+    });
     if (this.contactShadow) this.contactShadow.group.visible = !on;
     this.wheelAssemblies.forEach((a) => {
       if (on) a.caliper.visible = true;
