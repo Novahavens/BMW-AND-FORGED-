@@ -2166,7 +2166,7 @@ export function buildCaliper(d: WheelDims, mats: WheelKitMaterials, isRight: boo
   const rOut = Rd + 0.024;
   const span = THREE.MathUtils.degToRad(d.isFront ? 84 : 70); // ~278 / 230 mm along the disc
   const halfW = L.discThickness / 2 + (d.isFront ? 0.038 : 0.032); // disc plane to outer face
-  const key = `${Rd}|${span}|${halfW}|v2`;
+  const key = `${Rd}|${span}|${halfW}|v3`;
   let geos = caliperGeoCache.get(key);
   if (!geos) {
     const kidney = (r0: number, r1: number, b0: number, b1: number) => {
@@ -2178,26 +2178,69 @@ export function buildCaliper(d: WheelDims, mats: WheelKitMaterials, isRight: boo
       sh.absarc(Math.cos(b0) * mr, Math.sin(b0) * mr, er, b0 + Math.PI, b0 + Math.PI * 2, false);
       return sh;
     };
+    // The real outline of a 6-piston fixed caliper seen from outside: square radial ends with small
+    // cast fillets (not the round ends of a bean), the outer edge following the disc, and the inner
+    // edge bulging towards the hub over each of the three piston bores.
+    const caliperOutline = (r0: number, r1: number, b0: number, b1: number, lobe: number, fillet: number) => {
+      const P = (r: number, a: number) => new THREE.Vector2(Math.cos(a) * r, Math.sin(a) * r);
+      const rInner = (a: number) => {
+        const f = (a - b0) / (b1 - b0);
+        let bulge = 0;
+        for (const k of [0.17, 0.5, 0.83]) bulge += Math.exp(-(((f - k) / 0.1) ** 2));
+        return r0 - lobe * Math.min(1, bulge);
+      };
+      const dOut = fillet / r1, dIn = fillet / r0;
+      const sh = new THREE.Shape();
+      const n = 72;
+      const start = P(r1, b0 + dOut);
+      sh.moveTo(start.x, start.y);
+      for (let i = 1; i <= n; i++) {
+        const q = P(r1, b0 + dOut + ((b1 - dOut) - (b0 + dOut)) * (i / n));
+        sh.lineTo(q.x, q.y);
+      }
+      let c = P(r1, b1), e = P(r1 - fillet, b1);
+      sh.quadraticCurveTo(c.x, c.y, e.x, e.y);
+      const ri1 = rInner(b1);
+      e = P(ri1 + fillet, b1);
+      sh.lineTo(e.x, e.y);
+      c = P(ri1, b1);
+      e = P(rInner(b1 - dIn), b1 - dIn);
+      sh.quadraticCurveTo(c.x, c.y, e.x, e.y);
+      for (let i = 1; i <= n; i++) {
+        const a = (b1 - dIn) - ((b1 - dIn) - (b0 + dIn)) * (i / n);
+        const q = P(rInner(a), a);
+        sh.lineTo(q.x, q.y);
+      }
+      const ri0 = rInner(b0);
+      c = P(ri0, b0);
+      e = P(ri0 + fillet, b0);
+      sh.quadraticCurveTo(c.x, c.y, e.x, e.y);
+      e = P(r1 - fillet, b0);
+      sh.lineTo(e.x, e.y);
+      c = P(r1, b0);
+      sh.quadraticCurveTo(c.x, c.y, start.x, start.y);
+      return sh;
+    };
     const a0 = Math.PI / 2 - span / 2, a1 = Math.PI / 2 + span / 2; // centred on +Y (top) before rotation
     const at = (f: number) => a0 + (a1 - a0) * f;
     const polar = (r: number, a: number, z: number) => new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, z);
 
     // body: the outer half is the deep, rounded part seen through the spokes
     // a cast body: firm 7 mm radius on the edges (a soft "sausage" edge reads as a toy)
-    const bev = 0.007;
-    const body = new THREE.ExtrudeGeometry(kidney(rIn, rOut, a0, a1), {
+    const bev = 0.0045;
+    const body = new THREE.ExtrudeGeometry(caliperOutline(rIn, rOut, a0, a1, 0.012, 0.009), {
       depth: halfW * 2 - bev * 2,
       curveSegments: 48,
       bevelEnabled: true,
       bevelThickness: bev,
       bevelSize: bev,
       bevelOffset: -bev,
-      bevelSegments: 5
+      bevelSegments: 3
     });
     body.translate(0, 0, -(halfW * 2 - bev * 2) / 2);
 
     // raised outer face
-    const faceShape = kidney(rIn + 0.011, rOut - 0.012, a0 + 0.05, a1 - 0.05);
+    const faceShape = caliperOutline(rIn + 0.009, rOut - 0.009, a0 + 0.045, a1 - 0.045, 0.009, 0.006);
     const face = new THREE.ExtrudeGeometry(faceShape, {
       depth: 0.002,
       curveSegments: 48,
@@ -2281,9 +2324,9 @@ export function buildCaliper(d: WheelDims, mats: WheelKitMaterials, isRight: boo
       caps.push(cap);
     }
     // pads inside the caliper, seen in the window and at its inner edge
-    const padShape = kidney(Rd - 0.06, Rd - 0.003, a0 + 0.08, a1 - 0.08);
+    const padShape = kidney(Rd - 0.058, Rd - 0.004, a0 + 0.14, a1 - 0.14);
     const pad = new THREE.ExtrudeGeometry(padShape, { depth: 0.011, curveSegments: 32, bevelEnabled: false });
-    const plateShape = kidney(Rd - 0.062, Rd + 0.006, a0 + 0.07, a1 - 0.07);
+    const plateShape = kidney(Rd - 0.06, Rd + 0.004, a0 + 0.12, a1 - 0.12);
     const backing = new THREE.ExtrudeGeometry(plateShape, { depth: 0.004, curveSegments: 32, bevelEnabled: false });
     const pads = mergeGeometries([
       pad.clone().translate(0, 0, L.discThickness / 2 + 0.0005),
