@@ -802,6 +802,9 @@ export interface RimPhotoOptions {
   cleanFace?: boolean;
   /** Refit spoke edges as locally straight lines (default on). */
   edgeFit?: boolean;
+  /** The design's rotational symmetry, when detection can't read it (it tries 3-24; a 25-spoke
+   *  turbine reads as 24 and smears into a solid disc). */
+  fold?: number;
 }
 
 /**
@@ -902,6 +905,7 @@ export function processRimPhoto(image: CanvasImageSource & { width: number; heig
   if (best >= 0.4) {
     for (const [n, v] of scores) if (v >= 0.85 * best && n > fold) fold = n;
   }
+  if (opts.fold && opts.fold > 0) fold = Math.round(opts.fold);
 
   // Spokes over the barrel: in most photos the barrel (and its bolts, rings and lettering) is
   // seen solid behind the outer half of the spokes, so the see-through windows end well inside

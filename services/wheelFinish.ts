@@ -166,6 +166,9 @@ export function applyFinishLook(material: THREE.MeshPhysicalMaterial, look: Fini
   material.roughness = look.roughness;
   material.clearcoat = look.clearcoat;
   material.clearcoatRoughness = look.clearcoatRoughness;
+  // Gloss paint: only the clear coat reflects. The paint film's own (rough) reflection would
+  // spread a grey haze over the whole wheel and turn gloss black into gunmetal.
+  material.specularIntensity = look.kind === 'gloss-paint' ? 0 : 1;
   const u = material.userData.finishLayers as FinishLayerUniforms | undefined;
   if (u) {
     u.uFinishFlake.value = look.flake;

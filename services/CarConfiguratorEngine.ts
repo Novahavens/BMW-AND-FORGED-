@@ -1891,6 +1891,7 @@ export class CarConfiguratorEngine {
     this.barrelMaterial.metalness = look.metalness;
     this.barrelMaterial.clearcoat = look.clearcoat * 0.5;
     this.barrelMaterial.clearcoatRoughness = Math.min(1, look.clearcoatRoughness + 0.1);
+    this.barrelMaterial.specularIntensity = look.kind === 'gloss-paint' ? 0 : 1; // see applyFinishLook
     this.barrelMaterial.needsUpdate = true;
 
     // GLB and flat image rim faces take the finish too (without flake: their units vary)

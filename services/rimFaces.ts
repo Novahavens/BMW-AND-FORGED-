@@ -24,7 +24,8 @@ export const RIM_FACE_MASKS: Record<string, string> = {
 
 /**
  * Per-wheel overrides of how the photo is read (wheelKit RimPhotoOptions), for a design the
- * defaults don't suit, e.g. { straightArms: false } for curved arms. Empty: every current photo
- * wheel reads cleanly with the defaults.
+ * defaults don't suit, e.g. { straightArms: false } for curved arms.
  */
-export const RIM_FACE_OPTIONS: Record<string, RimPhotoOptions> = {};
+export const RIM_FACE_OPTIONS: Record<string, RimPhotoOptions> = {
+  forged_fsa_14: { fold: 25 } // 25 spokes: symmetry detection stops at 24
+};
