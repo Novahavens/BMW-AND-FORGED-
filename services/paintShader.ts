@@ -26,13 +26,29 @@ export interface PaintLayerUniforms {
   uCoatBoost: THREE.IUniform<number>;
 }
 
-/** Look per BMW paint type. Exposed so tuning sessions can adjust them live. */
-export const PAINT_LAYERS: Record<PaintColor['type'], { flake: number; flop: number }> = {
-  Metallic: { flake: 0.07, flop: 0.66 },
-  // Frozen (matte) paints are metallic underneath, but the matte clear coat diffuses the sparkle.
-  Frozen: { flake: 0.03, flop: 0.78 },
-  Uni: { flake: 0, flop: 0.92 }
-};
+/**
+ * Look per BMW paint finish, on top of the per-paint numbers in the catalogue (base colour, roughness,
+ * metalness, clear coat). Values from the Khronos car-paint samples, Arnold/VRED car-paint docs and BMW's
+ * finish descriptions (docs/bmw-factory-paints.md, "Material values"):
+ *
+ * - Uni (solid): no flakes and no face/flop travel (the coat's Fresnel does the edges). The base coat sits
+ *   under lacquer of nearly the same index, so its own specular is mostly hidden (specularIntensity 0.2).
+ * - Metallic: aluminium flakes (real ones are 5-45 um; cells of 0.3 mm fade out below a pixel).
+ * - Pearl: mica/xirallic effect pigments ("Pearl effect", "Brilliant Effect", "Amber effect"): sparser,
+ *   brighter glints and a thin-film colour shift with angle (iridescence).
+ * - Frozen: a satin (matted) clear coat over a metallic base, giving a broad, untinted sheen. The base must
+ *   be at least as rough as the coat (three.js doesn't roughen it under a rough coat).
+ */
+export interface PaintLook {
+  flake: number;
+  flop: number;
+  specularIntensity: number;
+  coatBoost: number;
+  iridescence?: number;
+  iridescenceIOR?: number;
+  iridescenceThickness?: [number, number];
+  sheen?: number;
+}
 
 /**
  * Strength of the clear coat's reflection of the studio. A real clear coat reflects a bright, high
@@ -45,8 +61,38 @@ export const COAT_BOOST: number = (() => {
   return m ? +m[1] : 1.2;
 })();
 
-/** Flake cells per metre (about 0.7 mm: a fine sparkle up close that fades out with distance). */
-export const FLAKE_SCALE = 1400;
+export const PAINT_LAYERS: Record<PaintColor['type'], PaintLook> = {
+  Uni: { flake: 0, flop: 1, specularIntensity: 0.2, coatBoost: COAT_BOOST },
+  Metallic: { flake: 0.1, flop: 0.65, specularIntensity: 0.5, coatBoost: COAT_BOOST },
+  Pearl: {
+    flake: 0.14,
+    flop: 0.7,
+    specularIntensity: 0.5,
+    coatBoost: COAT_BOOST,
+    iridescence: 0.2,
+    iridescenceIOR: 1.9,
+    iridescenceThickness: [250, 450]
+  },
+  // The satin coat is the whole look: no extra boost, a soft white sheen at grazing angles
+  Frozen: { flake: 0.02, flop: 0.78, specularIntensity: 0.5, coatBoost: 1, sheen: 0.25 }
+};
+
+/** Single paints whose effect differs from their finish class (by BMW paint code). */
+export const PAINT_CODE_LOOKS: Record<string, Partial<PaintLook>> = {
+  // Mineral White: tri-coat pearl over a white base, a faint pearl shimmer rather than glints
+  A96: { flake: 0.03, flop: 0.85, iridescence: 0.12, iridescenceThickness: [300, 400] },
+  // Bernina Grey Amber effect: the pearl turns gold towards the light
+  C3E: { iridescenceThickness: [380, 520] },
+  // Frozen Brilliant White: a metallic base this light would read as chrome; little flop or flake
+  X16: { flake: 0, flop: 0.92, sheen: 0.2 }
+};
+
+export function paintLook(paint: Pick<PaintColor, 'type' | 'code'>): PaintLook {
+  return { ...(PAINT_LAYERS[paint.type] ?? PAINT_LAYERS.Metallic), ...(PAINT_CODE_LOOKS[paint.code] ?? {}) };
+}
+
+/** Flake cells per metre (about 0.3 mm: real flakes only resolve up close, and fade out below a pixel). */
+export const FLAKE_SCALE = 3200;
 
 export function installPaintLayers(material: THREE.MeshPhysicalMaterial): PaintLayerUniforms {
   const uniforms: PaintLayerUniforms = {
@@ -108,11 +154,21 @@ vec3 paintHash3(vec3 p) {
   return uniforms;
 }
 
-/** Sets the flake and flop for a paint on every material carrying the paint layers. */
-export function applyPaintLayers(material: THREE.Material, paint: Pick<PaintColor, 'type'>) {
+/** Sets the finish (flake, flop, specular, pearl shift, satin sheen) for a paint on a paint material. */
+export function applyPaintLayers(material: THREE.Material, paint: Pick<PaintColor, 'type' | 'code'>) {
   const u = material.userData.paintLayers as PaintLayerUniforms | undefined;
   if (!u) return;
-  const look = PAINT_LAYERS[paint.type] ?? PAINT_LAYERS.Metallic;
+  const look = paintLook(paint);
   u.uFlakeStrength.value = look.flake;
   u.uFlop.value = look.flop;
+  u.uCoatBoost.value = look.coatBoost;
+  const m = material as THREE.MeshPhysicalMaterial;
+  if (!m.isMeshPhysicalMaterial) return;
+  m.specularIntensity = look.specularIntensity;
+  m.iridescence = look.iridescence ?? 0;
+  m.iridescenceIOR = look.iridescenceIOR ?? 1.3;
+  if (look.iridescenceThickness) m.iridescenceThicknessRange = [...look.iridescenceThickness];
+  m.sheen = look.sheen ?? 0;
+  m.sheenRoughness = 0.7;
+  m.sheenColor.setRGB(1, 1, 1);
 }

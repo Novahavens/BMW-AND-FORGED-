@@ -9,6 +9,55 @@
 - **Finish** values come from BMW's category (UNI/MET) and the paint name ("Frozen" = matte, "Uni" = solid). Where BMW's label does not say, the finish is marked **unverified** rather than guessed.
 - **Render URLs** are in the appendix: one BMW swatch URL per paint, plus a BMW car render (the "in <paint>" colour-switch image) where bmw.co.za or bmwusa.com shows one for that paint.
 
+## Update 2026-10-04: verified codes, finishes and recalibration
+
+The open questions in this document were checked against BMW's own sources. The most useful was the **BMW Individual Visualizer for South Africa** (https://individual.bmw-m.com/en-ZA/colors), which lists each Individual colour's code, BMW's name and the cars it is offered on (links such as `/en-ZA/G82-21HK-P92`). The palettes below and in `data/configuratorData.ts` now include these corrections.
+
+**Palette changes**
+
+| Car | Change | Source |
+|---|---|---|
+| M4 CS (G82, 2025) | Its own 4-colour palette, not the M4 Competition's 21: P5C Riviera Blue (solid, Individual), P92 Frozen Isle of Man Green Metallic (Individual), C4P M Brooklyn Grey, 475 Black Sapphire | BMW SA press kit https://www.press.bmwgroup.com/south-africa/article/detail/T0441833EN/the-all-new-bmw-m4-cs ; BMW UK press ("Riviera Blue solid") https://www.press.bmwgroup.com/united-kingdom/article/detail/T0441761EN_GB/the-all-new-bmw-m4-cs ; Visualizer `G82-21HK-P92`, `G82-21HK-P5C` |
+| M2 (G87) | Adds P9E Borusan Turkish Blue (solid, Individual, new for MY27). Voodoo Blue P7L is now active (BMW chip colour found) | Visualizer: the G87 Individual list is exactly P6M, P7L, P7V, P9E |
+| M8 (F92) | X15 Aventurin Red replaced by **C57** (the facelifted M8's code); X15 kept inactive so saved builds still open | BMW NA order guides MY2023 and MY2024 (C57 "Aventurin Red Metallic"); MY2022 used X1C |
+
+**Codes and names resolved**
+
+- **Fire Orange III is P7E.** U94 is the older Fire Orange II (about 2011); the SA M3 configurator's U94 node is a leftover. Visualizer lists P7E for the M3 and M5.
+- **US names that are the same paints:** Vegas Red Metallic = **C68** (Fire Red / "Dragon Fire Red"); Dark Graphite Metallic = **A90** (Sophisto Grey Brilliant Effect). Cape York Green Metallic is **C5Y** (US M235 only, not offered in SA).
+- **266 is "Laguna Green Metallic"** (BMW's name; the SA configurator says "Lagoon").
+- **M8 Tanzanite Blue II C3Z** is confirmed by the MY2023-24 order guides.
+
+**Finish types corrected** (`paints.type`). A new type, **Pearl**, covers pearl and xirallic effect paints.
+
+| Code | Paint | Now | Evidence |
+|---|---|---|---|
+| P5C | Riviera Blue | Uni (solid) | BMW UK press "Riviera Blue solid" |
+| W97 | Mint Green | Uni | BMW Individual name "Mint Green Uni" |
+| P7L | Voodoo Blue | Uni | BMW USA M2 press lists it without "metallic"; Porsche's Voodoo Blue (Z12) is solid |
+| P6K, U96, T42, 375, P9L | Nardo Grey, Speed Yellow, Brewster Green, Fire Red II, Ruby Star | Uni | carpaints.co (third party; BMW does not state these) |
+| P6M | Grigio Telesto | Pearl | BMW "Pearl Effect" |
+| P28 | Twilight Purple | Pearl | BMW "Twilight Purple Pearl effect" |
+| C3E | Bernina Grey Amber Effect | Pearl | BMW "Amber effect" |
+| A90 | Sophisto Grey Brilliant Effect | Pearl | BMW "Brilliant Effect" (xirallic) |
+| A96 | Mineral White | Pearl | tri-coat pearl (paint suppliers) |
+| P7V, B51, P85, 266, B03 | Java Green, San Marino Blue, Malachite Green II, Laguna Green, Damast Red | Metallic (confirmed) | BMW USA press / BMW Individual names; B03 from carpaints.co |
+
+**BMW Individual programme (not in the palettes).** Beyond the configurator's colours, the Visualizer offers about 140 BMW Individual special-order colours on most M cars (G80/G81/G82/G83: 138-140, G90/G99: 142, F74: 130, F92: 132), only 4 on the M2 and 14 on the X3 M50 (the X5 M F95 is not listed). The palettes here keep to what the SA configurator offers; the full Individual list could be added as a separate collection.
+
+**Still unverified:** the VR46 Edition's Frozen Tanzanite Blue code (X1G or P96); Thundernight C56 on the M2; C3Z on the SA M235; BMW's own finish word for P9L, U96, T42, B03, P6K and 375.
+
+**Material values per finish** (`services/paintShader.ts` `PAINT_LAYERS`, per-paint numbers in `paints`). From the Khronos car-paint samples (ClearCoatCarPaint, CarConcept), the glTF clearcoat spec, Autodesk Arnold/VRED car paint, physicallybased.info and BMW's finish descriptions:
+
+| Finish | Metalness | Roughness | Clear coat / roughness | Specular | Flake / flop | Extra |
+|---|---|---|---|---|---|---|
+| Uni | 0 | 0.40 | 1 / 0.03 | 0.2 (the base sits under lacquer of nearly the same index) | 0 / 1.0 (no face/flop travel) | |
+| Metallic | 0.60 | 0.38 | 1 / 0.03 | 0.5 | 0.10 / 0.65 | 0.3 mm flake cells, faded below a pixel |
+| Pearl | 0.45 | 0.40 | 1 / 0.03 | 0.5 | 0.14 / 0.70 | iridescence 0.2, IOR 1.9, 250-450 nm |
+| Frozen | 0.60 | 0.58 | 1 / 0.45 (a real satin coat, not none) | 0.5 | 0.02 / 0.78 | white sheen 0.25 |
+
+Single-paint looks: A96 Mineral White (metalness 0.15, faint pearl), C3E Amber effect (thicker film, gold towards the light), X16 Frozen Brilliant White (metalness 0.2, roughness 0.6; a light metallic base would read as chrome).
+
 ## Status of the 11 requested cars
 
 | # | Requested | Exists? | Current name (SA) | Chassis | Body | Notes |
@@ -402,7 +451,7 @@ One row per BMW paint code. "Cars" shows each model that offers the paint and ho
 
 These are not in the master list, and their codes were not researched: **Vegas Red Metallic** (US M2, M235, M5, M5 Touring, X3 M50), **Dark Graphite Metallic** (US M5, M5 Touring, X3 M50) and **Cape York Green Metallic** (US M235). The US overview pages also show Thundernight Metallic (C56) on the M3 and M4 Convertible, and Arctic Race Blue (C4F) on the M4 Convertible. The US sites appear to be moving from Fire Red (C68) to Vegas Red on MY2027 cars.
 
-## Renderer calibration (2026-09-27)
+## Renderer calibration (2026-09-27, superseded by the recalibration below)
 
 The swatch hex values above are lit 140×140 chips, so they are not usable as renderer base colours (dark and metallic paints come out far too light). `paints.hex` in the database and `data/configuratorData.ts` therefore hold **calibrated base colours** for the studio renderer (`services/CarConfiguratorEngine.ts`: studio HDRI, ACES tone mapping), found like this:
 

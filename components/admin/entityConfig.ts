@@ -122,7 +122,7 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'name', label: 'Name', type: 'text' },
       { key: 'code', label: 'Paint code', type: 'text' },
       { key: 'hex', label: 'Colour', type: 'color' },
-      { key: 'type', label: 'Type', type: 'select', options: ['Metallic', 'Frozen', 'Uni'] },
+      { key: 'type', label: 'Type', type: 'select', options: ['Metallic', 'Pearl', 'Frozen', 'Uni'] },
       { key: 'metalness', label: 'Metalness (0–1)', type: 'number', step: 0.01 },
       { key: 'roughness', label: 'Roughness (0–1)', type: 'number', step: 0.01 },
       { key: 'clearcoat', label: 'Clearcoat (0–1)', type: 'number', step: 0.01 },

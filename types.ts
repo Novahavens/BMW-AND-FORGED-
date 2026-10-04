@@ -38,7 +38,8 @@ export interface PaintColor {
   name: string;
   code: string;
   hex: string;
-  type: 'Metallic' | 'Frozen' | 'Uni';
+  /** Finish: Pearl = pearl / xirallic effect paints ("Pearl effect", "Brilliant Effect", "Amber effect"). */
+  type: 'Metallic' | 'Pearl' | 'Frozen' | 'Uni';
   roughness: number;
   metalness: number;
   clearcoat: number;

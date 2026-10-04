@@ -1807,10 +1807,11 @@ export class CarConfiguratorEngine {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
     return m ? +m[1] : 0.55;
   })();
-  /** Paint gloss: the base coat's roughness is scaled and the clear coat made sharper (?gloss= compares). */
+  /** Tuning only: scales the base coat's roughness of glossy paints (?gloss= compares). The catalogue's
+   * per-paint values are the real ones, so this is 1. */
   static GLOSS: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]gloss=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.65;
+    return m ? +m[1] : 1;
   })();
 
   private currentPaint: PaintColor | null = null;
@@ -1821,13 +1822,11 @@ export class CarConfiguratorEngine {
       applyPaintLayers(m, paint);
       m.envMapIntensity = CarConfiguratorEngine.BODY_ENV_INTENSITY;
       m.color.set(paint.hex);
-      // Gloss: a sharper clear coat and a smoother base coat for glossy paints; Frozen stays matte
-      const glossy = paint.type !== 'Frozen';
-      const g = glossy ? CarConfiguratorEngine.GLOSS : 1;
+      const g = paint.type !== 'Frozen' ? CarConfiguratorEngine.GLOSS : 1;
       m.roughness = paint.roughness * g;
       m.metalness = paint.metalness;
       m.clearcoat = paint.clearcoat;
-      m.clearcoatRoughness = glossy ? Math.min(paint.clearcoatRoughness, 0.025) : paint.clearcoatRoughness;
+      m.clearcoatRoughness = paint.clearcoatRoughness;
       m.needsUpdate = true;
     }
     this.requestRender();
