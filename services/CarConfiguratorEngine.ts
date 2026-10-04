@@ -1765,7 +1765,7 @@ export class CarConfiguratorEngine {
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
   static SOFTBOX_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.8;
+    return m ? +m[1] : 0.55;
   })();
   /** Paint gloss: the base coat's roughness is scaled and the clear coat made sharper (?gloss= compares). */
   static GLOSS: number = (() => {

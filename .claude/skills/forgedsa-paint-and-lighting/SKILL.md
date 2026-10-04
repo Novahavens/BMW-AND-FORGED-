@@ -22,8 +22,8 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 - **White studio (current default, `?room=white`):** white page backdrop (`.bg-stage`; parts of the UI
   on it use `.stage-light`, dialogs `.stage-dark`) with a mid-grey reflection room lit by big bright
   softboxes. A uniformly white room washes paint out; contrast between softboxes and room is what
-  reads as gloss. `SOFTBOX_INTENSITY` 0.8 (`?envi=`).
-- **Clear-coat boost (`COAT_BOOST` 1.8, `?coat=`):** `paintShader.ts` multiplies the clear coat's
+  reads as gloss. `SOFTBOX_INTENSITY` 0.55 (`?envi=`); ROOM_WHITE panels are 2.5x brighter with 0.3x feather for crisp reflections.
+- **Clear-coat boost (`COAT_BOOST` 1.2, `?coat=`):** `paintShader.ts` multiplies the clear coat's
   indirect reflection. `clearcoat` can't go above 1, and a plain 4% reflection of a soft room looks
   matte. Glossy paints also get base roughness x `GLOSS` 0.65 (`?gloss=`) and clearcoatRoughness
   at most 0.025; Frozen is unchanged.

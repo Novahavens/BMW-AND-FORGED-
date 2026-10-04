@@ -17,6 +17,8 @@ import * as THREE from 'three';
  * Coordinates are car-relative: the car sits at the origin, nose towards +Z, wheels on y = 0.
  */
 export function buildSoftboxStudio(room: StudioRoom = ROOM_DARK): THREE.Scene {
+  panelGain = room.panelGain ?? 1;
+  panelEdge = room.edge ?? 1;
   const scene = new THREE.Scene();
 
   // Room: near-black, a touch lighter at the horizon so the lower body and sills catch a
@@ -66,6 +68,9 @@ export function buildSoftboxStudio(room: StudioRoom = ROOM_DARK): THREE.Scene {
   return scene;
 }
 
+let panelGain = 1;
+let panelEdge = 1;
+
 function panel(
   scene: THREE.Scene,
   o: { w: number; h: number; at: [number, number, number]; lookAt: [number, number, number]; intensity: number; feather?: number }
@@ -74,8 +79,8 @@ function panel(
   // top of the dark room, so a soft edge never shows a seam).
   const mat = new THREE.ShaderMaterial({
     uniforms: {
-      uColor: { value: new THREE.Color(1, 0.995, 0.985).multiplyScalar(o.intensity) },
-      uFeather: { value: o.feather ?? 0.2 }
+      uColor: { value: new THREE.Color(1, 0.995, 0.985).multiplyScalar(o.intensity * panelGain) },
+      uFeather: { value: (o.feather ?? 0.2) * panelEdge }
     },
     vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `uniform vec3 uColor; uniform float uFeather; varying vec2 vUv;
@@ -111,11 +116,13 @@ export interface StudioRoom {
   floor: number; // the floor, seen in the lower body
   bounce: number; // floor-bounce panel
   sideWalls?: number; // big tall soft panels either side of the car (door and shoulder gradients)
+  panelGain?: number; // multiplies every panel's brightness (crisper, brighter reflections)
+  edge?: number; // multiplies every panel's feather (smaller = sharper-edged reflections)
 }
 export const ROOM_DARK: StudioRoom = { base: 0.035, horizon: 0.14, ceiling: 0.03, floor: 0.018, bounce: 0.08 };
 export const ROOM_WALLS: StudioRoom = { ...ROOM_DARK, base: 0.05, bounce: 0.15, floor: 0.05, sideWalls: 1.1 };
 /** A white-studio look: big bright softboxes (overhead, either side) in a mid-grey room, so paint shows deep colour between crisp bright reflections. */
-export const ROOM_WHITE: StudioRoom = { base: 0.14, horizon: 0.2, ceiling: 0.12, floor: 0.22, bounce: 0.35, sideWalls: 1.7 };
+export const ROOM_WHITE: StudioRoom = { base: 0.1, horizon: 0.18, ceiling: 0.08, floor: 0.2, bounce: 0.3, sideWalls: 1.7, panelGain: 2.5, edge: 0.3 };
 export const ROOM_LIGHT: StudioRoom = { base: 0.22, horizon: 0.3, ceiling: 0.1, floor: 0.2, bounce: 0.5 };
 
 function roomMaterial(room: StudioRoom) {
