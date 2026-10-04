@@ -183,13 +183,13 @@ export class CarConfiguratorEngine {
   static STUDIO: 'softbox' | 'hdri' =
     typeof window !== 'undefined' && /[?&]studio=hdri/.test(window.location.search) ? 'hdri' : 'softbox';
   /**
-   * The reflected studio room (?room= compares). 'studio' (default): BMW's render look, a dark surround at door
-   * height with crisp light lines, so deep paints stay deep; 'white' is the brighter white room; 'walls', 'dark'
-   * and 'light' are earlier looks. The page behind the car stays white whatever the room.
+   * The reflected studio room (?room= compares). 'white' (default): the white room with hot, crisp softboxes.
+   * 'studio': BMW's own render look, a dark surround at door height with crisp light lines, so deep paints stay
+   * deep. 'walls', 'dark' and 'light' are earlier looks. The page behind the car stays white whatever the room.
    */
   static ROOM: 'dark' | 'light' | 'walls' | 'white' | 'studio' = (() => {
     const m = typeof window !== 'undefined' ? /[?&]room=(light|walls|dark|white|studio)/.exec(window.location.search) : null;
-    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white' | 'studio') ?? 'studio';
+    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white' | 'studio') ?? 'white';
   })();
   /** Tone mapping: 'aces' (default), 'agx' or 'neutral'; ?tone=agx compares. */
   static TONE: 'aces' | 'agx' | 'neutral' = (() => {
@@ -637,7 +637,16 @@ export class CarConfiguratorEngine {
 
     if (CarConfiguratorEngine.STUDIO === 'softbox') {
       const rooms = { white: ROOM_WHITE, studio: ROOM_STUDIO, light: ROOM_LIGHT, walls: ROOM_WALLS, dark: ROOM_DARK };
-      const studio = buildSoftboxStudio(rooms[CarConfiguratorEngine.ROOM]);
+      const baseRoom = rooms[CarConfiguratorEngine.ROOM];
+      // Tuning switches: ?gain= ?edge= ?base= ?side= ?floor= ?horizon= override the room's numbers
+      const num = (k: string) => {
+        const m = typeof window !== 'undefined' ? new RegExp(`[?&]${k}=([0-9.]+)`).exec(window.location.search) : null;
+        return m ? +m[1] : undefined;
+      };
+      const room = { ...baseRoom };
+      const o = { panelGain: num('gain'), edge: num('edge'), base: num('base'), sideWalls: num('side'), floor: num('floor'), horizon: num('horizon'), flank: num('flank') };
+      (Object.keys(o) as Array<keyof typeof o>).forEach((k) => { if (o[k] !== undefined) (room as any)[k] = o[k]; });
+      const studio = buildSoftboxStudio(room);
       const studioTarget = pmrem.fromScene(studio, 0.02, 0.1, 100, { size: 512 });
       registerEnvironment(studioTarget.texture);
       studio.traverse((o) => {
@@ -1845,13 +1854,14 @@ export class CarConfiguratorEngine {
     return m ? +m[1] : 1;
   })();
   /**
-   * Overall strength of the generated softbox studio (scene.environmentIntensity). With ROOM 'studio', 0.45
-   * puts the M4's door closest to BMW's own renders across light, mid and dark paints (mean ΔE00 6.4 over
-   * ten paints, against 10.6 for the white room at 0.55; scripts/render/paint-door.html, ?envi= compares).
+   * Overall strength of the generated softbox studio (scene.environmentIntensity), ?envi= compares. White room:
+   * 0.28 under its 8x panels (hot highlights, low ambient). 'studio' room: 0.45, where the M4's door came
+   * closest to BMW's own renders (scripts/render/paint-door.html measures it).
    */
   static SOFTBOX_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.45;
+    // the BMW-style room was measured at 0.45 (its panels are not the white room's 8x)
+    return m ? +m[1] : CarConfiguratorEngine.ROOM === 'studio' ? 0.45 : 0.28;
   })();
   /** Tuning only: scales the base coat's roughness of glossy paints (?gloss= compares). The catalogue's
    * per-paint values are the real ones, so this is 1. */
