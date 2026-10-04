@@ -10,7 +10,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyPaintLayers, installPaintLayers } from './paintShader';
-import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS, ROOM_WHITE } from './studioSoftbox';
+import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_STUDIO, ROOM_WALLS, ROOM_WHITE } from './studioSoftbox';
 import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial, registerEnvironment, syncEnvironment } from './carMaterials';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
@@ -183,9 +183,9 @@ export class CarConfiguratorEngine {
   static STUDIO: 'softbox' | 'hdri' =
     typeof window !== 'undefined' && /[?&]studio=hdri/.test(window.location.search) ? 'hdri' : 'softbox';
   /** The reflected studio room: 'walls' (default: dark room with tall side panels), 'dark' or 'light'; ?room= compares. */
-  static ROOM: 'dark' | 'light' | 'walls' | 'white' = (() => {
-    const m = typeof window !== 'undefined' ? /[?&]room=(light|walls|dark|white)/.exec(window.location.search) : null;
-    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white') ?? 'white';
+  static ROOM: 'dark' | 'light' | 'walls' | 'white' | 'studio' = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]room=(light|walls|dark|white|studio)/.exec(window.location.search) : null;
+    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white' | 'studio') ?? 'white';
   })();
   /** Tone mapping: 'aces' (default), 'agx' or 'neutral'; ?tone=agx compares. */
   static TONE: 'aces' | 'agx' | 'neutral' = (() => {
@@ -632,7 +632,8 @@ export class CarConfiguratorEngine {
     room.dispose?.();
 
     if (CarConfiguratorEngine.STUDIO === 'softbox') {
-      const studio = buildSoftboxStudio(CarConfiguratorEngine.ROOM === 'white' ? ROOM_WHITE : CarConfiguratorEngine.ROOM === 'light' ? ROOM_LIGHT : CarConfiguratorEngine.ROOM === 'walls' ? ROOM_WALLS : ROOM_DARK);
+      const rooms = { white: ROOM_WHITE, studio: ROOM_STUDIO, light: ROOM_LIGHT, walls: ROOM_WALLS, dark: ROOM_DARK };
+      const studio = buildSoftboxStudio(rooms[CarConfiguratorEngine.ROOM]);
       const studioTarget = pmrem.fromScene(studio, 0.02, 0.1, 100, { size: 512 });
       registerEnvironment(studioTarget.texture);
       studio.traverse((o) => {
@@ -1184,13 +1185,13 @@ export class CarConfiguratorEngine {
           const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
           mesh.material = blackenGrilleChrome(mesh.material, c, carBox);
         }
-        bindEnvironment(mesh.material, this.scene.environment, this.scene.environmentIntensity);
+        bindEnvironment(mesh.material, this.scene.environment, this.scene.environmentIntensity, this.scene.environmentRotation);
         // Full-strength Fresnel reflections on single-material glazing (see glassReflectionMaterial)
         // (a cached model mounted again arrives with the overlay child cloned along: never twice)
         const glass = !Array.isArray(mesh.material) && mesh.material.userData.partKind === 'glass';
         if (glass && !mesh.children.some((c) => c.userData.isOverlay)) {
           const glassMat = glassReflectionMaterial();
-          bindEnvironment(glassMat, this.scene.environment, this.scene.environmentIntensity);
+          bindEnvironment(glassMat, this.scene.environment, this.scene.environmentIntensity, this.scene.environmentRotation);
           const overlay = new THREE.Mesh(mesh.geometry, glassMat);
           overlay.name = 'glass_reflection';
           overlay.renderOrder = mesh.renderOrder + 1;
@@ -2071,7 +2072,7 @@ export class CarConfiguratorEngine {
     this.camera.aspect = outW / outH;
     this.camera.updateProjectionMatrix();
     if (this.shadowFrames > 0) this.renderContactShadow();
-    syncEnvironment(this.scene, this.scene.environment, this.scene.environmentIntensity);
+    syncEnvironment(this.scene, this.scene.environment, this.scene.environmentIntensity, this.scene.environmentRotation);
 
     const src = this.renderer.domElement;
     const shots = views.map((view) => {
@@ -2260,7 +2261,7 @@ export class CarConfiguratorEngine {
     wheelShadingUniforms.uArchStrength.value = this.isShowcase ? 0 : 1;
     wheelShadingUniforms.uFloorY.value = this.isShowcase ? -10 : 0;
 
-    syncEnvironment(this.scene, this.scene.environment, this.scene.environmentIntensity);
+    syncEnvironment(this.scene, this.scene.environment, this.scene.environmentIntensity, this.scene.environmentRotation);
     this.renderer.render(this.scene, this.camera);
   }
 

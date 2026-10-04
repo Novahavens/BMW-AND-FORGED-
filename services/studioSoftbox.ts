@@ -34,7 +34,7 @@ export function buildSoftboxStudio(room: StudioRoom = ROOM_DARK): THREE.Scene {
     panel(scene, { w: 11, h: 0.9, at: [side * 6.5, 2.2, 0], lookAt: [0, 1.1, 0], intensity: 2.4, feather: 0.18 });
     panel(scene, { w: 11, h: 0.5, at: [side * 6.5, 4.4, 0], lookAt: [0, 1.0, 0], intensity: 1.0, feather: 0.25 });
     // Low strip: doors and sills reflect the opposite low side of the studio from a raised camera
-    panel(scene, { w: 12, h: 1.2, at: [side * 7, 0.7, 0], lookAt: [0, 0.6, 0], intensity: 1.3, feather: 0.3 });
+    panel(scene, { w: 12, h: 1.2 * (room.lowStrip ?? 1), at: [side * 7, 0.7, 0], lookAt: [0, 0.6, 0], intensity: 1.3, feather: 0.3 });
   }
 
   // Tall soft panels either side, front and rear of centre: the doors and flanks reflect a broad
@@ -118,11 +118,18 @@ export interface StudioRoom {
   sideWalls?: number; // big tall soft panels either side of the car (door and shoulder gradients)
   panelGain?: number; // multiplies every panel's brightness (crisper, brighter reflections)
   edge?: number; // multiplies every panel's feather (smaller = sharper-edged reflections)
+  lowStrip?: number; // height of the low side strip (1 = 1.2 m): thinner = a crisp line along the sills
 }
 export const ROOM_DARK: StudioRoom = { base: 0.035, horizon: 0.14, ceiling: 0.03, floor: 0.018, bounce: 0.08 };
 export const ROOM_WALLS: StudioRoom = { ...ROOM_DARK, base: 0.05, bounce: 0.15, floor: 0.05, sideWalls: 1.1 };
 /** A white-studio look: big bright softboxes (overhead, either side) in a mid-grey room, so paint shows deep colour between crisp bright reflections. */
 export const ROOM_WHITE: StudioRoom = { base: 0.1, horizon: 0.18, ceiling: 0.08, floor: 0.2, bounce: 0.3, sideWalls: 1.7, panelGain: 2.5, edge: 0.3 };
+/**
+ * BMW's own studio renders: crisp bright softboxes and strip lines, dark everywhere else at door height.
+ * Car sides are mirrors, so a dark surround keeps deep paints deep (Black Sapphire's door stays black
+ * with a thin light line along the sill) while the page behind the car stays white.
+ */
+export const ROOM_STUDIO: StudioRoom = { base: 0.03, horizon: 0.06, ceiling: 0.05, floor: 0.15, bounce: 0.3, panelGain: 2.5, edge: 0.3, lowStrip: 0.45 };
 export const ROOM_LIGHT: StudioRoom = { base: 0.22, horizon: 0.3, ceiling: 0.1, floor: 0.2, bounce: 0.5 };
 
 function roomMaterial(room: StudioRoom) {

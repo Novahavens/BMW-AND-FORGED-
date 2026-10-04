@@ -257,9 +257,14 @@ export function glassReflectionMaterial(): THREE.MeshPhysicalMaterial {
  * effect when the material carries the environment itself, so give it the scene's and scale by the scene's
  * intensity (once per material: cached models are mounted again).
  */
-export function bindEnvironment(material: THREE.Material | THREE.Material[], env: THREE.Texture | null, sceneIntensity: number) {
+export function bindEnvironment(
+  material: THREE.Material | THREE.Material[],
+  env: THREE.Texture | null,
+  sceneIntensity: number,
+  rotation?: THREE.Euler
+) {
   if (!env) return;
-  for (const m of Array.isArray(material) ? material : [material]) bindOne(m, env, sceneIntensity);
+  for (const m of Array.isArray(material) ? material : [material]) bindOne(m, env, sceneIntensity, rotation);
 }
 
 /** Environment maps the engines generate (studio, room, HDRI). A material carrying any other envMap chose it on purpose. */
@@ -274,17 +279,17 @@ export function registerEnvironment(env: THREE.Texture) {
  * frame: it picks up materials created later (a new car, an async rim face) and re-binds everything when the
  * environment is rebuilt (WebGL context restore, HDRI loaded). Only out-of-date materials are touched.
  */
-export function syncEnvironment(root: THREE.Object3D, env: THREE.Texture | null, sceneIntensity: number) {
+export function syncEnvironment(root: THREE.Object3D, env: THREE.Texture | null, sceneIntensity: number, rotation?: THREE.Euler) {
   if (!env) return;
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    if (Array.isArray(mesh.material)) mesh.material.forEach((m) => bindOne(m, env, sceneIntensity));
-    else bindOne(mesh.material, env, sceneIntensity);
+    if (Array.isArray(mesh.material)) mesh.material.forEach((m) => bindOne(m, env, sceneIntensity, rotation));
+    else bindOne(mesh.material, env, sceneIntensity, rotation);
   });
 }
 
-function bindOne(material: THREE.Material, env: THREE.Texture, sceneIntensity: number) {
+function bindOne(material: THREE.Material, env: THREE.Texture, sceneIntensity: number, rotation?: THREE.Euler) {
   const m = material as THREE.MeshStandardMaterial;
   if (!m || !m.isMeshStandardMaterial) return;
   if (m.envMap && m.envMap !== env && !engineEnvironments.has(m.envMap)) return;
@@ -292,6 +297,8 @@ function bindOne(material: THREE.Material, env: THREE.Texture, sceneIntensity: n
   // The part's own (relative) intensity; re-read when code has set envMapIntensity since the last bind
   if (u.envApplied === undefined || m.envMapIntensity !== u.envApplied) u.envBase = m.envMapIntensity;
   const want = u.envBase * sceneIntensity;
+  // A material's own envMap ignores scene.environmentRotation (the HDRI studio is turned 0.35π)
+  if (rotation && !m.envMapRotation.equals(rotation)) m.envMapRotation.copy(rotation);
   if (m.envMap === env && m.envMapIntensity === want) return;
   const hadEnv = !!m.envMap;
   m.envMap = env;
