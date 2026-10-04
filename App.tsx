@@ -162,6 +162,10 @@ export const App: React.FC = () => {
     [stageManifest, selectedCar.id, selectedPaint.id, selectedWheel]
   );
   const stageOn = booted && route.name === 'configure' && (cameraView === 'side' || cameraView === 'frontWheel') && stageFor(selectedSize);
+  const stagePreload = useMemo(
+    () => catalog.wheels.filter((w) => w.id !== selectedWheel.id && w.imageUrl).map((w) => ({ wheel: w, finish: pickFinish(catalog, w, selectedFinish) })),
+    [catalog, selectedWheel.id, selectedFinish]
+  );
 
   // ----------------------------------------------------
   // Routing
@@ -554,7 +558,7 @@ export const App: React.FC = () => {
       />
 
       {stageOn && (
-        <WheelStage car={selectedCar} paint={selectedPaint} wheel={selectedWheel} finish={selectedFinish} size={selectedSize} framing={cameraView === 'frontWheel' ? 'wheel' : 'car'} inset={controlsInset()} />
+        <WheelStage car={selectedCar} paint={selectedPaint} wheel={selectedWheel} finish={selectedFinish} size={selectedSize} framing={cameraView === 'frontWheel' ? 'wheel' : 'car'} inset={controlsInset()} preload={stagePreload} />
       )}
 
       {booted && route.name === 'welcome' && (

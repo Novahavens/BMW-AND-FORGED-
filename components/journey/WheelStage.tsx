@@ -17,6 +17,8 @@ interface Props {
   framing: 'car' | 'wheel';
   /** Pixels of the screen the controls cover; the picture is centred in the rest. */
   inset: { right: number; bottom: number };
+  /** Other wheels (with the finish each would show in) to prepare in the background, so a swap is instant. */
+  preload?: { wheel: WheelDesign; finish: WheelFinish }[];
 }
 
 type Loaded = { layout: StageLayout; plate: HTMLImageElement; tyres: HTMLImageElement; sprite: CanvasImageSource | null };
@@ -26,7 +28,7 @@ type Loaded = { layout: StageLayout; plate: HTMLImageElement; tyres: HTMLImageEl
  * photo. Drawn at the screen's own resolution, so the rim photo stays sharp in the close-up even
  * though the car plate is enlarged. See services/wheelStage.ts.
  */
-export const WheelStage: React.FC<Props> = ({ car, paint, wheel, finish, size, framing, inset }) => {
+export const WheelStage: React.FC<Props> = ({ car, paint, wheel, finish, size, framing, inset, preload }) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const loaded = useRef<Loaded | null>(null);
@@ -135,6 +137,24 @@ export const WheelStage: React.FC<Props> = ({ car, paint, wheel, finish, size, f
   }, [inset.right, inset.bottom]);
 
   useEffect(() => () => { if (anim.current) cancelAnimationFrame(anim.current); }, []);
+
+  // Once the picture is up, prepare the other rims (download + tint) while the customer looks
+  useEffect(() => {
+    if (!preload?.length) return;
+    const idle = (fn: () => void) => ('requestIdleCallback' in window ? (window as any).requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 600));
+    let i = 0;
+    let cancelled = false;
+    const next = () => {
+      if (cancelled || i >= preload.length) return;
+      const { wheel: w, finish: f } = preload[i++];
+      rimSprite(w, f).catch(() => null).finally(() => idle(next));
+    };
+    const handle = setTimeout(() => idle(next), 1200);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [preload]);
 
   return (
     <div ref={boxRef} className="absolute z-20 pointer-events-none animate-fade" style={{ left: 0, top: 0, right: inset.right, bottom: inset.bottom }}>

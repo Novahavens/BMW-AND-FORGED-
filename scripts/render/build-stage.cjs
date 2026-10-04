@@ -2,7 +2,8 @@
  * Renders the layers for the 2D wheel stage (see docs/WHEEL_STAGE.md) for one car.
  *
  *   bunx vite --host 127.0.0.1 --port 5173
- *   node scripts/render/build-stage.cjs <rawDir> <carIndex> <paintIndexes|all> <sizes> [view]
+ *   node scripts/render/build-stage.cjs <rawDir> <carIndex> <paintIndexes|all> <sizes|-> [view]
+ *   (sizes '-' renders plates only and keeps the layout of an earlier run; STAGE_DSF sets the pixel ratio, default 1.25)
  *   e.g. node scripts/render/build-stage.cjs /tmp/raw 3 16,7 '19",20",21",22"'
  *   then python3 scripts/render/pack-stage.py <rawDir> <carId>
  *
@@ -15,7 +16,7 @@
 const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright');
 const fs = require('fs'); const path = require('path');
 const [,, raw, carIdx, paintArg, sizeArg, view = 'side'] = process.argv;
-const W = 1600, H = 900, DSF = 2;
+const W = 1600, H = 900, DSF = Number(process.env.STAGE_DSF || 1.25);
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: DSF });
@@ -23,10 +24,6 @@ const W = 1600, H = 900, DSF = 2;
   await p.goto(`http://127.0.0.1:5173/scripts/render/engine.html?car=${carIdx}&paint=0&wheel=0&view=${view}&bg=transparent`, { waitUntil: 'domcontentloaded', timeout: 240000 });
   await p.waitForFunction(() => window.done, null, { timeout: 300000 });
   await p.waitForTimeout(6000);
-  const meta = await p.evaluate(() => {
-    const cat = window.__catalog;
-    return null;
-  });
   const info = await p.evaluate(async () => {
     const { STATIC_CATALOG } = await import('/services/catalogService.ts');
     return { car: STATIC_CATALOG.cars[+new URLSearchParams(location.search).get('car')].id, paints: STATIC_CATALOG.paints.map((x) => x.id) };
@@ -34,9 +31,10 @@ const W = 1600, H = 900, DSF = 2;
   const carId = info.car;
   const dir = path.join(raw, carId); fs.mkdirSync(dir, { recursive: true });
   const paints = paintArg === 'all' ? info.paints.map((_, i) => i) : paintArg.split(',').map(Number);
-  const sizes = sizeArg.split(',');
+  const sizes = sizeArg === '-' ? [] : sizeArg.split(',');
   const shot = async (name) => { await p.evaluate(() => window.e.requestRender(4)); await p.waitForTimeout(1800); await p.screenshot({ path: path.join(dir, name), omitBackground: true, timeout: 240000 }); };
-  const layout = { carId, w: W * DSF, h: H * DSF, sizes: {} };
+  const prev = path.join(dir, 'layout.json');
+  const layout = sizes.length || !fs.existsSync(prev) ? { carId, w: W * DSF, h: H * DSF, sizes: {} } : JSON.parse(fs.readFileSync(prev, 'utf8'));
   for (const size of sizes) {
     await p.evaluate((s) => window.e.setRimSize(s), size);
     await p.waitForTimeout(2500);
