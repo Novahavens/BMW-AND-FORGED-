@@ -6,7 +6,8 @@
   "metalness": 0.98,
   "roughness": 0.12,
   "clearcoat": 1,
-  "look": "AgX - High Contrast"
+  "look": "AgX - High Contrast",
+  "world": 0.45
  },
  "bronze": {
   "id": "bronze",

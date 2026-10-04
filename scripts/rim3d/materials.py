@@ -39,10 +39,14 @@ def _bump(nt, src, strength, distance=0.0005):
     b = nt.nodes.new('ShaderNodeBump'); b.inputs['Strength'].default_value = strength; b.inputs['Distance'].default_value = distance
     nt.links.new(src, b.inputs['Height']); return b.outputs['Normal']
 
-def make(f):
-    """f: dict with id, hex, metalness, roughness, clearcoat and optional kind -> bpy Material."""
+def make(f, part='face'):
+    """f: dict with id, hex, metalness, roughness, clearcoat and optional kind -> bpy Material.
+    part='barrel': the same coating without directional brushing or bump. A barrel is turned on a
+    lathe (round, even), and a straight brushing pattern wrapped round a cylinder reads as dents."""
     k = kind(f)
-    m = bpy.data.materials.new(f['id']); m.use_nodes = True
+    if part == 'barrel' and k == 'brushed':
+        k = 'metallic'; f = {**f, 'roughness': f['roughness'] * 0.8}
+    m = bpy.data.materials.new(f"{f['id']}_{part}"); m.use_nodes = True
     nt = m.node_tree; b = nt.nodes['Principled BSDF']
     col = srgb_to_lin(f['hex']); b.inputs['Base Color'].default_value = (*col, 1)
     # texture coordinates: object space so the grain scales with the rim, not its UVs

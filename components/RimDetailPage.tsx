@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Car, Rotate3d } from 'lucide-react';
 import { CarConfiguratorEngine } from '../services/CarConfiguratorEngine';
 import { WheelDesign, WheelFinish } from '../types';
@@ -56,7 +56,10 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   useEffect(() => {
     loadRimSpinManifest().then(setSpins);
   }, []);
-  const spin = wheel && finish && spins?.[wheel.id]?.finishes.includes(finish.id) ? spins[wheel.id] : null;
+  const [failedSpins, setFailedSpins] = useState<Set<string>>(() => new Set());
+  const spinKey = wheel && finish ? `${wheel.id}/${finish.id}` : '';
+  const spin = wheel && finish && !failedSpins.has(spinKey) && spins?.[wheel.id]?.finishes.includes(finish.id) ? spins[wheel.id] : null;
+  const onSpinError = useCallback(() => setFailedSpins((s) => (s.has(spinKey) ? s : new Set(s).add(spinKey))), [spinKey]);
   const liveEngine = spins !== null && !spin;
 
   // One showcase engine for the page's lifetime. Waits for the wheel: on a direct link to a wheel
@@ -110,7 +113,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
       <div className="relative h-[46dvh] shrink-0 lg:h-auto lg:flex-1 lg:min-h-0 short:h-auto short:flex-1 short:min-h-0">
         {spin ? (
           <div className="absolute inset-0 p-4 sm:p-8">
-            <RimSpinView wheelId={wheel.id} finishId={finish!.id} frames={spin.frames} autoRotate={autoRotate} />
+            <RimSpinView wheelId={wheel.id} finishId={finish!.id} frames={spin.frames} autoRotate={autoRotate} onError={onSpinError} />
           </div>
         ) : (
           <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />

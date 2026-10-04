@@ -13,7 +13,7 @@ export const loadRimSpinManifest = () =>
 
 const frameUrl = (wheelId: string, finishId: string, i: number) => `/renders/rims/${wheelId}/${finishId}/f${String(i).padStart(2, '0')}.webp`;
 
-export default function RimSpinView({ wheelId, finishId, frames, autoRotate, className }: { wheelId: string; finishId: string; frames: number; autoRotate: boolean; className?: string }) {
+export default function RimSpinView({ wheelId, finishId, frames, autoRotate, className, onError }: { wheelId: string; finishId: string; frames: number; autoRotate: boolean; className?: string; /** a frame failed to load: show the live 3D instead */ onError?: () => void }) {
   const [index, setIndex] = useState(0);
   const [loaded, setLoaded] = useState(0);
   const indexRef = useRef(0);
@@ -26,12 +26,14 @@ export default function RimSpinView({ wheelId, finishId, frames, autoRotate, cla
     Array.from({ length: frames }, (_, i) => {
       const img = new Image();
       img.onload = () => alive && setLoaded((n) => n + 1);
+      // a missing frame (or the SPA rewrite answering it with index.html) must not leave a broken spin
+      img.onerror = () => alive && onError?.();
       img.src = frameUrl(wheelId, finishId, i);
     });
     return () => {
       alive = false;
     };
-  }, [wheelId, finishId, frames]);
+  }, [wheelId, finishId, frames, onError]);
 
   useEffect(() => {
     if (!autoRotate) return;

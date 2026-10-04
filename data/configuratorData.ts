@@ -505,7 +505,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     subtitle: 'Fifteen-spoke classic',
     style: 'Monoblock Forged',
     spokeType: 'multi',
-    spokeCount: 10,
+    spokeCount: 15,
     weightFrontKg: 0,
     weightRearKg: 0,
     weightSavingsKg: 0,

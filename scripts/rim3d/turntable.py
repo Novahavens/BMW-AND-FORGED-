@@ -87,16 +87,22 @@ os.makedirs(a.out, exist_ok=True)
 for fid, f in finishes.items():
     # tone curve per finish: gloss black and chrome are photographed with hard contrast, satins soft
     sc.view_settings.look = f.get('look', 'AgX - Base Contrast')
-    m = material(f)
+    m = material(f); mb = material(f, 'barrel')
+    # the world each finish reflects: chrome needs a brighter surround or it reads as gloss black
+    w.node_tree.nodes['Background'].inputs['Color'].default_value = (*[f.get('world', 0.08)] * 3, 1)
     for o in objs:
-        o.data.materials.clear(); o.data.materials.append(m)
+        o.data.materials.clear(); o.data.materials.append(mb if o.name.startswith('barrel') else m)
     d = os.path.join(a.out, fid); os.makedirs(d, exist_ok=True)
     for i in range(a.frames):
         if os.path.exists(os.path.join(d, f'f{i:02d}.webp')): continue  # resume an interrupted run
         spin.rotation_euler.z = math.radians(-25 + 360 * i / a.frames)  # start a little off face-on
         tmp = os.path.join(d, f'f{i:02d}.png'); sc.render.filepath = tmp
         bpy.ops.render.render(write_still=True)
-        Image.open(tmp).save(os.path.join(d, f'f{i:02d}.webp'), quality=80, method=4); os.remove(tmp)
+        final = os.path.join(d, f'f{i:02d}.webp')  # write then rename: a killed job never leaves a half frame
+        Image.open(tmp).save(final + '.part', 'WEBP', quality=80, method=4); os.replace(final + '.part', final); os.remove(tmp)
         print(f'{fid} {i + 1}/{a.frames}', flush=True)
-json.dump({'frames': a.frames, 'finishes': list(finishes), 'size': [W, H]}, open(os.path.join(a.out, 'spin.json'), 'w'))
+# a partial re-render (--only) keeps the finishes an earlier run already made
+prev = os.path.join(a.out, 'spin.json')
+done = json.load(open(prev))['finishes'] if os.path.exists(prev) else []
+json.dump({'frames': a.frames, 'finishes': done + [f for f in finishes if f not in done], 'size': [W, H]}, open(prev, 'w'))
 print('done', a.out)
