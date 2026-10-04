@@ -3,6 +3,7 @@
  *
  *   bunx vite --host 127.0.0.1 --port 5173            # dev server, in another shell
  *   node scripts/render/shoot.cjs <outDir> <specs.json> [rimCacheDir]
+ *   (PORT=5175 node scripts/render/shoot.cjs ... for a dev server on another port)
  *
  * specs.json is a list of shots:
  *   { "name": "m4-wheel", "car": 0, "paint": 17, "wheel": 2, "finish": "black", "size": "20\"",
@@ -36,7 +37,7 @@ const RIMS = rimDir || path.join(path.dirname(specFile), 'rims');
       r.fulfill({ body, contentType: u.includes('.png') ? 'image/png' : 'application/octet-stream', headers: { 'access-control-allow-origin': '*' } });
     });
     const q = new URLSearchParams({ car: s.car ?? 0, paint: s.paint ?? 0, wheel: s.wheel ?? 0, finish: s.finish || 'liquid_metal', size: s.size || '20"', view: s.view || 'frontThreeQuarter' });
-    const url = `http://127.0.0.1:5173/scripts/render/engine.html?${q}${s.q || ''}`;
+    const url = `http://127.0.0.1:${process.env.PORT || 5173}/scripts/render/engine.html?${q}${s.q || ''}`;
     const t0 = Date.now();
     await p.goto(url, { timeout: 240000, waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.done, null, { timeout: 300000 });

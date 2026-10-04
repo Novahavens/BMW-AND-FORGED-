@@ -41,6 +41,10 @@ the model's own wheels via `hide_mesh_match`, default `DEFAULT_HIDE`
   after load, or a small `@gltf-transform/core` script) and write **literal** per-model patterns.
   Example: M4 = `zx1mtl|body151mtl|pillars1mtl`.
 - A panel left in its baked grey or black texture means a body material is missing from the regex.
+- Match both spellings of the calipers (`cal?liper`): files use "Calliper" (the M8's
+  `m8f92_Calliper_Color`), and a separate part with its own material can carry the baked factory
+  paint (the M3's bonnet centre, `Hoodpainttextured1Mtl`): list every material on the body, not
+  only the big one.
 - Forged wheels are placed only when **four** wheels are found by the hide regex.
 
 ## 3b. Part rules that fix wrong-looking trim (services/carMaterials.ts)
