@@ -25,7 +25,7 @@ const shots = JSON.parse(shotsArg);
       r.fulfill({ body, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } });
     });
     const q = new URLSearchParams({ car: s.car, wheel: s.wheel, paint: s.paint ?? 0, finish: s.finish, size: s.size || '20"', view: s.view, rendered: '1', bg: 'transparent' });
-    await p.goto(`http://127.0.0.1:5173/scripts/render/engine.html?${q}`, { waitUntil: 'domcontentloaded', timeout: 240000 });
+    await p.goto(`http://127.0.0.1:${process.env.PORT || 5173}/scripts/render/engine.html?${q}`, { waitUntil: 'domcontentloaded', timeout: 240000 });
     await p.waitForFunction(() => window.done !== undefined, null, { timeout: 300000 });
     await p.waitForTimeout(9000); // rim face worker, HDR, shadows
     await p.screenshot({ path: path.join(OUT, name + '-wheels.png'), omitBackground: true, timeout: 120000 });
