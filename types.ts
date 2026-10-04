@@ -31,6 +31,25 @@ export interface CarModel {
   paintMeshMatch?: string;
   /** Regex for the GLB's own wheels/brakes, hidden so the configurable wheels replace them. */
   hideMeshMatch?: string;
+  /**
+   * The tyre BMW fits to this car at the factory (OE), drawn on the 3D sidewalls. Absent or `{}`
+   * (no front/rear size) = generic markings. Inner keys stay single words: the catalogue only
+   * camelCases top-level keys.
+   */
+  tyre?: TyreSpec | null;
+}
+
+/** OE tyre fitment, e.g. { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR19 100Y XL', rear: '285/30 ZR20 99Y XL' }. */
+export interface TyreSpec {
+  /** Tyre maker, drawn as plain lettering (never a logo). Empty = generic markings with the OE sizes. */
+  brand: string;
+  /** Tyre model / trade name, e.g. 'Pilot Sport 4S'. */
+  model: string;
+  /** Approval marking moulded next to the size, e.g. '★' (BMW star). */
+  marking?: string;
+  /** Front tyre size as on the sidewall: width/aspect, construction, rim, load index, speed, XL. */
+  front: string;
+  rear: string;
 }
 
 export interface PaintColor {

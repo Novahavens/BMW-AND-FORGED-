@@ -85,23 +85,65 @@ Every part is generated in code, so it fits any design, size (19–22") and car.
 
 ### Tyre
 
+- **The car's factory tyre (OE fitment).** Each car has a `tyre` spec (`types.ts` `TyreSpec`,
+  Supabase `cars.tyre`, e.g. Michelin Pilot Sport 4S ★, 275/35 ZR19 100Y XL / 285/30 ZR20 99Y XL;
+  sources per car in `supabase/migrations/20261004110000_car_tyres.sql`). `engine.setTyreSpec`
+  (called by `loadCar` and by `App.tsx` wherever a car is applied; it does nothing when the spec is
+  unchanged) rebuilds the tyres with that spec. No spec (or `{}`), and the rim showcase page, give
+  generic markings.
 - **Profile:** a lathe from a 35-series section, 192 segments around:
-  - crowned tread with **four circumferential grooves** in the profile (4% of width wide,
-    7.5 mm deep);
+  - crowned tread with the tyre family's **circumferential grooves** in the profile, 7.5 mm deep
+    (`TREAD_GROOVES`: generic and P Zero four, PS4S four pushed inboard with a wide outer rib,
+    Cup 2 two on the inner half);
   - rounded shoulders (24 mm radius);
   - sidewall bulging to the section width at 52% of its height;
   - **rim-protector rib** standing proud of the lip;
   - bead tucked behind the flange.
-- **Tread map:** a generated normal-map tile of seven pitches, repeated 12 times, with angled
-  shoulder grooves and sipes.
-- **Sidewall markings:** generated from a canvas into a normal map plus a roughness map:
-  - raised, glossier letters (size such as `265/35 ZR20 98Y XL`, load, DOT, tread-wear arrows)
-    in a matte "velvet" band;
-  - generic markings only, never a tyre brand;
-  - **orientation was checked on the render:** the text is drawn as-is, reads clockwise and has
-    its letter tops towards the tread.
+- **Section width per axle** from the spec (`tyreWidthFor`): the OE width × 0.35 / OE outer
+  radius, so the GLB-measured wheel scale turns it back into millimetres; kept within 20 mm of the
+  old 265/295 so a tyre never grows out of an arch. The lip, face and hub follow the width.
+- **Tread map** (`treadNormalMap(pattern, grooveV)`): one generated tile per family, aligned to
+  the grooves' real v positions, repeat set once on its own texture (never on a shared one):
+  - PS4S: curved inner-shoulder grooves, angled rib sipes, a wide outer block with thin lateral
+    sipes;
+  - Cup 2: inner lateral grooves, a near-slick outer half with only edge notches;
+  - P Zero: lateral slots in both shoulders, angled slots from the grooves half-way into the ribs.
+- **Sidewall markings** (`acquireSidewallMap`): a canvas strip covering half the tyre (repeat 2),
+  packed into **one** RGBA texture: normal x,y in R,G (z rebuilt in the shader), albedo and cavity
+  in B, roughness in A (`installPackedSidewall`). 4096 × 384 = 6.3 MB, less than the old separate
+  normal and roughness maps. Kept in an **LRU of 8 labels with reference counts**: a label in use
+  is never disposed.
+  - **Layout (UN R30):** maker large in the upper sidewall, the model name opposite it, the size
+    for that axle with the BMW star ★ in the lower sidewall, then TUBELESS, RADIAL, DOT, MAX LOAD
+    (from the load index) and TWI marks near the shoulder.
+  - **Lettering is plain text** in a neutral bold condensed sans, never a maker's logotype (see
+    the owner-approved exception below).
+  - **No stretching at 19" or 22":** letter heights come from the flank the geometry really has
+    (arc length from the rim protector to the shoulder; maker 37% of it, at most 24 mm; size 20%, at
+    most 12 mm: 11 mm and 6 mm on a 22" flank), and each
+    item is squeezed horizontally by the ratio of the strip's pixels per metre around (at that
+    radius) to its pixels per metre along the profile.
+  - **Moulded look:** raised letters (normal), letters roughness 0.42 against a matte "velvet"
+    field 0.94 and a satin wall 0.66, the field 16% darker, and a soft cavity (blurred letters)
+    darkening each letter's foot and its reflections.
+  - **Non-OE rim size:** the label keeps the OE section width and outer diameter
+    (`tyreSizeText`: 275/35 ZR19 on a 22" rim becomes 275/20 ZR22 XL; the aspect is rounded
+    to 5 and kept within 20–65).
+  - **Orientation (checked on the render, Oct 2026):** canvas row 0 is the bead and u runs
+    anticlockwise round the outer face, so each item is drawn turned 180°; the text then reads
+    clockwise with the letter tops towards the tread. (The earlier "drawn as-is" note was wrong:
+    the generic size label stood on its head.)
+  - **Normal sign:** canvas rows are texture v, so the v slope is negated (`heightToNormal(...,
+    vSign -1)`); with +1 the horizontal strokes shaded as engraved.
+  - **Cost:** about 120 ms per label on the main thread in the sandbox (canvas blur filter for the
+    bevel and the cavity, one packing pass). Front and rear differ, so a car change costs two.
+- **Owner-approved exception (Oct 2026):** the owner asked for the tyre to carry the brand that
+  comes on the car. Maker and model names are moulded **plain lettering** only: no logo artwork
+  (no Michelin Man/Bibendum, no Pirelli elongated-P logotype, no Continental horse). The BMW star
+  ★ and the regulatory text stay. Everything else stays generic. Same standing as the BMW M logo
+  on the caliper.
 - **Rubber:**
-  - tread #302e2d, roughness 0.88; sidewall #333130;
+  - tread #302e2d, roughness 0.88; sidewall #333130 (inside the safe #302e2d–#333130 range);
   - sheen 0.5–0.55 with `sheenColor` set (it defaults to black, which makes the sheen invisible);
   - the inner sidewall gets envMapIntensity 0.45.
 - **Loaded tyre:** the bottom 9 mm flattens onto the floor, in world space, so it stays put while

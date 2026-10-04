@@ -541,6 +541,31 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, folder, finishIds
       );
       break;
     }
+    case 'tyre': {
+      const tyre = (value as Record<string, string>) || {};
+      const parts = [
+        ['brand', 'Brand, e.g. Michelin'],
+        ['model', 'Model, e.g. Pilot Sport 4S'],
+        ['marking', 'Marking, e.g. ★'],
+        ['front', 'Front size, e.g. 275/35 ZR19 100Y XL'],
+        ['rear', 'Rear size, e.g. 285/30 ZR20 99Y XL']
+      ] as const;
+      control = (
+        <div className="grid grid-cols-2 gap-2">
+          {parts.map(([k, placeholder]) => (
+            <input
+              key={k}
+              placeholder={placeholder}
+              title={placeholder}
+              value={tyre[k] ?? ''}
+              onChange={(e) => onChange({ ...tyre, [k]: e.target.value })}
+              className={inputCls}
+            />
+          ))}
+        </div>
+      );
+      break;
+    }
     case 'sizePrices': {
       const prices = (value as Record<string, number>) || {};
       const sizes = Object.keys(prices).sort((a, b) => parseFloat(a) - parseFloat(b));

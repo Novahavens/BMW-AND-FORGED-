@@ -5,6 +5,8 @@
 
 import { CarModel, PaintColor, WheelDesign, WheelFinish, CaliperColor, FinishVariantKey } from '../types';
 
+// `tyre` is each car's factory (OE) tyre, drawn on the 3D sidewalls; sources per car are in
+// supabase/migrations/20261004110000_car_tyres.sql (keep the two in sync).
 export const BMW_MODELS: CarModel[] = [
   {
     id: 'm4_g82',
@@ -22,6 +24,7 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR20 102Y XL', rear: '285/30 ZR21 100Y XL' },
     bodyStyle: 'coupe',
     paintIds: [
       'skyscraper_grey', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
@@ -45,12 +48,14 @@ export const BMW_MODELS: CarModel[] = [
     power: '543 HP / 550 PS',
     torque: '650 Nm (479 lb-ft)',
     acceleration: '0-100 km/h in 3.4s',
+    // M4 CS: forged 19" front / 20" rear (BMW UK press kit T0441761EN_GB), not the M4's 20/21
     recommendedWheelFitment: {
-      front: '20 x 9.5J ET15',
-      rear: '21 x 10.5J ET18',
+      front: '19 x 9.5J',
+      rear: '20 x 10.5J',
       pcd: '5x112',
       cb: '66.6mm'
     },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport Cup 2', marking: '★', front: '275/35 ZR19 100Y XL', rear: '285/30 ZR20 99Y XL' },
     bodyStyle: 'coupe',
     // The M4 CS has its own short palette (BMW SA press kit, 2025): two no-cost and two Individual colours
     paintIds: ['riviera_blue', 'frozen_isle_of_man_green', 'brooklyn_grey', 'black_sapphire'],
@@ -73,6 +78,7 @@ export const BMW_MODELS: CarModel[] = [
     torque: '',
     acceleration: '',
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR19 100Y XL', rear: '285/30 ZR20 99Y XL' },
     bodyStyle: 'convertible',
     paintIds: [
       'skyscraper_grey', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
@@ -97,6 +103,7 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR19 100Y XL', rear: '285/30 ZR20 99Y XL' },
     bodyStyle: 'sedan',
     paintIds: [
       'skyscraper_grey', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
@@ -125,6 +132,7 @@ export const BMW_MODELS: CarModel[] = [
     torque: '',
     acceleration: '',
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR19 100Y XL', rear: '285/30 ZR20 99Y XL' },
     bodyStyle: 'touring',
     paintIds: [
       'skyscraper_grey', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
@@ -154,6 +162,7 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR19 100Y XL', rear: '285/30 ZR20 99Y XL' },
     bodyStyle: 'coupe',
     paintIds: [
       'fire_red', 'skyscraper_grey', 'brooklyn_grey', 'black_sapphire', 'portimao_blue', 'zandvoort_blue',
@@ -177,6 +186,7 @@ export const BMW_MODELS: CarModel[] = [
     torque: '',
     acceleration: '',
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
+    tyre: { brand: '', model: '', front: '235/40 R19 96Y XL', rear: '235/40 R19 96Y XL' },
     bodyStyle: 'gran_coupe',
     paintIds: [
       'fire_red', 'skyscraper_grey', 'thundernight', 'brooklyn_grey', 'black_sapphire', 'portimao_blue',
@@ -204,6 +214,7 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
+    tyre: { brand: 'Pirelli', model: 'P Zero', marking: '★', front: '285/40 ZR20 111Y XL', rear: '295/35 ZR21 110Y XL' },
     bodyStyle: 'sedan',
     paintIds: [
       'carbon_black', 'fire_red', 'marina_bay_blue', 'brooklyn_grey', 'sophisto_grey_brilliant_effect',
@@ -228,6 +239,7 @@ export const BMW_MODELS: CarModel[] = [
     torque: '',
     acceleration: '',
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
+    tyre: { brand: 'Pirelli', model: 'P Zero', marking: '★', front: '285/40 ZR20 111Y XL', rear: '295/35 ZR21 110Y XL' },
     bodyStyle: 'touring',
     paintIds: [
       'carbon_black', 'fire_red', 'marina_bay_blue', 'brooklyn_grey', 'sophisto_grey_brilliant_effect',
@@ -247,6 +259,7 @@ export const BMW_MODELS: CarModel[] = [
     torque: '',
     acceleration: '',
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '275/35 ZR20 102Y XL', rear: '285/35 ZR20 104Y XL' },
     bodyStyle: 'coupe',
     paintIds: [
       'alpine_white', 'aventurine_red_iii', 'black_sapphire', 'brooklyn_grey', 'dravit_grey', 'frozen_pure_grey',
@@ -270,6 +283,7 @@ export const BMW_MODELS: CarModel[] = [
     torque: '',
     acceleration: '',
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
+    tyre: { brand: 'Pirelli', model: 'P Zero', marking: '★', front: '255/45 R20', rear: '285/40 R20' },
     bodyStyle: 'suv',
     paintIds: [
       'fire_red', 'brooklyn_grey', 'sophisto_grey_brilliant_effect', 'arctic_race_blue', 'black_sapphire',
@@ -297,6 +311,7 @@ export const BMW_MODELS: CarModel[] = [
       pcd: '5x112',
       cb: '66.6mm'
     },
+    tyre: { brand: 'Michelin', model: 'Pilot Sport 4S', marking: '★', front: '295/35 ZR21 107Y XL', rear: '315/30 ZR22 107Y XL' },
     bodyStyle: 'suv',
     paintIds: [
       'carbon_black', 'mineral_white', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',

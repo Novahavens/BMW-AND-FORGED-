@@ -15,6 +15,7 @@ export type FieldSpec =
   | { key: string; label: string; type: 'finishes'; hint?: string }
   | { key: string; label: string; type: 'paints'; hint?: string }
   | { key: string; label: string; type: 'fitment'; hint?: string }
+  | { key: string; label: string; type: 'tyre'; hint?: string }
   | { key: string; label: string; type: 'sizePrices'; hint?: string }
   | { key: string; label: string; type: 'asset'; bucket: string; accept: string; hint?: string };
 
@@ -45,6 +46,7 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'torque', label: 'Torque', type: 'text' },
       { key: 'acceleration', label: 'Acceleration', type: 'text' },
       { key: 'recommended_wheel_fitment', label: 'Recommended fitment', type: 'fitment' },
+      { key: 'tyre', label: 'Factory (OE) tyre', type: 'tyre', hint: 'Drawn on the 3D tyre sidewalls as plain lettering (no logos). Sizes as on the sidewall, e.g. 275/35 ZR19 100Y XL. Marking: ★ for BMW star-marked tyres. Leave the sizes empty for generic markings.' },
       { key: 'body_style', label: 'Fallback body style', type: 'select', options: ['coupe', 'sedan', 'suv', 'convertible', 'touring', 'gran_coupe'], hint: 'Used when no 3D model is uploaded (convertible looks like the coupe; touring and gran_coupe like the sedan).' },
       { key: 'paint_ids', label: 'Factory paints', type: 'paints', hint: 'The paints this car is offered in, in the order ticked. None ticked = every visible paint.' },
       { key: 'model_url', label: '3D model (.glb)', type: 'asset', bucket: ASSET_BUCKETS.carModels, accept: '.glb,model/gltf-binary', hint: 'Max 50 MB. Compress with gltf-transform for fast loading.' },
