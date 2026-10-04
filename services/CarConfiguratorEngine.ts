@@ -11,7 +11,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyPaintLayers, installPaintLayers } from './paintShader';
 import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS, ROOM_WHITE } from './studioSoftbox';
-import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial } from './carMaterials';
+import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial, registerEnvironment, syncEnvironment } from './carMaterials';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
 import { traceRimShapes, traceMaskShapes, buildRimFaceGeometry } from './rimExtrusion';
@@ -618,6 +618,7 @@ export class CarConfiguratorEngine {
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     const room = new RoomEnvironment();
     const roomTarget = pmrem.fromScene(room, 0.04);
+    registerEnvironment(roomTarget.texture);
     this.scene.environment = roomTarget.texture;
     this.scene.environmentIntensity = 0.9;
     room.dispose?.();
@@ -625,6 +626,7 @@ export class CarConfiguratorEngine {
     if (CarConfiguratorEngine.STUDIO === 'softbox') {
       const studio = buildSoftboxStudio(CarConfiguratorEngine.ROOM === 'white' ? ROOM_WHITE : CarConfiguratorEngine.ROOM === 'light' ? ROOM_LIGHT : CarConfiguratorEngine.ROOM === 'walls' ? ROOM_WALLS : ROOM_DARK);
       const studioTarget = pmrem.fromScene(studio, 0.02, 0.1, 100, { size: 512 });
+      registerEnvironment(studioTarget.texture);
       studio.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) {
@@ -647,6 +649,7 @@ export class CarConfiguratorEngine {
       .then((hdr) => {
         if (this.isDisposed) return;
         const envTarget = pmrem.fromEquirectangular(hdr);
+        registerEnvironment(envTarget.texture);
         hdr.dispose();
         this.scene.environment = envTarget.texture;
         roomTarget.dispose();
@@ -1790,13 +1793,14 @@ export class CarConfiguratorEngine {
   // COLOR & FINISH UPDATES
   // ----------------------------------------------------
   /**
-   * How strongly the painted body reflects the studio HDRI. At 1 the overhead softbox washes the bonnet
-   * and roof out to flat white; ~0.45 keeps a crisp softbox reflection with the paint colour showing
-   * through, which is how BMW's own studio renders read.
+   * How strongly the painted body reflects the studio, relative to the scene (SOFTBOX_INTENSITY). Every lit
+   * material is bound to the environment (syncEnvironment), so per-part values like this one take effect.
+   * 1 keeps the body at the studio's own level: tune brightness with SOFTBOX_INTENSITY and exposure, so the
+   * calibrated paint colours stay valid.
    */
   static BODY_ENV_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]bodyenv=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.45;
+    return m ? +m[1] : 1;
   })();
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
   static SOFTBOX_INTENSITY: number = (() => {
@@ -2032,6 +2036,7 @@ export class CarConfiguratorEngine {
     this.camera.aspect = outW / outH;
     this.camera.updateProjectionMatrix();
     if (this.shadowFrames > 0) this.renderContactShadow();
+    syncEnvironment(this.scene, this.scene.environment, this.scene.environmentIntensity);
 
     const src = this.renderer.domElement;
     const shots = views.map((view) => {
@@ -2220,6 +2225,7 @@ export class CarConfiguratorEngine {
     wheelShadingUniforms.uArchStrength.value = this.isShowcase ? 0 : 1;
     wheelShadingUniforms.uFloorY.value = this.isShowcase ? -10 : 0;
 
+    syncEnvironment(this.scene, this.scene.environment, this.scene.environmentIntensity);
     this.renderer.render(this.scene, this.camera);
   }
 

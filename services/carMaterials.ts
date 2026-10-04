@@ -259,14 +259,45 @@ export function glassReflectionMaterial(): THREE.MeshPhysicalMaterial {
  */
 export function bindEnvironment(material: THREE.Material | THREE.Material[], env: THREE.Texture | null, sceneIntensity: number) {
   if (!env) return;
-  for (const m of Array.isArray(material) ? material : [material]) {
-    const std = m as THREE.MeshStandardMaterial;
-    if (!std.isMeshStandardMaterial || std.userData.envBound) continue;
-    std.envMap = env;
-    std.envMapIntensity *= sceneIntensity;
-    std.userData.envBound = true;
-    std.needsUpdate = true;
-  }
+  for (const m of Array.isArray(material) ? material : [material]) bindOne(m, env, sceneIntensity);
+}
+
+/** Environment maps the engines generate (studio, room, HDRI). A material carrying any other envMap chose it on purpose. */
+const engineEnvironments = new WeakSet<THREE.Texture>();
+export function registerEnvironment(env: THREE.Texture) {
+  engineEnvironments.add(env);
+}
+
+/**
+ * Binds every lit material under `root` to the current environment (see bindEnvironment): paint, wheel kit,
+ * rim faces, decals and car trim alike, so each part's own envMapIntensity is honoured. Run before each drawn
+ * frame: it picks up materials created later (a new car, an async rim face) and re-binds everything when the
+ * environment is rebuilt (WebGL context restore, HDRI loaded). Only out-of-date materials are touched.
+ */
+export function syncEnvironment(root: THREE.Object3D, env: THREE.Texture | null, sceneIntensity: number) {
+  if (!env) return;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    if (Array.isArray(mesh.material)) mesh.material.forEach((m) => bindOne(m, env, sceneIntensity));
+    else bindOne(mesh.material, env, sceneIntensity);
+  });
+}
+
+function bindOne(material: THREE.Material, env: THREE.Texture, sceneIntensity: number) {
+  const m = material as THREE.MeshStandardMaterial;
+  if (!m || !m.isMeshStandardMaterial) return;
+  if (m.envMap && m.envMap !== env && !engineEnvironments.has(m.envMap)) return;
+  const u = m.userData;
+  // The part's own (relative) intensity; re-read when code has set envMapIntensity since the last bind
+  if (u.envApplied === undefined || m.envMapIntensity !== u.envApplied) u.envBase = m.envMapIntensity;
+  const want = u.envBase * sceneIntensity;
+  if (m.envMap === env && m.envMapIntensity === want) return;
+  const hadEnv = !!m.envMap;
+  m.envMap = env;
+  m.envMapIntensity = want;
+  u.envApplied = want;
+  if (!hadEnv) m.needsUpdate = true;
 }
 
 let grilleBlackCache = new WeakMap<THREE.Material, THREE.Material>();
