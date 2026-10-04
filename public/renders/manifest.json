@@ -1,4 +1,35 @@
 {
+ "m235_f74": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
+ "m2_g87": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
+ "m3_g80": [
+  "frontThreeQuarter"
+ ],
+ "m3_touring_g81": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
+ "m4_convertible_g83": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
  "m4_cs_g82": [
   "frontThreeQuarter",
   "frontWheel",
@@ -7,6 +38,13 @@
   "top"
  ],
  "m4_g82": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
+ "m5_g90": [
   "frontThreeQuarter",
   "frontWheel",
   "rearThreeQuarter",

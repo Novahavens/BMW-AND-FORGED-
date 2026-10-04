@@ -42,8 +42,9 @@ for o in meshes:
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
         bm.to_mesh(o.data); bm.free()
         for p in o.data.polygons: p.use_smooth = True
-        sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
-        sd.boundary_smooth = 'PRESERVE_CORNERS'
+        if len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
+            sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
+            sd.boundary_smooth = 'PRESERVE_CORNERS'
         o.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
     else:
         for p in o.data.polygons: p.use_smooth = True
