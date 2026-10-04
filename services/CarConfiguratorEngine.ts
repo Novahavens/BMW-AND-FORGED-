@@ -15,7 +15,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyPaintLayers, installPaintLayers } from './paintShader';
 import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS, ROOM_WHITE } from './studioSoftbox';
-import { glassReflectionMaterial, passMaterial } from './carMaterials';
+import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial } from './carMaterials';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
 import { traceRimShapes, traceMaskShapes, buildRimFaceGeometry } from './rimExtrusion';
@@ -1065,6 +1065,7 @@ export class CarConfiguratorEngine {
     model.position.y -= box.min.y;
     model.updateMatrixWorld(true);
 
+    const carBox = new THREE.Box3().setFromObject(model);
     const paintRe = CarConfiguratorEngine.safeRegex(car.paintMeshMatch, 'paint|body|carpaint|exterior');
     // Whole words only by default, so "trim" or "brim" never count as a rim.
     const legacyHide = 'wheel|rim|tyre|tire|brake|caliper|rotor';
@@ -1131,11 +1132,18 @@ export class CarConfiguratorEngine {
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map((m) => passMaterial(m, partNames))
           : passMaterial(mesh.material, partNames);
+        if (!Array.isArray(mesh.material)) {
+          const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
+          mesh.material = blackenGrilleChrome(mesh.material, c, carBox);
+        }
+        bindEnvironment(mesh.material, this.scene.environment, this.scene.environmentIntensity);
         // Full-strength Fresnel reflections on single-material glazing (see glassReflectionMaterial)
         // (a cached model mounted again arrives with the overlay child cloned along: never twice)
         const glass = !Array.isArray(mesh.material) && mesh.material.userData.partKind === 'glass';
         if (glass && !mesh.children.some((c) => c.userData.isOverlay)) {
-          const overlay = new THREE.Mesh(mesh.geometry, glassReflectionMaterial());
+          const glassMat = glassReflectionMaterial();
+          bindEnvironment(glassMat, this.scene.environment, this.scene.environmentIntensity);
+          const overlay = new THREE.Mesh(mesh.geometry, glassMat);
           overlay.name = 'glass_reflection';
           overlay.renderOrder = mesh.renderOrder + 1;
           overlay.userData.isOverlay = true;

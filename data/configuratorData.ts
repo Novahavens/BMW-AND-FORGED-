@@ -36,6 +36,37 @@ export const BMW_MODELS: CarModel[] = [
     hideMeshMatch: '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|rotor)'
   },
   {
+    id: 'm4_cs_g82',
+    name: 'BMW M4 CS',
+    badge: 'M4 CS G82',
+    generation: 'G82',
+    chassisCode: 'G82 M4 CS',
+    engine: '3.0L S58 Twin-Turbo Inline-6',
+    power: '543 HP / 550 PS',
+    torque: '650 Nm (479 lb-ft)',
+    acceleration: '0-100 km/h in 3.4s',
+    recommendedWheelFitment: {
+      front: '20 x 9.5J ET15',
+      rear: '21 x 10.5J ET18',
+      pcd: '5x112',
+      cb: '66.6mm'
+    },
+    bodyStyle: 'coupe',
+    paintIds: [
+      'skyscraper_grey', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
+      'portimao_blue', 'sao_paulo_yellow', 'alpine_white', 'aventurine_red_iii', 'tanzanite_blue_ii',
+      'dravit_grey', 'san_marino_blue', 'velvet_blue', 'java_green', 'frozen_dark_grey_ii', 'speed_yellow',
+      'frozen_pure_grey', 'frozen_black', 'marina_bay_blue', 'frozen_portimao_blue',
+      'frozen_brilliant_white'
+    ],
+    modelUrl: '/models/bmw-m4-cs-vr46.glb',
+    modelLengthM: 4.79,
+    // Body, hood, kit and spoiler take the paint. The model's own wheels are hidden; its calipers are kept
+    // (not in the hide pattern), so the configurator uses them and recolours them.
+    paintMeshMatch: 'm4car_body1|m4car_hood1|m4car_bodykit1|m4car_spoiler1',
+    hideMeshMatch: 'wheel1a|phong11|phong23'
+  },
+  {
     id: 'm4_convertible_g83',
     name: 'BMW M4 Competition Convertible',
     badge: 'M4 Convertible G83',
