@@ -13,6 +13,8 @@ import { DELIVERY, TERMS } from './config/pages';
 import { SavedConfiguration, configKey, loadConfiguration, saveConfiguration, submitEnquiry } from './services/journeyService';
 import { downloadBrochurePdf } from './services/brochurePdf';
 import { controlsInset, layoutMode } from './services/layout';
+import { loadStageManifest, stageAvailable } from './services/wheelStage';
+import { WheelStage } from './components/journey/WheelStage';
 import { BootLoader } from './components/journey/BootLoader';
 import { WelcomeGate } from './components/journey/WelcomeGate';
 import { Showroom, ShowroomBackdrop } from './components/journey/Showroom';
@@ -142,6 +144,23 @@ export const App: React.FC = () => {
   const saveToken = useRef(0);
 
   const carIndex = Math.max(0, cars.findIndex((c) => c.id === selectedCar.id));
+
+  // The 2D wheel stage (side-on images, wheel swapped by compositing): used wherever its pictures exist
+  const [stageManifest, setStageManifest] = useState<Awaited<ReturnType<typeof loadStageManifest>> | null>(null);
+  useEffect(() => {
+    loadStageManifest().then(setStageManifest);
+  }, []);
+  const [, setResizeTick] = useState(0);
+  useEffect(() => {
+    const onResize = () => setResizeTick((n) => n + 1);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const stageFor = useCallback(
+    (size: string, wheel: WheelDesign = selectedWheel) =>
+      !!wheel.imageUrl && !wheel.modelUrl && stageAvailable(stageManifest, selectedCar.id, selectedPaint.id, size),
+    [stageManifest, selectedCar.id, selectedPaint.id, selectedWheel]
+  );
 
   // ----------------------------------------------------
   // Routing
@@ -365,23 +384,28 @@ export const App: React.FC = () => {
   );
 
   // Wheel choices cut to a close-up of the wheel on the car
-  const focusWheel = useCallback(() => {
-    if (cameraView !== 'frontWheel') selectView('frontWheel');
-    if (autoRotate) {
-      setAutoRotate(false);
-      engineRef.current?.setAutoRotate(false);
-    }
-  }, [cameraView, selectView, autoRotate]);
+  // (side-on when the 2D stage has the picture, otherwise the 3D close-up)
+  const focusWheel = useCallback(
+    (size: string = selectedSize, wheel: WheelDesign = selectedWheel) => {
+      const target: CameraViewPreset = stageFor(size, wheel) ? 'side' : 'frontWheel';
+      if (cameraView !== target) selectView(target);
+      if (autoRotate) {
+        setAutoRotate(false);
+        engineRef.current?.setAutoRotate(false);
+      }
+    },
+    [cameraView, selectView, autoRotate, stageFor, selectedSize, selectedWheel]
+  );
 
   const chooseWheel = useCallback((wheel: WheelDesign) => {
     applyRim(wheel);
-    focusWheel();
-  }, [applyRim, focusWheel]);
+    focusWheel(nearestRimSize(wheel, selectedSize), wheel);
+  }, [applyRim, focusWheel, selectedSize]);
 
   const chooseSize = useCallback((size: string) => {
     setSelectedSize(size);
     engineRef.current?.setRimSize(size);
-    focusWheel();
+    focusWheel(size);
   }, [focusWheel]);
 
   const chooseFinish = useCallback((finish: WheelFinish) => {
@@ -510,6 +534,7 @@ export const App: React.FC = () => {
 
   const enquirySummary = `${selectedCar.name} · ${selectedPaint.name} · ${selectedWheel.name} ${selectedSize} in ${selectedFinish.name}`;
   const onJourney = ['welcome', 'showroom', 'configure'].includes(route.name);
+  const stageOn = booted && route.name === 'configure' && cameraView === 'side' && stageFor(selectedSize);
 
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden bg-stage select-none">
@@ -518,8 +543,12 @@ export const App: React.FC = () => {
       {/* The studio: transparent WebGL canvas over the backdrop */}
       <div
         ref={containerRef}
-        className={`absolute inset-0 z-10 transition-opacity duration-700 ${route.name === 'configure' ? 'cursor-grab active:cursor-grabbing' : ''} ${onJourney ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${route.name === 'configure' ? 'cursor-grab active:cursor-grabbing' : ''} ${onJourney && !stageOn ? 'opacity-100' : 'opacity-0'}`}
       />
+
+      {stageOn && (
+        <WheelStage car={selectedCar} paint={selectedPaint} wheel={selectedWheel} finish={selectedFinish} size={selectedSize} inset={controlsInset()} />
+      )}
 
       {booted && route.name === 'welcome' && (
         <WelcomeGate region={region} onRegionChange={changeRegion} onEnter={() => navigateTo({ name: 'showroom' })} onOpenForged={() => navigateTo({ name: 'forged' })} />
@@ -678,7 +707,7 @@ export const App: React.FC = () => {
             onConfigure={(wheel) => {
               applyRim(wheel);
               setStep('wheels');
-              setCameraView('frontWheel');
+              setCameraView(stageFor(nearestRimSize(wheel, selectedSize), wheel) ? 'side' : 'frontWheel');
               navigateTo({ name: 'configure' });
             }}
           />
@@ -700,7 +729,7 @@ export const App: React.FC = () => {
             onConfigure={(wheel, finish, size) => {
               applyRim(wheel, finish, size);
               setStep('wheels');
-              setCameraView('frontWheel');
+              setCameraView(stageFor(nearestRimSize(wheel, size ?? selectedSize), wheel) ? 'side' : 'frontWheel');
               navigateTo({ name: 'configure' });
             }}
           />
