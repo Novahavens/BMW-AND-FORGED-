@@ -175,6 +175,14 @@ export function tintSprite(img: CanvasImageSource & { width: number; height: num
 const tinted = new Map<string, HTMLCanvasElement>();
 /** The rim sprite for a wheel in a finish: the photo, tinted (cached per wheel and finish). */
 export async function rimSprite(wheel: WheelDesign, finish: WheelFinish): Promise<HTMLCanvasElement | HTMLImageElement | null> {
+  const ready = wheel.rimSprites?.[finish.id];
+  if (ready) {
+    try {
+      return await loadStageImage(ready);
+    } catch {
+      /* fall back to the tint */
+    }
+  }
   if (!wheel.imageUrl) return null;
   const key = `${wheel.id}|${wheel.imageUrl}|${finish.id}|${finish.hex}|${finish.metalness}|${finish.roughness}|${finish.clearcoat}`;
   const hit = tinted.get(key);

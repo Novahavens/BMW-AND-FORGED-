@@ -89,6 +89,8 @@ export interface WheelDesign {
   modelUrl?: string | null;
   /** Turn the GLB rim around when its face points into the car. */
   modelFlip?: boolean;
+  /** Rim photos already in a finish, by finish id (the AI finish step); others are tinted from imageUrl. */
+  rimSprites?: Record<string, string>;
 }
 
 export interface CaliperColor {
