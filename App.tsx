@@ -175,6 +175,7 @@ export const App: React.FC = () => {
     const engine = new CarConfiguratorEngine(containerRef.current, () => setBootProgress((p) => Math.max(p, 0.3)));
     engineRef.current = engine;
     loadedCarKeyRef.current = carModelKey(selectedCar);
+    engine.setTyreSpec(selectedCar.tyre ?? null);
     engine.applyPaintColor(selectedPaint);
     engine.applyWheelDesign(selectedWheel);
     engine.applyWheelFinish(selectedFinish);
@@ -234,6 +235,8 @@ export const App: React.FC = () => {
       loadedCarKeyRef.current = key;
       engine.loadCar(car);
     }
+    // carModelKey leaves the tyre out, so an admin edit of only the tyre still reaches the engine
+    engine.setTyreSpec(car.tyre ?? null);
     engine.applyPaintColor(paint);
     engine.applyWheelDesign(wheel);
     engine.applyWheelFinish(finish);
@@ -308,6 +311,7 @@ export const App: React.FC = () => {
   // Choices
   // ----------------------------------------------------
   /** Each car offers only its own factory paints: keep the paint if it has it, else take its first. */
+  // The engine swaps the tyres (car.tyre) itself in loadCar, while the old car is out of frame.
   const mountCar = useCallback(
     (car: CarModel) => {
       setSelectedCar(car);
@@ -443,6 +447,7 @@ export const App: React.FC = () => {
         loadedCarKeyRef.current = carModelKey(car);
         engine?.loadCar(car);
       }
+      engine?.setTyreSpec(car.tyre ?? null);
       setSelectedCar(car);
       choosePaint(paint);
       applyRim(wheel, finish, cfg.size);

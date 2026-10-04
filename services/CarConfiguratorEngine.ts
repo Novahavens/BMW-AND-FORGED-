@@ -34,7 +34,12 @@ import {
   createWheelKitMaterials,
   lipStyleFor,
   processRimPhoto,
-  rimLayout
+  rimLayout,
+  DEFAULT_TYRE_WIDTH,
+  TyreSpecLike,
+  tyreSpecKey,
+  tyreWidthFor,
+  validTyreSpec
 } from './wheelKit';
 import { processRimPhotoAsync } from './rimFaceAsync';
 import { finishLook, installFinishLayers, applyFinishLook } from './wheelFinish';
@@ -149,6 +154,9 @@ export class CarConfiguratorEngine {
   private proceduralWheelScale = 1;
   /** Rim diameter relative to the 20" base geometry; the tyre's outer size stays fixed. */
   private rimScale = 1;
+  /** The car's factory tyre (maker, model, sizes) drawn on the sidewalls; null = generic markings. */
+  private tyreSpec: TyreSpecLike | null = null;
+  private tyreSpecId = '';
 
   // Showcase mode: one wheel on the turntable, no car (rim detail pages)
   private isShowcase = false;
@@ -914,6 +922,8 @@ export class CarConfiguratorEngine {
   public async loadCar(car: CarModel): Promise<'model' | 'procedural'> {
     const token = ++this.carLoadToken;
     this.proceduralWheelScale = car.bodyStyle === 'suv' ? 1.14 : 1;
+    // The tyres follow the car (driveToCar calls this while the old car is out of frame)
+    this.setTyreSpec(car.tyre ?? null);
     if (car.modelUrl) {
       try {
         const template = await this.loadCarTemplate(car.modelUrl);
@@ -1369,8 +1379,9 @@ export class CarConfiguratorEngine {
       // Right-hand wheels face +X; left-hand ones are turned round so their face points -X
       group.rotation.y = wp.isRight ? 0 : Math.PI;
 
-      // 265/35 front, 295/35 rear on a 20" rim (outer radius 0.35 m); the spin group turns on X
-      const dims: WheelDims = { tyreRadius: 0.35, tyreWidth: wp.isFront ? 0.265 : 0.295, rimScale: this.rimScale, isFront: wp.isFront };
+      // Outer radius 0.35 m; section width from the car's factory tyre (265 front / 295 rear without
+      // one). The spin group turns on X.
+      const dims: WheelDims = { tyreRadius: 0.35, tyreWidth: tyreWidthFor(this.tyreSpec, wp.isFront), rimScale: this.rimScale, isFront: wp.isFront };
       const spinGroup = new THREE.Group();
       group.add(spinGroup);
 
@@ -1379,6 +1390,7 @@ export class CarConfiguratorEngine {
       spinGroup.add(spokeMeshGroup);
 
       const hub = buildHub(dims, this.kit);
+      hub.userData.builtFrontX = rimLayout(dims).hubFrontX; // a tyre-width change slides the hub, not rebuilds it
       const disc = buildDisc(dims, this.kit);
       spinGroup.add(hub, disc);
       const caliper = buildCaliper(dims, this.kit, wp.isRight);
@@ -1403,12 +1415,19 @@ export class CarConfiguratorEngine {
     this.applyRimScale();
   }
 
-  /** Tyre and rim shell follow the rim size and the design's lip style, so they are rebuilt on either change. */
+  /**
+   * Tyre and rim shell follow the rim size, the design's lip style and the car's tyre spec (section
+   * width and sidewall markings), so they are rebuilt on any of those changes.
+   */
   private rebuildWheelShells() {
     this.wheelAssemblies.forEach((a) => {
       this.disposeWheelShell(a);
-      a.dims = { ...a.dims, rimScale: this.rimScale };
-      a.tyre = buildTyre(a.dims, this.kit);
+      a.dims = { ...a.dims, rimScale: this.rimScale, tyreWidth: tyreWidthFor(this.tyreSpec, a.isFront) };
+      // The face and hub follow the lip, which sits at the tyre's section width
+      const L = rimLayout(a.dims);
+      a.spokeMeshGroup.position.x = L.faceEdgeX;
+      a.hub.position.x = L.hubFrontX - ((a.hub.userData.builtFrontX as number | undefined) ?? L.hubFrontX);
+      a.tyre = buildTyre(a.dims, this.kit, this.tyreSpec);
       a.spinGroup.add(a.tyre);
       const shell = buildRimShell(a.dims, this.lipStyle, this.wheelMaterial, this.barrelMaterial, this.kit);
       const rim = new THREE.Group();
@@ -1446,6 +1465,22 @@ export class CarConfiguratorEngine {
     if (Math.abs(scale - this.rimScale) < 1e-6 && this.wheelAssemblies.every((a) => a.tyre)) return;
     this.rimScale = scale;
     this.applyRimScale();
+    this.markShadowDirty(10);
+  }
+
+  /**
+   * The car's factory tyre: maker, model, BMW star and per-axle size on the sidewalls, its tread
+   * layout and its section widths. null (or `{}`) = generic markings and the default widths.
+   * Cheap to call on every car change: an unchanged spec does nothing.
+   */
+  public setTyreSpec(spec: TyreSpecLike | null) {
+    const valid = validTyreSpec(spec);
+    const key = tyreSpecKey(valid);
+    if (key === this.tyreSpecId) return;
+    this.tyreSpecId = key;
+    this.tyreSpec = valid ? { ...valid } : null;
+    if (this.wheelAssemblies.length === 0 || this.isDisposed) return;
+    this.rebuildWheelShells();
     this.markShadowDirty(10);
   }
 
@@ -1573,7 +1608,8 @@ export class CarConfiguratorEngine {
           return out;
         });
         const build = (isFront: boolean) => {
-          const L = rimLayout({ tyreRadius: 0.35, tyreWidth: isFront ? 0.265 : 0.295, rimScale: 1, isFront });
+          // face radius, depth and dish don't depend on the tyre width, so one face fits every tyre spec
+          const L = rimLayout({ tyreRadius: 0.35, tyreWidth: isFront ? DEFAULT_TYRE_WIDTH.front : DEFAULT_TYRE_WIDTH.rear, rimScale: 1, isFront });
           return buildSpokeFace(shapes, { radius: L.faceRadius, depth: L.spokeDepth, dish: L.dish, bevel: SPOKE_BEVEL });
         };
         return { front: build(true), rear: build(false) };

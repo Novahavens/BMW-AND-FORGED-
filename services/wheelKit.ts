@@ -9,9 +9,11 @@ import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/Buff
 /**
  * Photoreal wheel parts, generated in code so they follow any rim design, size and car:
  *
- * - tyre: a 35-series performance tyre profile (crowned tread with four circumferential
- *   grooves, rounded shoulders, bulging sidewall, rim-protector rib) with a generated tread
- *   pattern and raised sidewall lettering in a matte "velvet" band;
+ * - tyre: a 35-series performance tyre profile (crowned tread with the tyre family's
+ *   circumferential grooves, rounded shoulders, bulging sidewall, rim-protector rib) with a
+ *   generated tread pattern and raised sidewall lettering in a matte "velvet" band: the car's
+ *   factory (OE) tyre maker, model, BMW star and size as plain lettering (owner-approved, no
+ *   logos), or generic markings when the car has no tyre spec;
  * - rim shell: the lip and barrel as a lathe of a real rim cross-section (rounded flange, inner
  *   wall, drop centre), with a polished, bolted lip for two- and three-piece designs;
  * - brakes: a two-piece floating disc (cross-drilled vented friction ring with concentric
@@ -100,7 +102,12 @@ function arcPts(cr: number, cx: number, rad: number, a0: number, a1: number, n: 
 // Generated textures (cached, shared by every wheel)
 // ---------------------------------------------------------------------------
 
-function heightToNormal(h: Float32Array, w: number, hh: number, strength: number, wrapX = true): Uint8ClampedArray {
+/**
+ * Height field -> tangent-space normal map. `vSign` -1 gives the slope three.js expects when canvas
+ * row y is texture v (flipY off): a raised feature then shades as raised along v as well as u.
+ * The disc map keeps the old +1 (its concentric grooves read the same either way).
+ */
+function heightToNormal(h: Float32Array, w: number, hh: number, strength: number, wrapX = true, vSign = 1): Uint8ClampedArray {
   const out = new Uint8ClampedArray(w * hh * 4);
   const at = (x: number, y: number) => {
     if (wrapX) x = (x + w) % w;
@@ -112,10 +119,9 @@ function heightToNormal(h: Float32Array, w: number, hh: number, strength: number
     for (let x = 0; x < w; x++) {
       const dx = (at(x + 1, y) - at(x - 1, y)) * strength;
       const dy = (at(x, y + 1) - at(x, y - 1)) * strength;
-      // canvas rows run down, texture v runs up: flip the y slope
-      let nx = -dx, ny = dy, nz = 1;
-      const l = Math.hypot(nx, ny, nz);
-      nx /= l; ny /= l; nz /= l;
+      let nx = -dx, ny = dy * vSign, nz = 1;
+      const l = 1 / Math.sqrt(nx * nx + ny * ny + nz * nz); // (Math.hypot is several times slower)
+      nx *= l; ny *= l; nz *= l;
       const i = (y * w + x) * 4;
       out[i] = (nx * 0.5 + 0.5) * 255;
       out[i + 1] = (ny * 0.5 + 0.5) * 255;
@@ -157,57 +163,291 @@ function dataTexture(data: Uint8ClampedArray, w: number, h: number, srgb = false
   return tex;
 }
 
-let treadCache: THREE.Texture | null = null;
+// ---------------------------------------------------------------------------
+// Tyre specification (the car's factory tyre) and its markings
+// ---------------------------------------------------------------------------
+
+/** OE tyre as stored on the car (see types.ts TyreSpec); duplicated here so the kit has no app imports. */
+export interface TyreSpecLike {
+  brand: string;
+  model: string;
+  marking?: string;
+  front: string;
+  rear: string;
+}
+
+/** Tyre section width per axle when the car has no tyre spec (engine units, 0.35 m tyre radius). */
+export const DEFAULT_TYRE_WIDTH = { front: 0.265, rear: 0.295 } as const;
+
+/** Procedural tread layouts, one per tyre family; 'generic' when the tyre is unknown. */
+export type TreadPattern = 'generic' | 'ps4s' | 'cup2' | 'pzero';
+
+export interface TyreSize {
+  width: number; // mm
+  aspect: number; // %
+  construction: string; // 'ZR' | 'R'
+  rim: number; // inches
+  service: string; // the rest, e.g. '100Y XL'
+}
+
+/** '275/35 ZR19 100Y XL' -> parts; null when it isn't a metric tyre size. */
+export function parseTyreSize(size: string | undefined | null): TyreSize | null {
+  const m = /^\s*(\d{3})\s*\/\s*(\d{2})\s*(Z?R)\s*(\d{2})\b\s*(.*)$/i.exec(size ?? '');
+  if (!m) return null;
+  return { width: +m[1], aspect: +m[2], construction: m[3].toUpperCase(), rim: +m[4], service: m[5].trim() };
+}
+
+/** A usable spec: both axles have a parseable size. Anything else (null, `{}`) means generic markings. */
+export function validTyreSpec<T extends TyreSpecLike>(spec: T | null | undefined): T | null {
+  if (!spec || typeof spec !== 'object') return null;
+  return parseTyreSize(spec.front) && parseTyreSize(spec.rear) ? spec : null;
+}
+
+/** Stable key of the spec fields the tyre build depends on (the engine's early-return guard). */
+export function tyreSpecKey(spec: TyreSpecLike | null | undefined): string {
+  const s = validTyreSpec(spec);
+  return s ? JSON.stringify([s.brand ?? '', s.model ?? '', s.marking ?? '', s.front, s.rear]) : '';
+}
+
+export function treadPatternFor(spec: TyreSpecLike | null | undefined): TreadPattern {
+  const model = (validTyreSpec(spec)?.model ?? '').toLowerCase();
+  if (/cup\s*2/.test(model)) return 'cup2';
+  if (/p\s*zero/.test(model)) return 'pzero';
+  if (/pilot\s*sport/.test(model)) return 'ps4s';
+  return 'generic';
+}
+
 /**
- * Tread pattern, one tile of seven pitches (u = around the tyre, v = across the tread): angled
- * lateral grooves in the shoulder blocks and fine sipes across the ribs. The four main
- * circumferential grooves are real geometry in the tyre profile.
+ * The size moulded on the sidewall for this axle. At the OE rim size it is the spec's own text; on
+ * another rim size it is the plausible size for that rim: the OE section width, the same outer
+ * diameter (the aspect ratio absorbs the rim change, rounded to 5), and the OE construction and XL.
  */
-export function treadNormalMap(): THREE.Texture {
-  if (treadCache) return treadCache;
-  const W = 1024, H = 256, pitches = 7;
+export function tyreSizeText(spec: TyreSpecLike, isFront: boolean, rimInches: number): string {
+  const text = (isFront ? spec.front : spec.rear).trim().replace(/\s+/g, ' ');
+  const p = parseTyreSize(text);
+  if (!p || p.rim === rimInches) return text.toUpperCase();
+  const outerMm = p.rim * 25.4 + 2 * p.width * (p.aspect / 100);
+  const sidewallMm = (outerMm - rimInches * 25.4) / 2;
+  const aspect = THREE.MathUtils.clamp(Math.round(((sidewallMm / p.width) * 100) / 5) * 5, 20, 65);
+  return `${p.width}/${aspect} ${p.construction}${rimInches}${/\bXL\b/i.test(p.service) ? ' XL' : ''}`;
+}
+
+/**
+ * Tyre section width for the engine (units of a 0.35 m tyre radius): the OE section width scaled by
+ * 0.35 / OE outer radius, so the car's GLB-measured wheel scale turns it back into millimetres. Kept
+ * within 20 mm of the old constants, so a tyre never grows out of a wheel arch.
+ */
+export function tyreWidthFor(spec: TyreSpecLike | null | undefined, isFront: boolean): number {
+  const fallback = isFront ? DEFAULT_TYRE_WIDTH.front : DEFAULT_TYRE_WIDTH.rear;
+  const s = validTyreSpec(spec);
+  const p = s && parseTyreSize(isFront ? s.front : s.rear);
+  if (!p) return fallback;
+  const outerRadius = (p.rim * 25.4) / 2 + p.width * (p.aspect / 100); // mm
+  const w = (p.width / 1000) * (350 / outerRadius);
+  return Math.round(THREE.MathUtils.clamp(w, fallback - 0.02, fallback + 0.02) * 1000) / 1000;
+}
+
+// Load index -> kg (ISO 4000-1), for the MAX LOAD line
+const LOAD_KG: Record<number, number> = {
+  88: 560, 89: 580, 90: 600, 91: 615, 92: 630, 93: 650, 94: 670, 95: 690, 96: 710, 97: 730, 98: 750, 99: 775,
+  100: 800, 101: 825, 102: 850, 103: 875, 104: 900, 105: 925, 106: 950, 107: 975, 108: 1000, 109: 1030,
+  110: 1060, 111: 1090, 112: 1120, 113: 1150, 114: 1180, 115: 1215
+};
+
+// ---------------------------------------------------------------------------
+// Tread
+// ---------------------------------------------------------------------------
+
+/** Circumferential grooves per pattern: centres (-1 inner shoulder .. 1 outer shoulder) and widths (of the section width). */
+export const TREAD_GROOVES: Record<TreadPattern, { at: number[]; width: number[] }> = {
+  // four even grooves
+  generic: { at: [-0.62, -0.22, 0.22, 0.62], width: [0.04, 0.04, 0.04, 0.04] },
+  // Pilot Sport 4S: asymmetric, four grooves pushed inboard, a wide solid outer shoulder rib
+  ps4s: { at: [-0.7, -0.33, 0.05, 0.42], width: [0.034, 0.046, 0.046, 0.036] },
+  // Pilot Sport Cup 2: two grooves on the inner half, the outer half nearly slick
+  cup2: { at: [-0.56, -0.14], width: [0.036, 0.042] },
+  // P Zero: four grooves, slightly asymmetric
+  pzero: { at: [-0.64, -0.22, 0.18, 0.58], width: [0.038, 0.044, 0.044, 0.04] }
+};
+
+const TREAD_PITCHES: Record<TreadPattern, { perTile: number; repeat: number }> = {
+  generic: { perTile: 7, repeat: 12 },
+  ps4s: { perTile: 7, repeat: 9 },
+  cup2: { perTile: 6, repeat: 10 },
+  pzero: { perTile: 7, repeat: 9 }
+};
+
+const treadCache = new Map<string, THREE.Texture>();
+/**
+ * Tread pattern (u = around the tyre, v = across the tread from the inner shoulder at 0 to the outer
+ * shoulder at 1). The circumferential grooves are real geometry in the tyre profile; this map adds
+ * the lateral grooves, slots and sipes between them. `grooveV` = the grooves' centres in v, so the
+ * blocks line up with the geometry. The repeat is set here, once, on a texture of its own.
+ */
+export function treadNormalMap(pattern: TreadPattern = 'generic', grooveV: number[] = [0.2, 0.4, 0.6, 0.8]): THREE.Texture {
+  // rounded so the front and rear tyres (slightly different widths) share one map
+  grooveV = grooveV.map((v) => Math.round(v * 100) / 100);
+  const key = `${pattern}|${grooveV.join(',')}`;
+  const hit = treadCache.get(key);
+  if (hit) return hit;
+  const W = 1024, H = 256;
+  const { perTile, repeat } = TREAD_PITCHES[pattern];
+  const pitch = W / perTile;
   const h = new Float32Array(W * H).fill(1);
-  const pitch = W / pitches;
+  const g0 = grooveV[0], gN = grooveV[grooveV.length - 1];
+  const mod = (a: number, m: number) => ((a % m) + m) % m;
+  // which rib (between grooves) v is in, and how far across it (0..1)
+  const rib = (v: number) => {
+    for (let i = 0; i < grooveV.length - 1; i++) {
+      if (v >= grooveV[i] && v < grooveV[i + 1]) return { i, t: (v - grooveV[i]) / (grooveV[i + 1] - grooveV[i]) };
+    }
+    return null;
+  };
   for (let y = 0; y < H; y++) {
-    const v = y / (H - 1); // 0 = inner shoulder, 1 = outer shoulder (texture v; canvas rows map to v directly, flipY off)
+    const v = y / (H - 1);
+    const innerEdge = v < g0 ? (g0 - v) / g0 : 0; // 0 at the first groove, 1 at the tread edge
+    const outerEdge = v > gN ? (v - gN) / (1 - gN) : 0;
+    const r = rib(v);
     for (let x = 0; x < W; x++) {
       let val = 1;
-      const shoulder = v < 0.17 || v > 0.83;
-      if (shoulder) {
-        // lateral grooves, slightly curved, deepening towards the tyre edge
-        const edge = v < 0.5 ? (0.17 - v) / 0.17 : (v - 0.83) / 0.17;
-        const slant = (v < 0.5 ? -1 : 1) * 0.35 * pitch * (1 - edge) ** 1.5;
-        const p = ((x + slant) % pitch + pitch) % pitch;
-        const gw = pitch * (0.13 + 0.05 * edge);
-        if (p < gw) val = 0.15 + 0.25 * (1 - edge);
-        // a fine sipe in the middle of each shoulder block
-        const q = ((x + slant + pitch / 2) % pitch + pitch) % pitch;
-        if (q < 2.2 && edge < 0.75) val = Math.min(val, 0.45);
+      if (pattern === 'generic') {
+        if (innerEdge > 0.12 || outerEdge > 0.12) {
+          const edge = Math.max(innerEdge, outerEdge);
+          const slant = (innerEdge > 0 ? -1 : 1) * 0.35 * pitch * (1 - edge) ** 1.5;
+          const p = mod(x + slant, pitch);
+          if (p < pitch * (0.13 + 0.05 * edge)) val = 0.15 + 0.25 * (1 - edge);
+          if (mod(x + slant + pitch / 2, pitch) < 2.2 && edge < 0.75) val = Math.min(val, 0.45);
+        } else if (r && r.t > 0.12 && r.t < 0.88) {
+          if (mod(x + (v - 0.5) * H * 0.55, pitch / 2) < 2.0) val = 0.55;
+        }
+      } else if (pattern === 'ps4s') {
+        if (innerEdge > 0.1) {
+          // inner shoulder: curved lateral grooves, open to the tread edge
+          const slant = -0.45 * pitch * (1 - innerEdge) ** 1.6;
+          if (mod(x + slant, pitch) < pitch * (0.11 + 0.06 * innerEdge)) val = 0.2;
+          else if (mod(x + slant + pitch / 2, pitch) < 2 && innerEdge > 0.3) val = 0.5;
+        } else if (outerEdge > 0) {
+          // outer shoulder: a wide block with thin lateral sipes from the edge, and short edge grooves
+          if (outerEdge > 0.82 && mod(x, pitch) < pitch * 0.12) val = 0.3;
+          else if (outerEdge > 0.35 && mod(x + pitch / 2 + outerEdge * 10, pitch) < 1.8) val = 0.5;
+        } else if (r) {
+          // ribs: angled sipes; the inner ribs get a few more
+          const along = x + (v - 0.5) * H * 0.7;
+          const every = r.i === 0 ? pitch / 2 : pitch;
+          if (r.t > 0.15 && r.t < 0.85 && mod(along, every) < 1.8) val = 0.55;
+        }
+      } else if (pattern === 'cup2') {
+        if (innerEdge > 0.08) {
+          // inner shoulder: straight-ish lateral grooves
+          const slant = -0.25 * pitch * (1 - innerEdge);
+          if (mod(x + slant, pitch) < pitch * 0.12) val = 0.25;
+        } else if (outerEdge > 0) {
+          // near-slick outer half: only short notches at the very edge, every other pitch
+          if (outerEdge > 0.9 && mod(x, pitch * 2) < pitch * 0.1) val = 0.45;
+        } else if (r && r.t > 0.25 && r.t < 0.75 && mod(x + (v - 0.5) * H * 0.4, pitch) < 1.6) {
+          val = 0.6; // a single fine sipe across the centre rib
+        }
       } else {
-        // ribs: thin sipes at 28°, every half pitch, not running into the grooves
-        const along = x + (v - 0.5) * H * 0.55;
-        const p = ((along % (pitch / 2)) + pitch / 2) % (pitch / 2);
-        const ribPos = v < 0.5 ? (v - 0.17) / 0.33 : (0.83 - v) / 0.33;
-        if (p < 2.0 && ribPos > 0.12) val = 0.55;
+        // P Zero: lateral slots in both shoulders that stop short of the outer groove, and angled
+        // slots that run from a groove into the rib and end half way
+        if (innerEdge > 0.1 || outerEdge > 0.18) {
+          const edge = Math.max(innerEdge, outerEdge);
+          const slant = (innerEdge > 0 ? -1 : 1) * 0.25 * pitch * (1 - edge);
+          if (mod(x + slant, pitch) < pitch * 0.1) val = 0.22;
+          else if (mod(x + slant + pitch / 2, pitch) < 1.8 && edge > 0.3) val = 0.5;
+        } else if (r && r.t < 0.55) {
+          const along = x + r.t * pitch * 0.6;
+          if (mod(along, pitch) < pitch * 0.06 * (1 - r.t / 0.55) + 1.5) val = 0.4;
+        }
       }
       h[y * W + x] = val;
     }
   }
   blur(h, W, H, 2);
-  treadCache = dataTexture(heightToNormal(h, W, H, 6), W, H);
-  return treadCache;
+  const tex = dataTexture(heightToNormal(h, W, H, 6, true, -1), W, H);
+  tex.repeat.set(repeat, 1);
+  treadCache.set(key, tex);
+  return tex;
 }
 
-const sidewallCache = new Map<string, { normal: THREE.Texture; rough: THREE.Texture }>();
+// ---------------------------------------------------------------------------
+// Sidewall markings
+// ---------------------------------------------------------------------------
+
+/** What the outer sidewall says. `brand` empty = generic markings (no maker), still with the size. */
+export interface SidewallMarkings {
+  brand: string;
+  model: string;
+  marking: string;
+  size: string;
+}
+
 /**
- * Sidewall markings for one half of the tyre (the texture repeats twice around): raised size and
- * load markings in a matte band, the way premium performance tyres are finished. Generic text
- * only; no tyre brand. u = around the tyre, v = from the bead (0) to the shoulder (1).
+ * The outer sidewall's real shape, so lettering is sized in metres rather than as a fraction of
+ * the texture: `arc` is the profile's length from the bead (v 0) to the shoulder (v 1), `s`/`r` the
+ * arc position and radius of each profile point, and `flank` the visible flank between the rim
+ * protector and the shoulder (arc positions). The same letters then keep their proportions on a
+ * 19" balloon and a 22" low-profile sidewall.
  */
-export function sidewallMaps(sizeLabel: string): { normal: THREE.Texture; rough: THREE.Texture } {
-  const cached = sidewallCache.get(sizeLabel);
-  if (cached) return cached;
-  const W = 4096, H = 256;
+export interface SidewallGeometry {
+  arc: number;
+  s: number[];
+  r: number[];
+  flank: [number, number];
+}
+
+const SIDEWALL_W = 4096, SIDEWALL_H = 384;
+const SIDEWALL_LRU = 8;
+const sidewallLru = new Map<string, { tex: THREE.DataTexture; refs: number }>();
+
+/**
+ * One packed texture per label: R,G = normal x,y (z rebuilt in the shader), B = albedo and cavity
+ * occlusion, A = roughness. 4096 x 384 x 4 bytes (6.3 MB) instead of a normal map plus a roughness
+ * map. Kept in a small LRU with reference counts: a label in use by a tyre is never disposed.
+ */
+export function acquireSidewallMap(text: SidewallMarkings | null, sizeLabel: string, geo: SidewallGeometry): THREE.DataTexture {
+  const key = JSON.stringify([text, sizeLabel, Math.round(geo.arc * 2000), Math.round(geo.flank[0] * 2000), Math.round(geo.flank[1] * 2000), Math.round(geo.r[geo.r.length - 1] * 2000)]);
+  let e = sidewallLru.get(key);
+  if (e) sidewallLru.delete(key); // most recently used goes last
+  else e = { tex: drawSidewall(text, sizeLabel, geo), refs: 0 };
+  sidewallLru.set(key, e);
+  e.refs++;
+  evictSidewalls();
+  return e.tex;
+}
+
+export function releaseSidewallMap(tex: THREE.Texture) {
+  for (const e of sidewallLru.values()) {
+    if (e.tex === tex) {
+      e.refs = Math.max(0, e.refs - 1);
+      break;
+    }
+  }
+  evictSidewalls();
+}
+
+function evictSidewalls() {
+  for (const [key, e] of sidewallLru) {
+    if (sidewallLru.size <= SIDEWALL_LRU) break;
+    if (e.refs > 0) continue;
+    sidewallLru.delete(key);
+    e.tex.dispose();
+  }
+}
+
+/** Five-pointed star (the BMW approval marking), centred, outer radius `R`. */
+function starPath(ctx: CanvasRenderingContext2D, R: number) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? R * 0.42 : R;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath();
+}
+
+function drawSidewall(text: SidewallMarkings | null, sizeLabel: string, geo: SidewallGeometry): THREE.DataTexture {
+  const W = SIDEWALL_W, H = SIDEWALL_H;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -215,65 +455,212 @@ export function sidewallMaps(sizeLabel: string): { normal: THREE.Texture; rough:
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#fff';
-  ctx.textBaseline = 'middle';
-  const font = (px: number, weight = 800) => `${weight} ${px}px "Arial Narrow", Arial, Helvetica, sans-serif`;
-  // Orientation checked on the rendered tyre: drawn as-is, the markings read clockwise round the
-  // outer sidewall with the letter tops towards the tread, as on a real tyre.
-  const write = (text: string, x: number, y: number, px: number, spacing = 0.06, weight = 800) => {
+  ctx.textBaseline = 'alphabetic';
+
+  const pxPerM = H / geo.arc; // along the profile (v)
+  const [f0, f1] = geo.flank;
+  const flank = f1 - f0;
+  const at = (f: number) => f0 + flank * f; // arc position of a fraction of the flank
+  const radiusAt = (s: number) => {
+    for (let i = 1; i < geo.s.length; i++) if (geo.s[i] >= s) {
+      const t = (s - geo.s[i - 1]) / Math.max(1e-9, geo.s[i] - geo.s[i - 1]);
+      return geo.r[i - 1] + (geo.r[i] - geo.r[i - 1]) * t;
+    }
+    return geo.r[geo.r.length - 1];
+  };
+  // Neutral bold condensed sans, plain lettering (never a maker's logotype). The canvas is squeezed
+  // horizontally so a letter is as wide on the tyre as it is tall, whatever the sidewall height.
+  const family = '"Helvetica Neue", Arial, "Liberation Sans", Helvetica, sans-serif';
+  const CAP = 0.72; // cap height of these faces, per em
+  // Orientation (checked on the render, Oct 2026): canvas row 0 is the bead (v 0) and u runs
+  // anticlockwise round the outer face, so text drawn upright here would stand on its head with
+  // its tops towards the hub. Each item is turned 180° about its centre: the lettering then reads
+  // clockwise round the tyre with the letter tops towards the tread, as on a real tyre.
+  const write = (str: string, uFrac: number, s: number, capM: number, o: { weight?: number; spacing?: number; condense?: number } = {}) => {
+    const capPx = capM * pxPerM;
+    const fontPx = capPx / CAP;
+    const r = radiusAt(s);
+    const sx = (W / (Math.PI * r) / pxPerM) * (o.condense ?? 0.82);
     ctx.save();
-    ctx.translate(x, y);
-    ctx.font = font(px, weight);
-    let cx = 0;
-    const widths = [...text].map((ch) => ctx.measureText(ch).width + px * spacing);
-    const total = widths.reduce((a, b) => a + b, 0);
-    cx = -total / 2;
-    [...text].forEach((ch, i) => {
-      ctx.fillText(ch, cx, 0);
-      cx += widths[i];
+    ctx.translate(uFrac * W, s * pxPerM);
+    ctx.rotate(Math.PI);
+    ctx.scale(sx, 1);
+    ctx.font = `${o.weight ?? 800} ${fontPx.toFixed(1)}px ${family}`;
+    const chars = [...str];
+    const widths = chars.map((ch) => ctx.measureText(ch).width + fontPx * (o.spacing ?? 0.06));
+    const total = widths.reduce((a, b) => a + b, 0) - fontPx * (o.spacing ?? 0.06);
+    let x = -total / 2;
+    chars.forEach((ch, i) => {
+      ctx.fillText(ch, x, capPx / 2);
+      x += widths[i];
     });
     ctx.restore();
+    return (total * sx) / W; // width as a fraction of the strip
   };
-  write(sizeLabel, W * 0.25, H * 0.56, 92, 0.05);
-  write('RADIAL  TUBELESS', W * 0.62, H * 0.62, 44, 0.12, 700);
-  write('EXTRA LOAD', W * 0.62, H * 0.42, 40, 0.12, 700);
-  write('MAX LOAD 850 KG (1874 LBS)  AT 340 KPA (50 PSI) MAX PRESS', W * 0.86, H * 0.66, 22, 0.06, 600);
-  write('TREADWEAR 300   TRACTION AA   TEMPERATURE A', W * 0.86, H * 0.5, 22, 0.06, 600);
-  write('DOT  XB 4T  3925', W * 0.05, H * 0.5, 28, 0.08, 700);
-  // tread-wear indicator arrows
-  for (const x of [W * 0.12, W * 0.47, W * 0.95]) {
+  const star = (uFrac: number, s: number, sizeM: number) => {
+    const r = radiusAt(s);
+    const sx = W / (Math.PI * r) / pxPerM;
+    ctx.save();
+    ctx.translate(uFrac * W, s * pxPerM);
+    ctx.rotate(Math.PI);
+    ctx.scale(sx, 1);
+    starPath(ctx, (sizeM / 2) * pxPerM);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  // Letter heights follow the flank the geometry really has (19": ~70 mm, 22": ~30 mm), capped at
+  // what real tyres use: maker ~24 mm, model ~20 mm, size ~12 mm, small print ~4.5 mm. A thin 22"
+  // flank gives a larger share to the maker and size, so they stay legible (11 mm and 6 mm).
+  const big = Math.min(0.37 * flank, 0.024);
+  const mid = Math.min(0.2 * flank, 0.012);
+  const small = THREE.MathUtils.clamp(0.06 * flank, 0.0024, 0.0045);
+  const upper = at(0.64), lower = at(0.25), tiny1 = at(0.42), tiny2 = at(0.1);
+  const p = parseTyreSize(sizeLabel);
+  const loadIndex = p ? parseInt(p.service, 10) : NaN;
+  const kg = LOAD_KG[loadIndex];
+
+  if (text && text.brand.trim()) {
+    // Trade name high on the wall (UN R30 lets it sit outside the lower area); regulatory text low
+    write(text.brand.toUpperCase(), 0.2, upper, big, { weight: 900, spacing: 0.1 });
+    if (text.model.trim()) write(text.model.toUpperCase(), 0.66, upper, big * 0.82, { weight: 800, spacing: 0.08 });
+    const wSize = write(sizeLabel, 0.2, lower, mid, { weight: 800, spacing: 0.05 });
+    // after the size in reading order (u runs against the reading direction once turned 180°)
+    if (text.marking?.includes('★')) star(0.2 - wSize / 2 - 0.016, lower, mid * 1.5);
+    write('TUBELESS', 0.62, lower, mid * 0.75, { weight: 700, spacing: 0.1 });
+    write('RADIAL', 0.73, lower, mid * 0.75, { weight: 700, spacing: 0.1 });
+  } else {
+    // Generic markings: the size large where a maker's name would be
+    const wSize = write(sizeLabel, 0.2, upper, Math.min(big * 0.75, 0.018), { weight: 800, spacing: 0.05 });
+    if (text?.marking?.includes('★')) star(0.2 - wSize / 2 - 0.016, upper, mid * 1.5);
+    write('RADIAL  TUBELESS', 0.66, upper, mid * 0.85, { weight: 700, spacing: 0.1 });
+    write('EXTRA LOAD', 0.66, lower, mid * 0.75, { weight: 700, spacing: 0.1 });
+  }
+  write('DOT  XB 4T  3925', 0.44, lower, small * 1.3, { weight: 700, spacing: 0.08 });
+  if (kg) write(`MAX LOAD ${kg} KG (${Math.round(kg * 2.2046)} LBS)  MAX PRESS 350 KPA (51 PSI)`, 0.9, tiny1, small, { weight: 600 });
+  write('SIDEWALL 2 PLIES POLYESTER   TREAD 2 STEEL + 2 POLYAMIDE', 0.9, tiny2, small, { weight: 600 });
+  // tread-wear indicator marks near the shoulder: a small triangle and "TWI"
+  for (const u of [0.04, 0.38, 0.86]) {
+    const s = at(0.93);
+    const r = radiusAt(s);
+    const sx = W / (Math.PI * r) / pxPerM;
+    const tri = small * 1.6 * pxPerM;
+    ctx.save();
+    ctx.translate(u * W, s * pxPerM);
+    ctx.rotate(Math.PI); // apex towards the tread (+y before the turn)
+    ctx.scale(sx, 1);
     ctx.beginPath();
-    ctx.moveTo(x - 14, H * 0.86);
-    ctx.lineTo(x + 14, H * 0.86);
-    ctx.lineTo(x, H * 0.95);
+    ctx.moveTo(-tri * 0.6, tri * 0.5);
+    ctx.lineTo(tri * 0.6, tri * 0.5);
+    ctx.lineTo(0, -tri * 0.5);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
+    write('TWI', u, at(0.8), small, { weight: 700, spacing: 0.12 });
   }
+
+  // --- canvas -> height, roughness, albedo/cavity, packed in one pass (~10x faster than going
+  // through heightToNormal and THREE.MathUtils per pixel; this runs on the main thread)
   const img = ctx.getImageData(0, 0, W, H).data;
-  const letters = new Float32Array(W * H);
-  for (let i = 0; i < W * H; i++) letters[i] = img[i * 4] / 255;
-  const height = new Float32Array(letters);
-  blur(height, W, H, 1);
-  // matte velvet band behind the lettering: v 0.3..0.78, with soft edges
-  const rough = new Uint8ClampedArray(W * H * 4);
+  const height = redChannel(canvas, W, H, 0.75, 1); // bevelled letter slopes
+  const halo = redChannel(canvas, W, H, 3, 4); // spread ~4 px: the cavity around each letter's foot
+  canvas.width = canvas.height = 0; // free the canvas backing store now, not at GC
+  // matte "velvet" band over the lettered flank, with fine raised edges (a per-row height step)
+  const bandLo = at(0.03) / geo.arc, bandHi = at(0.98) / geo.arc, soft = 2 / H;
+  const rowAdd = new Float32Array(H), rowBand = new Float32Array(H);
   for (let y = 0; y < H; y++) {
     const v = y / (H - 1);
-    const band = smoothstep(0.26, 0.32, v) * (1 - smoothstep(0.76, 0.82, v));
+    rowAdd[y] = 0.18 * (Math.exp(-(((v - bandLo) / soft) ** 2)) + Math.exp(-(((v - bandHi) / soft) ** 2)));
+    rowBand[y] = smoothstep(bandLo - soft, bandLo + soft, v) * (1 - smoothstep(bandHi - soft, bandHi + soft, v));
+  }
+  const strength = 3.2 * 0.9;
+  const packed = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    const ru = Math.max(0, y - 1) * W, r0 = y * W, rd = Math.min(H - 1, y + 1) * W;
+    const dAdd = (rowAdd[Math.min(H - 1, y + 1)] - rowAdd[Math.max(0, y - 1)]) * 3.2;
+    const band = rowBand[y];
+    const roughField = 0.66 + band * 0.28, albedoField = 1 - band * 0.16;
     for (let x = 0; x < W; x++) {
-      const i = y * W + x;
-      // band edge is a fine raised step, letters are raised 0.6 mm
-      height[i] = height[i] * 0.9 + band * 0.12;
-      const r = 0.62 + band * 0.28 - letters[i] * band * 0.32; // satin wall, matte band, glossy letters
+      const xl = x === 0 ? W - 1 : x - 1, xr = x === W - 1 ? 0 : x + 1;
+      // raised letters: the normal tilts away from the uphill side, along u and v
+      const nx = -(height[r0 + xr] - height[r0 + xl]) * strength;
+      const ny = -((height[rd + x] - height[ru + x]) * strength + dAdd);
+      const inv = 0.5 / Math.sqrt(nx * nx + ny * ny + 1);
+      const i = r0 + x;
+      const l = img[i * 4] / 255;
+      // satin wall 0.66, velvet field 0.94, letters 0.42 (moulded letters are smoother than the field)
+      const rough = roughField + (0.42 - roughField) * l;
+      // the velvet field reads darker, letters a touch lighter, a soft cavity at each letter's foot
+      const cavity = 1 - 0.4 * Math.max(0, halo[i] * 1.5 - l);
+      const albedo = (albedoField + (1.04 - albedoField) * l) * cavity;
       const o = i * 4;
-      rough[o] = rough[o + 1] = rough[o + 2] = Math.round(THREE.MathUtils.clamp(r, 0, 1) * 255);
-      rough[o + 3] = 255;
+      packed[o] = (nx * inv + 0.5) * 255;
+      packed[o + 1] = (ny * inv + 0.5) * 255;
+      packed[o + 2] = (albedo / 1.04) * 255; // Uint8ClampedArray clamps and rounds
+      packed[o + 3] = rough * 255;
     }
   }
-  const res = {
-    normal: dataTexture(heightToNormal(height, W, H, 3.5), W, H),
-    rough: dataTexture(rough, W, H)
+  const tex = dataTexture(packed, W, H);
+  tex.repeat.set(2, 1); // the strip covers half the tyre: markings appear twice around, set once here
+  tex.name = 'tyre_sidewall_packed';
+  return tex;
+}
+
+/**
+ * The canvas's red channel, blurred: by the canvas blur filter where the browser has one (a few ms),
+ * else by `passes` JS passes of a 1-2-1 kernel.
+ */
+function redChannel(src: HTMLCanvasElement, W: number, H: number, px: number, passes: number): Float32Array {
+  const out = new Float32Array(W * H);
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  const filtered = !!g && 'filter' in g;
+  if (g) {
+    if (filtered) g.filter = `blur(${px}px)`;
+    g.drawImage(src, 0, 0);
+    const d = g.getImageData(0, 0, W, H).data;
+    for (let i = 0; i < W * H; i++) out[i] = d[i * 4] / 255;
+  }
+  c.width = c.height = 0;
+  if (!filtered) blur(out, W, H, passes);
+  return out;
+}
+
+/**
+ * Reads the packed sidewall texture: normal from R,G (z rebuilt), albedo/cavity from B and
+ * roughness from A. Adds the wheel-arch shade and loaded-tyre flattening like every tyre part.
+ */
+export function installPackedSidewall(material: THREE.MeshPhysicalMaterial) {
+  installWheelShading(material, { arch: 0.62, flatten: true });
+  const wheelShading = material.onBeforeCompile;
+  material.customProgramCacheKey = () => 'forgedsa-sidewall-packed-0.62';
+  material.onBeforeCompile = (shader, renderer) => {
+    wheelShading.call(material, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+vec4 swPack = texture2D( normalMap, vNormalMapUv );
+diffuseColor.rgb *= swPack.b * 1.04;`
+      )
+      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * swPack.a;')
+      .replace(
+        '#include <normal_fragment_maps>',
+        `{
+  vec2 swN = swPack.rg * 2.0 - 1.0;
+  vec3 mapN = vec3( swN * normalScale, sqrt( max( 1.0 - dot( swN, swN ), 0.0 ) ) );
+  normal = normalize( tbn * mapN );
+}`
+      )
+      .replace(
+        '#include <aomap_fragment>',
+        `#include <aomap_fragment>
+reflectedLight.indirectSpecular *= mix( 0.55, 1.0, swPack.b );`
+      );
   };
-  sidewallCache.set(sizeLabel, res);
-  return res;
+  material.needsUpdate = true;
 }
 
 function smoothstep(a: number, b: number, x: number) {
@@ -466,8 +853,7 @@ export interface WheelKitMaterials {
 
 export function createWheelKitMaterials(): WheelKitMaterials {
   const disc = discMaps();
-  const tread = treadNormalMap();
-  tread.repeat.set(12, 1);
+  const tread = treadNormalMap(); // its repeat is set once, where it is made
   const kit: WheelKitMaterials = {
     // Rubber: dark charcoal rather than black, a soft sheen at grazing angles
     tread: new THREE.MeshPhysicalMaterial({
@@ -566,6 +952,7 @@ export function createWheelKitMaterials(): WheelKitMaterials {
 // Tyre
 // ---------------------------------------------------------------------------
 
+/** Generic size label from the geometry, used when the car has no tyre spec. */
 export function tyreSizeLabel(d: WheelDims): string {
   const inches = Math.round(20 * d.rimScale);
   const width = Math.round((d.tyreWidth * 1000) / 5) * 5;
@@ -576,15 +963,19 @@ export function tyreSizeLabel(d: WheelDims): string {
 
 /**
  * Tyre as three lathes (tread, outer and inner sidewall) sharing their edge rings, so the tread
- * and the sidewall lettering each get their own UV space.
+ * and the sidewall lettering each get their own UV space. With the car's factory tyre spec the
+ * tread follows that tyre's groove layout and the outer sidewall carries its maker, model, BMW star
+ * and size for this axle (owner-approved, plain lettering, no logos); without one, generic markings.
  */
-export function buildTyre(d: WheelDims, mats: WheelKitMaterials): THREE.Group {
+export function buildTyre(d: WheelDims, mats: WheelKitMaterials, spec?: TyreSpecLike | null): THREE.Group {
   const L = rimLayout(d);
   const R = d.tyreRadius;
   const half = d.tyreWidth / 2;
   const shoulderR = 0.024; // shoulder rounding radius
   const crown = 0.004;
   const segs = 192;
+  const tyreSpec = validTyreSpec(spec);
+  const pattern = treadPatternFor(tyreSpec);
 
   // --- tread: inner shoulder -> crown with grooves -> outer shoulder
   const tread: [number, number][] = [];
@@ -596,18 +987,21 @@ export function buildTyre(d: WheelDims, mats: WheelKitMaterials): THREE.Group {
     const t = (i / 8) * (Math.PI / 2);
     tread.push([sCenterR + Math.sin(t) * shoulderR, sCenterX - Math.cos(t) * shoulderR]);
   }
-  const grooves = [-0.62, -0.22, 0.22, 0.62].map((f) => f * (treadHalf - shoulderR)); // groove centres
-  const gw = d.tyreWidth * 0.04, gd = 0.0075;
+  const layout = TREAD_GROOVES[pattern];
+  const grooves = layout.at.map((f, k) => ({ x: f * (treadHalf - shoulderR), w: d.tyreWidth * layout.width[k] }));
+  const gd = 0.0075;
   const xs: number[] = [];
   for (let k = 0; k <= 40; k++) xs.push(sCenterX + ((-sCenterX * 2) * k) / 40);
-  const inGroove = (x: number) => grooves.find((g) => Math.abs(x - g) < gw / 2 + 0.0015);
+  const inGroove = (x: number) => grooves.find((g) => Math.abs(x - g.x) < g.w / 2 + 0.0015);
+  const grooveBottoms: number[] = []; // profile index of each groove's first bottom point
   let lastX = sCenterX;
   for (const g of grooves) {
     // flat crown up to the groove, then the groove walls (slightly chamfered) and bottom
-    for (const x of xs) if (x > lastX + 1e-6 && x < g - gw / 2 - 0.0015 && !inGroove(x)) tread.push([crownR(x), x]);
-    const e0 = g - gw / 2, e1 = g + gw / 2;
+    for (const x of xs) if (x > lastX + 1e-6 && x < g.x - g.w / 2 - 0.0015 && !inGroove(x)) tread.push([crownR(x), x]);
+    const e0 = g.x - g.w / 2, e1 = g.x + g.w / 2;
     tread.push([crownR(e0 - 0.0015), e0 - 0.0015]);
     tread.push([crownR(e0) - 0.0012, e0]);
+    grooveBottoms.push(tread.length);
     tread.push([crownR(e0) - gd, e0 + 0.0012]);
     tread.push([crownR(e1) - gd, e1 - 0.0012]);
     tread.push([crownR(e1) - 0.0012, e1]);
@@ -620,12 +1014,19 @@ export function buildTyre(d: WheelDims, mats: WheelKitMaterials): THREE.Group {
     tread.push([sCenterR + Math.sin(t) * shoulderR, -sCenterX + Math.cos(t) * shoulderR]);
   }
   const treadGeo = lathe(tread, segs);
+  // groove centres in the tread's texture v (arc length), so the pattern's blocks meet the grooves
+  const treadS = arcLengths(tread);
+  const treadArc = treadS[treadS.length - 1];
+  const grooveV = grooveBottoms.map((i) => (treadS[i] + treadS[i + 1]) / 2 / treadArc);
+  const treadMat = mats.tread.clone();
+  treadMat.normalMap = treadNormalMap(pattern, grooveV);
+  installWheelShading(treadMat, { arch: 0.62, flatten: true });
 
   // --- sidewalls: from the shoulder edge down to the bead, bulging out, with a rim-protector rib
-  const sidewall = (sign: 1 | -1) => {
+  const ribR = L.lipOuter + 0.007;
+  const sidewallProfile = (sign: 1 | -1) => {
     const startR = sCenterR, startX = sign * treadHalf; // the shoulder's last ring
     const bulgeR = L.beadSeat + (R - L.beadSeat) * 0.52;
-    const ribR = L.lipOuter + 0.007;
     const flangeX = sign === 1 ? L.lipX : L.rimWidth / 2 + 0.003;
     const pts: [number, number][] = [[startR, startX]];
     // shoulder -> widest point of the sidewall
@@ -637,39 +1038,66 @@ export function buildTyre(d: WheelDims, mats: WheelKitMaterials): THREE.Group {
     // tuck behind the rim flange
     pts.push(...cubic([ribR - 0.004, sign * (half - 0.004)], [ribR - 0.007, sign * (half - 0.008)], [L.lipOuter + 0.001, sign * (flangeX - 0.002)], [L.lipOuter - 0.003, sign * (flangeX - 0.006)], 6));
     // v runs from the bead (0) to the shoulder (1)
-    return lathe(pts.slice().reverse(), segs);
+    return pts.reverse();
   };
-  const outerGeo = sidewall(1); // v = 0 at the bead, 1 at the shoulder
-  const innerGeo = sidewall(-1);
+  const outerPts = sidewallProfile(1);
+  const outerGeo = lathe(outerPts, segs); // v = 0 at the bead, 1 at the shoulder
+  const innerGeo = lathe(sidewallProfile(-1), segs);
 
-  const label = tyreSizeLabel(d);
-  const maps = sidewallMaps(label);
+  // The lettering is laid out on the sidewall the geometry really has (its arc length and radii)
+  const s = arcLengths(outerPts);
+  const arc = s[s.length - 1];
+  const flankStart = outerPts.findIndex(([r]) => r >= ribR + 0.004); // first ring above the rim-protector rib
+  const geo: SidewallGeometry = {
+    arc,
+    s,
+    r: outerPts.map(([r]) => r),
+    flank: [s[Math.max(0, flankStart)], arc - 0.008]
+  };
+  const inches = Math.round(20 * d.rimScale);
+  const label = tyreSpec ? tyreSizeText(tyreSpec, d.isFront, inches) : tyreSizeLabel(d);
+  const markings: SidewallMarkings | null = tyreSpec
+    ? { brand: tyreSpec.brand ?? '', model: tyreSpec.model ?? '', marking: tyreSpec.marking ?? '', size: label }
+    : null;
+  const packed = acquireSidewallMap(markings, label, geo);
   const sideMat = mats.sidewall.clone();
-  sideMat.normalMap = maps.normal;
+  sideMat.normalMap = packed;
   sideMat.normalScale = new THREE.Vector2(1, 1);
-  sideMat.roughnessMap = maps.rough;
-  maps.normal.repeat.set(2, 1);
-  maps.rough.repeat.set(2, 1);
+  sideMat.roughness = 1; // the map's alpha is the roughness
+  installPackedSidewall(sideMat);
   const innerMat = mats.sidewall.clone();
   innerMat.roughness = 0.72;
   innerMat.envMapIntensity = 0.45; // faces the car: in the wheel arch's shadow
-  installWheelShading(sideMat, { arch: 0.62, flatten: true });
   installWheelShading(innerMat, { arch: 0.62, flatten: true });
 
   const g = new THREE.Group();
   g.name = 'tyre';
-  const treadMesh = new THREE.Mesh(treadGeo, mats.tread);
+  g.userData.sizeLabel = label;
+  g.userData.treadPattern = pattern;
+  const treadMesh = new THREE.Mesh(treadGeo, treadMat);
   const outer = new THREE.Mesh(outerGeo, sideMat);
   const inner = new THREE.Mesh(innerGeo, innerMat);
   g.add(treadMesh, outer, inner);
+  let disposed = false;
   g.userData.dispose = () => {
+    if (disposed) return;
+    disposed = true;
     treadGeo.dispose();
     outerGeo.dispose();
     innerGeo.dispose();
+    treadMat.dispose();
     sideMat.dispose();
     innerMat.dispose();
+    releaseSidewallMap(packed);
   };
   return g;
+}
+
+/** Cumulative arc length along a (radius, x) profile. */
+function arcLengths(pts: [number, number][]): number[] {
+  const s = [0];
+  for (let i = 1; i < pts.length; i++) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return s;
 }
 
 // ---------------------------------------------------------------------------
