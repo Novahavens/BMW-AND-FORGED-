@@ -131,7 +131,10 @@ export async function uploadAsset(bucket: string, folder: string, file: File): P
   const contentType = file.name.toLowerCase().endsWith('.glb')
     ? 'model/gltf-binary'
     : file.type || 'application/octet-stream';
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType, upsert: false });
+  // Names carry a timestamp and are never overwritten, so the file can be cached for a year.
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { contentType, upsert: false, cacheControl: '31536000' });
   if (error) throw error;
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
