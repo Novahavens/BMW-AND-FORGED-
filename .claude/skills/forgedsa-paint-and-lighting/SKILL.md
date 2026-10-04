@@ -68,3 +68,18 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 - Real-time paint has a ceiling. Beyond it, use the path-traced mode (`forgedsa-photoreal-mode`)
   and better models, rather than more parameter tweaking. The whole photoreal process is in
   `3d-car-perfect`.
+
+## Gloss vs satin: what was measured (Oct 2026)
+
+- Shine comes from **hot, crisp highlights on the curves** (bonnet, roof, haunches), not from a bright
+  room: brighter and sharper softboxes (`panelGain` 8, `edge` 0.3) with a low overall environment
+  (`SOFTBOX_INTENSITY` 0.28) and a plain clear coat (`COAT_BOOST` 1.0). A uniformly bright room washed
+  colour out; a soft one read as satin.
+- A flat door only mirrors a few degrees around the horizon, so lighting alone cannot make it look
+  glossy; flank gradients and a floor step were tried and did nothing visible. Judge gloss on
+  3/4 views.
+- Satin / Frozen paints (clearcoat 0, roughness 0.55) stay matte under the same lights: no sharp
+  highlights, a soft sheen.
+- Tyres were tuned for the old dark room (grey in a bright one): rubber is now 0x1c1b1a.
+- Rig: `?gain= ?edge= ?base= ?side= ?floor= ?horizon= ?flank=` override the room live; render the
+  same view on a flat magenta `?bg=` and compare contrast / hot-pixel fraction on the body.

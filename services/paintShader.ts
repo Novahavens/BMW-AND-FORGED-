@@ -42,7 +42,7 @@ export const PAINT_LAYERS: Record<PaintColor['type'], { flake: number; flop: num
  */
 export const COAT_BOOST: number = (() => {
   const m = typeof window !== 'undefined' ? /[?&]coat=([0-9.]+)/.exec(window.location.search) : null;
-  return m ? +m[1] : 1.2;
+  return m ? +m[1] : 1.0;
 })();
 
 /** Flake cells per metre (about 0.7 mm: a fine sparkle up close that fades out with distance). */

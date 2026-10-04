@@ -623,7 +623,16 @@ export class CarConfiguratorEngine {
     room.dispose?.();
 
     if (CarConfiguratorEngine.STUDIO === 'softbox') {
-      const studio = buildSoftboxStudio(CarConfiguratorEngine.ROOM === 'white' ? ROOM_WHITE : CarConfiguratorEngine.ROOM === 'light' ? ROOM_LIGHT : CarConfiguratorEngine.ROOM === 'walls' ? ROOM_WALLS : ROOM_DARK);
+      const baseRoom = CarConfiguratorEngine.ROOM === 'white' ? ROOM_WHITE : CarConfiguratorEngine.ROOM === 'light' ? ROOM_LIGHT : CarConfiguratorEngine.ROOM === 'walls' ? ROOM_WALLS : ROOM_DARK;
+      // Tuning switches: ?gain= ?edge= ?base= ?side= ?floor= ?horizon= override the room's numbers
+      const num = (k: string) => {
+        const m = typeof window !== 'undefined' ? new RegExp(`[?&]${k}=([0-9.]+)`).exec(window.location.search) : null;
+        return m ? +m[1] : undefined;
+      };
+      const room = { ...baseRoom };
+      const o = { panelGain: num('gain'), edge: num('edge'), base: num('base'), sideWalls: num('side'), floor: num('floor'), horizon: num('horizon'), flank: num('flank') };
+      (Object.keys(o) as Array<keyof typeof o>).forEach((k) => { if (o[k] !== undefined) (room as any)[k] = o[k]; });
+      const studio = buildSoftboxStudio(room);
       const studioTarget = pmrem.fromScene(studio, 0.02, 0.1, 100, { size: 512 });
       studio.traverse((o) => {
         const m = o as THREE.Mesh;
@@ -1801,7 +1810,7 @@ export class CarConfiguratorEngine {
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
   static SOFTBOX_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.55;
+    return m ? +m[1] : 0.28;
   })();
   /** Paint gloss: the base coat's roughness is scaled and the clear coat made sharper (?gloss= compares). */
   static GLOSS: number = (() => {

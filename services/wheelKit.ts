@@ -473,24 +473,24 @@ export function createWheelKitMaterials(): WheelKitMaterials {
     tread: new THREE.MeshPhysicalMaterial({
       name: 'tyre_tread', side: THREE.DoubleSide,
       // rubber albedo ~0.023 linear: lighter than it looks, ACES crushes it otherwise
-      color: 0x302e2d,
+      color: 0x1c1b1a,
       roughness: 0.88,
       metalness: 0,
       normalMap: tread,
       normalScale: new THREE.Vector2(0.9, 0.9),
-      sheen: 0.5,
+      sheen: 0.3,
       sheenRoughness: 0.6,
-      sheenColor: new THREE.Color(0x4a4847),
+      sheenColor: new THREE.Color(0x3a3837),
       envMapIntensity: 0.7
     }),
     sidewall: new THREE.MeshPhysicalMaterial({
       name: 'tyre_sidewall', side: THREE.DoubleSide,
-      color: 0x333130,
+      color: 0x1f1e1d,
       roughness: 1,
       metalness: 0,
-      sheen: 0.55,
+      sheen: 0.3,
       sheenRoughness: 0.55,
-      sheenColor: new THREE.Color(0x4f4d4b),
+      sheenColor: new THREE.Color(0x3c3a39),
       envMapIntensity: 0.75
     }),
     lipPolished: new THREE.MeshPhysicalMaterial({

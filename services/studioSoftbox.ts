@@ -47,6 +47,14 @@ export function buildSoftboxStudio(room: StudioRoom = ROOM_DARK): THREE.Scene {
     }
   }
 
+  // Flank panels: one big graded softbox per side, behind the camera when it looks at the door. The door
+  // mirrors it as a gradient (bright shoulder, dark sill) with a clean horizon line, instead of a flat patch.
+  if (room.flank) {
+    for (const side of [-1, 1]) {
+      panel(scene, { w: 15, h: 2.6, at: [side * 7.5, 1.0, 0], lookAt: [0, 1.0, 0], intensity: room.flank, feather: 0.12, grad: 0.95 });
+    }
+  }
+
   // Front and rear kickers: soft fill for the grille, lights and rear diffuser
   panel(scene, { w: 5, h: 2.2, at: [0, 2.0, 9], lookAt: [0, 0.8, 0], intensity: 1.0, feather: 0.35 });
   panel(scene, { w: 5, h: 2.2, at: [0, 2.0, -9], lookAt: [0, 0.8, 0], intensity: 0.8, feather: 0.35 });
@@ -73,23 +81,26 @@ let panelEdge = 1;
 
 function panel(
   scene: THREE.Scene,
-  o: { w: number; h: number; at: [number, number, number]; lookAt: [number, number, number]; intensity: number; feather?: number }
+  o: { w: number; h: number; at: [number, number, number]; lookAt: [number, number, number]; intensity: number; feather?: number; grad?: number }
 ) {
   // A diffuser, not a flat card: brighter in the middle, edges feathered to nothing (added on
   // top of the dark room, so a soft edge never shows a seam).
   const mat = new THREE.ShaderMaterial({
     uniforms: {
       uColor: { value: new THREE.Color(1, 0.995, 0.985).multiplyScalar(o.intensity * panelGain) },
-      uFeather: { value: (o.feather ?? 0.2) * panelEdge }
+      uFeather: { value: (o.feather ?? 0.2) * panelEdge },
+      uGrad: { value: o.grad ?? 0 }
     },
     vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform vec3 uColor; uniform float uFeather; varying vec2 vUv;
+    fragmentShader: `uniform vec3 uColor; uniform float uFeather; uniform float uGrad; varying vec2 vUv;
 void main() {
   vec2 d = min(vUv, 1.0 - vUv);
   float edge = smoothstep(0.0, uFeather * 0.5, d.x) * smoothstep(0.0, uFeather * 0.5, d.y);
   vec2 c = vUv - 0.5;
   float hot = 0.82 + 0.18 * (1.0 - smoothstep(0.0, 0.5, length(c)));
-  gl_FragColor = vec4(uColor * edge * hot, 1.0);
+  // graded softbox: full brightness at the top, fading to nothing at the bottom (the gloss gradient on doors)
+  float grad = mix(1.0, smoothstep(0.0, 1.0, vUv.y), uGrad);
+  gl_FragColor = vec4(uColor * edge * hot * grad, 1.0);
 }`,
     side: THREE.DoubleSide,
     blending: THREE.AdditiveBlending,
@@ -116,13 +127,14 @@ export interface StudioRoom {
   floor: number; // the floor, seen in the lower body
   bounce: number; // floor-bounce panel
   sideWalls?: number; // big tall soft panels either side of the car (door and shoulder gradients)
+  flank?: number; // graded flank softboxes (door gradient)
   panelGain?: number; // multiplies every panel's brightness (crisper, brighter reflections)
   edge?: number; // multiplies every panel's feather (smaller = sharper-edged reflections)
 }
 export const ROOM_DARK: StudioRoom = { base: 0.035, horizon: 0.14, ceiling: 0.03, floor: 0.018, bounce: 0.08 };
 export const ROOM_WALLS: StudioRoom = { ...ROOM_DARK, base: 0.05, bounce: 0.15, floor: 0.05, sideWalls: 1.1 };
 /** A white-studio look: big bright softboxes (overhead, either side) in a mid-grey room, so paint shows deep colour between crisp bright reflections. */
-export const ROOM_WHITE: StudioRoom = { base: 0.1, horizon: 0.18, ceiling: 0.08, floor: 0.2, bounce: 0.3, sideWalls: 1.7, panelGain: 2.5, edge: 0.3 };
+export const ROOM_WHITE: StudioRoom = { base: 0.1, horizon: 0.18, ceiling: 0.08, floor: 0.2, bounce: 0.3, sideWalls: 1.7, panelGain: 8, edge: 0.3 };
 export const ROOM_LIGHT: StudioRoom = { base: 0.22, horizon: 0.3, ceiling: 0.1, floor: 0.2, bounce: 0.5 };
 
 function roomMaterial(room: StudioRoom) {
@@ -135,8 +147,11 @@ function roomMaterial(room: StudioRoom) {
     fragmentShader: `varying vec3 vDir; uniform float uBase; uniform float uHorizon; uniform float uCeiling;
 void main() {
   float y = vDir.y;
-  float horizon = exp(-abs(y) * 9.0);
-  vec3 c = vec3(uBase) + vec3(uHorizon) * horizon + vec3(uCeiling) * max(y, 0.0);
+  // A sharp horizon: the white floor/cyclorama below the line, the dark room above. A flat door only mirrors a
+  // few degrees around the horizon, so this is what puts a crisp bright-to-dark line across the panel.
+  float below = smoothstep(0.012, -0.012, y);
+  float glow = exp(-abs(y) * 9.0);
+  vec3 c = vec3(uBase) + vec3(uHorizon) * (below * 0.9 + glow * 0.15) + vec3(uCeiling) * max(y, 0.0);
   gl_FragColor = vec4(c, 1.0);
 }`
   });
