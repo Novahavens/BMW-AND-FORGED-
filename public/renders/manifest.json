@@ -40,5 +40,19 @@
   "rearThreeQuarter",
   "side",
   "top"
+ ],
+ "m8_f92": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
+ "x5m_f95": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
  ]
 }

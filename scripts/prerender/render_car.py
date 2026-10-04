@@ -16,6 +16,7 @@ ap.add_argument('glb'); ap.add_argument('out')
 ap.add_argument('--samples', type=int, default=32)
 ap.add_argument('--width', type=int, default=1440)
 ap.add_argument('--views', default='')
+ap.add_argument('--no-subdiv', action='store_true', help='for very dense models that run out of memory')
 a = ap.parse_args()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -42,7 +43,7 @@ for o in meshes:
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
         bm.to_mesh(o.data); bm.free()
         for p in o.data.polygons: p.use_smooth = True
-        if len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
+        if not a.no_subdiv and len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
             sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
             sd.boundary_smooth = 'PRESERVE_CORNERS'
         o.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
