@@ -25,23 +25,29 @@ OUT, RIMS = sys.argv[1], sys.argv[2]
 QUICK = '--quick' in sys.argv
 os.makedirs(OUT, exist_ok=True)
 
-# indexes into the bundled catalogue (data/configuratorData.ts); keep in sync with the active list
-CARS = {0: 'M4', 2: 'M3', 3: 'M3T', 6: 'M5', 8: 'M8'}
+# Catalogue ids, not indexes: an index silently points at another car when the list changes (adding
+# the M4 CS once turned 'M3' into the placeholder M4 Convertible). Every car with a 3D model, each in a
+# paint from its own palette.
+CARS = {'m4_g82': 'M4', 'm4_cs_g82': 'M4CS', 'm3_g80': 'M3', 'm3_touring_g81': 'M3T', 'm2_g87': 'M2',
+        'm235_f74': 'M235', 'm5_g90': 'M5', 'm8_f92': 'M8', 'x3m50_g45': 'X3M50', 'x5m_f95': 'X5M'}
+PAINT = {'m4_g82': 'toronto_red', 'm4_cs_g82': 'riviera_blue', 'm3_g80': 'alpine_white', 'm3_touring_g81': 'isle_of_man_green',
+         'm2_g87': 'zandvoort_blue', 'm235_f74': 'storm_bay', 'm5_g90': 'portimao_blue', 'm8_f92': 'black_sapphire',
+         'x3m50_g45': 'brooklyn_grey', 'x5m_f95': 'mineral_white'}
 N_WHEELS = int(os.environ.get('QA_WHEELS', '9'))
-FINISHES = ['liquid_metal', 'black', 'bronze', 'silver']
+# satin_gold and gunmetal only get the generic checks (flat, page errors) until their thresholds are calibrated
+FINISHES = ['liquid_metal', 'black', 'bronze', 'silver', 'satin_gold', 'gunmetal']
 SIZES = ['19"', '22"']
-PAINT = {0: 17, 2: 7, 3: 16, 6: 4, 8: 3}
 
 shots = []
 for w in range(N_WHEELS):
     for f in FINISHES:
-        shots.append({'name': f'A_w{w}_{f}', 'car': 2, 'paint': 7, 'wheel': w, 'finish': f, 'view': 'frontWheel', 'wait': 6000})
+        shots.append({'name': f'A_w{w}_{f}', 'car': 'm3_g80', 'paint': 'alpine_white', 'wheel': w, 'finish': f, 'view': 'frontWheel', 'wait': 6000})
 if not QUICK:
     for w in range(N_WHEELS):
-        for c in CARS:
-            shots.append({'name': f'B_w{w}_c{c}', 'car': c, 'paint': PAINT[c], 'wheel': w, 'finish': FINISHES[(w + c) % 4], 'view': 'frontThreeQuarter', 'wait': 6000})
+        for i, c in enumerate(CARS):
+            shots.append({'name': f'B_w{w}_{CARS[c]}', 'car': c, 'paint': PAINT[c], 'wheel': w, 'finish': FINISHES[(w + i) % 4], 'view': 'frontThreeQuarter', 'wait': 6000})
         for s in SIZES:
-            shots.append({'name': f'C_w{w}_{s[:2]}', 'car': 0, 'paint': 17, 'wheel': w, 'finish': 'silver', 'size': s, 'view': 'frontWheel', 'wait': 6000})
+            shots.append({'name': f'C_w{w}_{s[:2]}', 'car': 'm4_g82', 'paint': 'toronto_red', 'wheel': w, 'finish': 'silver', 'size': s, 'view': 'frontWheel', 'wait': 6000})
 
 todo = [s for s in shots if not os.path.exists(os.path.join(OUT, s['name'] + '.png'))]
 log_path = os.path.join(OUT, 'shoot.log')
@@ -139,8 +145,8 @@ def sheet(prefix, cols, fname, box):
         d.text((x + 4, y + 2), s['name'], fill=(255, 255, 255))
     W.save(os.path.join(OUT, fname), quality=88)
 
-sheet('A_', 4, 'sheet-A-design-x-finish.jpg', (440, 180, 880, 620))
-sheet('B_', 5, 'sheet-B-design-x-car.jpg', None)
+sheet('A_', len(FINISHES), 'sheet-A-design-x-finish.jpg', (440, 180, 880, 620))
+sheet('B_', len(CARS), 'sheet-B-design-x-car.jpg', None)
 sheet('C_', 2, 'sheet-C-sizes.jpg', (440, 180, 880, 620))
 json.dump(rows, open(os.path.join(OUT, 'qa-matrix.json'), 'w'), indent=2)
 bad = [r for r in rows if not r['pass']]

@@ -8,7 +8,8 @@
  *   { "name": "m4-wheel", "car": 0, "paint": 17, "wheel": 2, "finish": "black", "size": "20\"",
  *     "view": "frontWheel", "q": "&tone=agx", "w": 1280, "h": 800, "wait": 6000,
  *     "cam": { "pos": [x, y, z], "look": [x, y, z] } }
- * car / paint / wheel are indexes into the bundled catalogue (data/configuratorData.ts).
+ * car / paint / wheel are catalogue ids (m3_g80, alpine_white, forged_fsa_02) or indexes into the
+ * bundled catalogue (data/configuratorData.ts); prefer ids, indexes shift when the catalogue changes.
  *
  * Uses the sandbox Chromium with SwiftShader (no GPU): about a minute per shot. Rim photos from
  * Supabase storage are served from [rimCacheDir] when present (curl otherwise), because the
