@@ -13,6 +13,13 @@
   "side",
   "top"
  ],
+ "m3_g80": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
  "m3_touring_g81": [
   "frontThreeQuarter",
   "frontWheel",
