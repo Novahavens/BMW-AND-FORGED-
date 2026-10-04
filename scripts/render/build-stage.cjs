@@ -35,7 +35,7 @@ const W = 1600, H = 900, DSF = 2;
   const dir = path.join(raw, carId); fs.mkdirSync(dir, { recursive: true });
   const paints = paintArg === 'all' ? info.paints.map((_, i) => i) : paintArg.split(',').map(Number);
   const sizes = sizeArg.split(',');
-  const shot = async (name) => { await p.evaluate(() => window.e.requestRender(4)); await p.waitForTimeout(1800); await p.screenshot({ path: path.join(dir, name), omitBackground: true }); };
+  const shot = async (name) => { await p.evaluate(() => window.e.requestRender(4)); await p.waitForTimeout(1800); await p.screenshot({ path: path.join(dir, name), omitBackground: true, timeout: 240000 }); };
   const layout = { carId, w: W * DSF, h: H * DSF, sizes: {} };
   for (const size of sizes) {
     await p.evaluate((s) => window.e.setRimSize(s), size);
