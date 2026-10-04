@@ -16,7 +16,7 @@ export const WelcomeGate: React.FC<{
   onEnter: () => void;
   onOpenForged: () => void;
 }> = ({ region, onRegionChange, onEnter, onOpenForged }) => (
-  <div className="absolute inset-0 z-30 pointer-events-none">
+  <div className="stage-light absolute inset-0 z-30 pointer-events-none">
     {/* Legibility wash on the text side only; the car stays crisp */}
     <div className="absolute inset-y-0 left-0 hidden sm:block w-[44%] bg-gradient-to-r from-carbon/80 via-carbon/40 to-transparent" />
     <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-carbon via-carbon/80 to-transparent sm:hidden" />

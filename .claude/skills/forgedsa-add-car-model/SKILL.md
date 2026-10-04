@@ -43,6 +43,15 @@ the model's own wheels via `hide_mesh_match`, default `DEFAULT_HIDE`
 - A panel left in its baked grey or black texture means a body material is missing from the regex.
 - Forged wheels are placed only when **four** wheels are found by the hide regex.
 
+## 3b. Part rules that fix wrong-looking trim (services/carMaterials.ts)
+
+- `NAME_OVERRIDES`: per-file quirks (a white grille-bar material, a yellow livery outline).
+- A black, untextured, non-metal material is never chrome, whatever its parent groups are called.
+- Chrome in the middle of the front fascia becomes gloss black (grille bars modelled as chrome).
+- Materials named engine / radiator are black (seen through the grille).
+- Keep the model's own calipers: leave `caliper` out of `hide_mesh_match`. The caliper-named material
+  takes the caliper colour and our calipers are hidden. A GLB's own credit is in its `asset.extras`.
+
 ## 4. Wire it in
 
 - Write a migration in `supabase/migrations/` (see `20260927020000_m4_paint_fix.sql` and

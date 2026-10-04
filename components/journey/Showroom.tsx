@@ -84,7 +84,7 @@ export const Showroom: React.FC<{
   ).filter(([, v]) => v?.trim());
 
   return (
-    <div className="absolute inset-0 z-30 pointer-events-none">
+    <div className="stage-light absolute inset-0 z-30 pointer-events-none">
       {/* Swipe surface over the car */}
       <div
         className="absolute inset-x-0 top-20 bottom-44 pointer-events-auto"

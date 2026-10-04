@@ -512,7 +512,7 @@ export const App: React.FC = () => {
   const onJourney = ['welcome', 'showroom', 'configure'].includes(route.name);
 
   return (
-    <div className="relative w-screen h-[100dvh] overflow-hidden bg-studio select-none">
+    <div className="relative w-screen h-[100dvh] overflow-hidden bg-stage select-none">
       <ShowroomBackdrop car={selectedCar} visible={booted && route.name === 'showroom'} />
 
       {/* The studio: transparent WebGL canvas over the backdrop */}

@@ -24,7 +24,7 @@ export const TopBar: React.FC<{
   const [open, setOpen] = useState(false);
   return (
     <>
-      <header className={cx('absolute top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 short:h-14', className)}>
+      <header className={cx('stage-light absolute top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 short:h-14', className)}>
         <button
           onClick={() => setOpen(true)}
           aria-label="Menu"

@@ -16,8 +16,21 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 | Uni (solid) | 0 | 0.5 | 1 | 0.05 |
 | Frozen (matte) | 0.4 | 0.55 | 0 | – |
 
-- `CarConfiguratorEngine.BODY_ENV_INTENSITY = 0.45`: the body's reflection strength.
-  Higher values wash the bonnet out white.
+- **`material.envMapIntensity` does nothing here.** In three r181 it only applies when the material
+  has its own `envMap`; ours use `scene.environment`, so the strength is `scene.environmentIntensity`
+  (`SOFTBOX_INTENSITY`, now 1.15). `BODY_ENV_INTENSITY` (`?bodyenv=`) is kept but has no effect.
+- **White studio (current default, `?room=white`):** white page backdrop (`.bg-stage`; parts of the UI
+  on it use `.stage-light`, dialogs `.stage-dark`) with a mid-grey reflection room lit by big bright
+  softboxes. A uniformly white room washes paint out; contrast between softboxes and room is what
+  reads as gloss. `SOFTBOX_INTENSITY` 0.55 (`?envi=`); ROOM_WHITE panels are 2.5x brighter with 0.3x feather for crisp reflections.
+- **Clear-coat boost (`COAT_BOOST` 1.2, `?coat=`):** `paintShader.ts` multiplies the clear coat's
+  indirect reflection. `clearcoat` can't go above 1, and a plain 4% reflection of a soft room looks
+  matte. Glossy paints also get base roughness x `GLOSS` 0.65 (`?gloss=`) and clearcoatRoughness
+  at most 0.025; Frozen is unchanged.
+- **Studio room** (`?room=walls|dark|light|white`; older `walls` = dark room with side panels): a dark room plus tall soft panels either
+  side of the car, so doors and flanks show broad gradients. The light-grey room washed the paint out
+  and a dark room alone read as satin: paint only looks glossy when something big and bright is
+  reflected in it. White paints blow out above about 1.3 environment intensity.
 - **Reflections (since Oct 2026):** a generated **softbox studio** (`services/studioSoftbox.ts`).
   - Feathered diffuser panels: overhead 2.3, side strips 2.4, low strips 1.3, kickers, a 0.08
     floor bounce, in a dark room.

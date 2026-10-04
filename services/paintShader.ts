@@ -23,6 +23,7 @@ export interface PaintLayerUniforms {
   uFlakeStrength: THREE.IUniform<number>;
   uFlakeScale: THREE.IUniform<number>;
   uFlop: THREE.IUniform<number>;
+  uCoatBoost: THREE.IUniform<number>;
 }
 
 /** Look per BMW paint type. Exposed so tuning sessions can adjust them live. */
@@ -33,6 +34,17 @@ export const PAINT_LAYERS: Record<PaintColor['type'], { flake: number; flop: num
   Uni: { flake: 0, flop: 0.92 }
 };
 
+/**
+ * Strength of the clear coat's reflection of the studio. A real clear coat reflects a bright, high
+ * contrast studio so sharply that the whole panel reads as glass over colour; in a soft white room
+ * the plain physical 4% reflection barely shows and the paint looks matte, so it is multiplied.
+ * ?coat= compares.
+ */
+export const COAT_BOOST: number = (() => {
+  const m = typeof window !== 'undefined' ? /[?&]coat=([0-9.]+)/.exec(window.location.search) : null;
+  return m ? +m[1] : 1.2;
+})();
+
 /** Flake cells per metre (about 0.7 mm: a fine sparkle up close that fades out with distance). */
 export const FLAKE_SCALE = 1400;
 
@@ -40,10 +52,11 @@ export function installPaintLayers(material: THREE.MeshPhysicalMaterial): PaintL
   const uniforms: PaintLayerUniforms = {
     uFlakeStrength: { value: PAINT_LAYERS.Metallic.flake },
     uFlakeScale: { value: FLAKE_SCALE },
-    uFlop: { value: PAINT_LAYERS.Metallic.flop }
+    uFlop: { value: PAINT_LAYERS.Metallic.flop },
+    uCoatBoost: { value: COAT_BOOST }
   };
   material.userData.paintLayers = uniforms;
-  material.customProgramCacheKey = () => 'forgedsa-paint-v2';
+  material.customProgramCacheKey = () => 'forgedsa-paint-v3';
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
@@ -58,11 +71,19 @@ varying vec3 vPaintPos;
 uniform float uFlakeStrength;
 uniform float uFlakeScale;
 uniform float uFlop;
+uniform float uCoatBoost;
 vec3 paintHash3(vec3 p) {
   p = fract(p * vec3(0.1031, 0.1030, 0.0973));
   p += dot(p, p.yxz + 33.33);
   return fract((p.xxy + p.yxx) * p.zyx);
 }`
+      )
+      .replace(
+        '#include <lights_fragment_end>',
+        `#include <lights_fragment_end>
+#ifdef USE_CLEARCOAT
+  clearcoatSpecularIndirect *= uCoatBoost;
+#endif`
       )
       .replace(
         '#include <normal_fragment_maps>',

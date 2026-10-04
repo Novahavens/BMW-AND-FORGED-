@@ -41,7 +41,21 @@ const RE = {
   badge: /badge|logo|emblem|roundel|lettering|script/i
 };
 
+/**
+ * Known quirks of specific model files that no name rule can guess. Matched against the part's own
+ * names; the first hit wins. Add a line here (with the model) instead of loosening the general rules.
+ */
+const NAME_OVERRIDES: Array<[RegExp, PartKind]> = [
+  // bmw-m4-competition.glb: the kidney grille bars are an untextured pure-white material
+  [/Mesheswhite41Mtl/, 'blackTrim'],
+  // bmw-m4-cs-vr46.glb: the yellow grille outline is VR46 livery; the stock car has a black one
+  [/RED_PAINT\.012/, 'blackTrim'],
+  // the radiator / engine-bay material seen through the grille is a bright grey on several files; it should read black
+  [/engine(?!.*(alpha)?_?int)|radiator/i, 'blackTrim']
+];
+
 export function classifyPart(names: string, m: THREE.MeshStandardMaterial): PartKind {
+  for (const [re, kind] of NAME_OVERRIDES) if (re.test(names)) return kind;
   const transparent = m.transparent || m.opacity < 1;
   const emissive = m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b > 0.5 || !!m.emissiveMap);
   if (RE.interior.test(names)) return 'interior';
@@ -95,7 +109,10 @@ export function passMaterial(material: THREE.Material, names: string): THREE.Mat
   if (m0.userData.forgedPass) return m0;
   // a material shared by several parts is converted once and the copy shared
   if (m0.userData.forgedReplacement) return m0.userData.forgedReplacement as THREE.Material;
-  const kind = classifyPart(`${names} ${m0.name}`, m0);
+  let kind = classifyPart(`${names} ${m0.name}`, m0);
+  // The names of parent groups ("chrome", "silver") must not turn a black plastic into a mirror:
+  // an untextured, dark, non-metal material is black trim whatever its ancestors are called
+  if (kind === 'chrome' && !m0.map && luminance(m0.color) < 0.1 && m0.metalness < 0.3) kind = 'blackTrim';
   let m: THREE.MeshStandardMaterial = m0;
 
   // Nearly opaque parts flagged as transparent sort badly against the glass; draw them solid
@@ -170,6 +187,8 @@ export function passMaterial(material: THREE.Material, names: string): THREE.Mat
       // High-gloss "shadow line" black, the default on M cars
       const p = toPhysical(m);
       if (!p.map && luminance(p.color) > 0.08) p.color.multiplyScalar(0.6);
+      // A textured grille is a light bar pattern on some files: tint it down to gloss black, keeping the bars
+      if (/grille|grill|engine|radiator|RED_PAINT\.012/i.test(`${names} ${m0.name}`)) p.color.multiplyScalar(0.07);
       p.metalness = Math.min(p.metalness, 0.1);
       p.roughness = THREE.MathUtils.clamp(p.roughness, 0.22, 0.4);
       p.clearcoat = 0.6;
@@ -196,6 +215,10 @@ export function passMaterial(material: THREE.Material, names: string): THREE.Mat
       if (m.metalness <= 0.06 && m.roughness >= 0.98) m.roughness = 0.45;
       break;
   }
+  // An emissive map is multiplied by the emissive colour. Exporters often attach one with the
+  // colour left at the glTF default (black), which adds nothing but still costs a texture upload
+  // (the M3 carries about 90 MB of them). Tail lenses set a red emissive colour above and keep theirs.
+  if (m.emissiveMap && m.emissive.r + m.emissive.g + m.emissive.b === 0) m.emissiveMap = null;
   m.userData.forgedPass = true;
   m.userData.partKind = kind;
   m.needsUpdate = true;
@@ -226,4 +249,59 @@ export function glassReflectionMaterial(): THREE.MeshPhysicalMaterial {
     envMapIntensity: 1.15
   });
   return glassReflectionMat;
+}
+
+/**
+ * three.js (r163+) ignores `material.envMapIntensity` for reflections that come from `scene.environment`:
+ * only `scene.environmentIntensity` counts. A part's own intensity (dark cabin, tinted glass...) only takes
+ * effect when the material carries the environment itself, so give it the scene's and scale by the scene's
+ * intensity (once per material: cached models are mounted again).
+ */
+export function bindEnvironment(material: THREE.Material | THREE.Material[], env: THREE.Texture | null, sceneIntensity: number) {
+  if (!env) return;
+  for (const m of Array.isArray(material) ? material : [material]) {
+    const std = m as THREE.MeshStandardMaterial;
+    if (!std.isMeshStandardMaterial || std.userData.envBound) continue;
+    std.envMap = env;
+    std.envMapIntensity *= sceneIntensity;
+    std.userData.envBound = true;
+    std.needsUpdate = true;
+  }
+}
+
+let grilleBlackCache = new WeakMap<THREE.Material, THREE.Material>();
+/**
+ * Some files model the kidney-grille bars as real chrome (the old M4 and the M3 Touring). On a modern M
+ * car the grille is gloss black: a "chrome" part sitting in the middle of the front fascia becomes
+ * black, whatever the file calls it. `centre` is in car space (metres, wheels on y = 0, nose to +z).
+ */
+export function blackenGrilleChrome(
+  material: THREE.Material,
+  centre: THREE.Vector3,
+  carBox: THREE.Box3
+): THREE.Material {
+  const m = material as THREE.MeshStandardMaterial;
+  if (!m.isMeshStandardMaterial || m.userData.partKind !== 'chrome') return material;
+  const len = carBox.max.z - carBox.min.z;
+  const wid = carBox.max.x - carBox.min.x;
+  const inFront = centre.z > carBox.max.z - 0.2 * len;
+  const grilleHeight = centre.y > 0.25 && centre.y < 0.85;
+  const middle = Math.abs(centre.x) < 0.3 * wid;
+  if (!(inFront && grilleHeight && middle)) return material;
+  let black = grilleBlackCache.get(material);
+  if (!black) {
+    const p = new THREE.MeshPhysicalMaterial({
+      name: `${m.name}_grille_black`,
+      color: 0x050505,
+      metalness: 0.1,
+      roughness: 0.28,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.08
+    });
+    p.userData.forgedPass = true;
+    p.userData.partKind = 'blackTrim';
+    black = p;
+    grilleBlackCache.set(material, black);
+  }
+  return black;
 }

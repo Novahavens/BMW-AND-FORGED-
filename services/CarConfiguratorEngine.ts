@@ -4,18 +4,14 @@
  */
 
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyPaintLayers, installPaintLayers } from './paintShader';
-import { buildSoftboxStudio } from './studioSoftbox';
-import { glassReflectionMaterial, passMaterial } from './carMaterials';
+import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS, ROOM_WHITE } from './studioSoftbox';
+import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial } from './carMaterials';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
 import { traceRimShapes, traceMaskShapes, buildRimFaceGeometry } from './rimExtrusion';
@@ -69,11 +65,6 @@ export class CarConfiguratorEngine {
   private renderer: THREE.WebGLRenderer;
   private animationFrameId: number | null = null;
   private clock: THREE.Clock;
-
-  // Post-Processing Bloom Pipeline
-  private composer!: EffectComposer;
-  private bloomPass!: UnrealBloomPass;
-  private isBloomEnabled: boolean = false; // UnrealBloomPass isn't alpha-aware; it breaks the transparent canvas
 
   // Car Hierarchy
   private carGroup: THREE.Group;
@@ -170,6 +161,7 @@ export class CarConfiguratorEngine {
   private boundOnPointerMove?: (e: MouseEvent | TouchEvent) => void;
   private boundOnPointerUp?: () => void;
   private boundOnWheel?: (e: WheelEvent) => void;
+  private boundOnContextRestored?: () => void;
 
   // Callbacks
   private onReady?: () => void;
@@ -182,6 +174,11 @@ export class CarConfiguratorEngine {
    */
   static STUDIO: 'softbox' | 'hdri' =
     typeof window !== 'undefined' && /[?&]studio=hdri/.test(window.location.search) ? 'hdri' : 'softbox';
+  /** The reflected studio room: 'walls' (default: dark room with tall side panels), 'dark' or 'light'; ?room= compares. */
+  static ROOM: 'dark' | 'light' | 'walls' | 'white' = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]room=(light|walls|dark|white)/.exec(window.location.search) : null;
+    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white') ?? 'white';
+  })();
   /** Tone mapping: 'aces' (default), 'agx' or 'neutral'; ?tone=agx compares. */
   static TONE: 'aces' | 'agx' | 'neutral' = (() => {
     const m = typeof window !== 'undefined' ? /[?&]tone=(agx|neutral|aces)/.exec(window.location.search) : null;
@@ -205,7 +202,12 @@ export class CarConfiguratorEngine {
     vBlur: THREE.ShaderMaterial;
   } | null = null;
   private shadowFrames = 0;
+  // Car GLBs by URL, least recently used first. Resolved scenes are also kept in modelScenes so they
+  // can be disposed when evicted; mountedModelUrl is the car on screen and is never evicted.
   private modelCache = new Map<string, Promise<THREE.Object3D>>();
+  private modelScenes = new Map<string, THREE.Object3D>();
+  private mountedModelUrl: string | null = null;
+  private static readonly MODEL_CACHE_MAX = 4;
   private drive: {
     from: number;
     to: number;
@@ -250,8 +252,17 @@ export class CarConfiguratorEngine {
     this.renderer.toneMappingExposure = CarConfiguratorEngine.EXPOSURE ?? (tone === 'agx' ? 1.25 : tone === 'neutral' ? 0.95 : 1.08);
     this.container.appendChild(this.renderer.domElement);
 
-    // Setup Post-Processing Specular Bloom Pass Pipeline
-    this.setupPostProcessing(w, h);
+    // A phone can take the GPU away (app backgrounded, memory pressure) and hand it back empty.
+    // three.js re-creates its own state and re-uploads textures and geometry on demand, but the
+    // two things that only ever lived on the GPU are gone: the reflection environment and the
+    // contact shadow. Without this the car comes back dark with no studio reflections.
+    this.boundOnContextRestored = () => {
+      this.environmentTarget = null; // its GPU objects died with the old context; nothing to free
+      this.generateStudioEnvironment();
+      this.markShadowDirty();
+      this.requestRender();
+    };
+    this.renderer.domElement.addEventListener('webglcontextrestored', this.boundOnContextRestored);
 
     // Groups
     this.carGroup = new THREE.Group();
@@ -286,41 +297,6 @@ export class CarConfiguratorEngine {
     if (this.onReady) {
       setTimeout(() => this.onReady?.(), 100);
     }
-  }
-
-  // ----------------------------------------------------
-  // POST-PROCESSING BLOOM PIPELINE
-  // ----------------------------------------------------
-  private setupPostProcessing(width: number, height: number) {
-    const renderTarget = new THREE.WebGLRenderTarget(width, height, {
-      type: THREE.HalfFloatType,
-      format: THREE.RGBAFormat,
-      samples: 4
-    });
-
-    this.composer = new EffectComposer(this.renderer, renderTarget);
-
-    // 1. Base Scene Pass
-    const renderPass = new RenderPass(this.scene, this.camera);
-    this.composer.addPass(renderPass);
-
-    // 2. Unreal Bloom Pass: a restrained sheen on real hotspots (chrome, clearcoat highlights),
-    // tuned for the light studio backdrop so it doesn't just glow the whole car.
-    // strength: 0.30 - a sheen, not a glow
-    // radius: 0.32 - tight, so it reads as gloss rather than haze
-    // threshold: 0.92 - only the brightest specular hits bloom
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(width, height),
-      0.30, // strength
-      0.32, // radius
-      0.92  // threshold
-    );
-    this.bloomPass.enabled = this.isBloomEnabled;
-    this.composer.addPass(this.bloomPass);
-
-    // 3. Final Output Pass with ACES Tone Mapping
-    const outputPass = new OutputPass();
-    this.composer.addPass(outputPass);
   }
 
   // ----------------------------------------------------
@@ -647,7 +623,7 @@ export class CarConfiguratorEngine {
     room.dispose?.();
 
     if (CarConfiguratorEngine.STUDIO === 'softbox') {
-      const studio = buildSoftboxStudio();
+      const studio = buildSoftboxStudio(CarConfiguratorEngine.ROOM === 'white' ? ROOM_WHITE : CarConfiguratorEngine.ROOM === 'light' ? ROOM_LIGHT : CarConfiguratorEngine.ROOM === 'walls' ? ROOM_WALLS : ROOM_DARK);
       const studioTarget = pmrem.fromScene(studio, 0.02, 0.1, 100, { size: 512 });
       studio.traverse((o) => {
         const m = o as THREE.Mesh;
@@ -941,13 +917,17 @@ export class CarConfiguratorEngine {
     if (car.modelUrl) {
       try {
         const template = await this.loadCarTemplate(car.modelUrl);
-        if (token === this.carLoadToken) this.mountCarModel(template.clone(true), car);
+        if (token === this.carLoadToken) {
+          this.mountCarModel(template.clone(true), car);
+          this.mountedModelUrl = car.modelUrl;
+        }
         return 'model';
       } catch (err) {
         console.warn(`Failed to load 3D model for ${car.name}; using procedural body.`, err);
       }
     }
     if (token === this.carLoadToken) {
+      this.mountedModelUrl = null;
       this.buildBMWCarBody(car.bodyStyle);
       this.resetWheelLayout();
       this.markShadowDirty();
@@ -958,22 +938,82 @@ export class CarConfiguratorEngine {
   /** Downloads a car GLB once; every later mount clones the cached scene (geometry is shared). */
   private loadCarTemplate(url: string): Promise<THREE.Object3D> {
     let p = this.modelCache.get(url);
-    if (!p) {
+    if (p) {
+      // Most recently used goes last
+      this.modelCache.delete(url);
+      this.modelCache.set(url, p);
+    } else {
       p = this.getGltfLoader()
         .loadAsync(url)
         .then((gltf) => {
           gltf.scene.userData.cachedModel = true;
+          if (this.isDisposed) {
+            CarConfiguratorEngine.disposeScene(gltf.scene);
+          } else {
+            this.modelScenes.set(url, gltf.scene);
+            this.evictModels(url);
+          }
           return gltf.scene;
         });
       p.catch(() => this.modelCache.delete(url));
       this.modelCache.set(url, p);
     }
+    this.evictModels(url);
     return p;
   }
 
-  /** Warms the model cache so switching to this car is instant. */
+  /** Keeps the cache to a few cars so browsing the showroom doesn't pile up GPU memory. */
+  private evictModels(keep: string) {
+    for (const url of this.modelCache.keys()) {
+      if (this.modelCache.size <= CarConfiguratorEngine.MODEL_CACHE_MAX) break;
+      if (url === keep || url === this.mountedModelUrl) continue;
+      const scene = this.modelScenes.get(url);
+      if (!scene) continue; // still downloading
+      this.modelCache.delete(url);
+      this.modelScenes.delete(url);
+      CarConfiguratorEngine.disposeScene(scene);
+    }
+  }
+
+  /** Drops every cached car except the one on screen (e.g. while another page has the GPU). */
+  private trimModelCache() {
+    for (const url of [...this.modelCache.keys()]) {
+      if (url === this.mountedModelUrl) continue;
+      const scene = this.modelScenes.get(url);
+      if (!scene) continue; // still downloading
+      this.modelCache.delete(url);
+      this.modelScenes.delete(url);
+      CarConfiguratorEngine.disposeScene(scene);
+    }
+  }
+
+  /** Frees the GPU buffers and textures of a cached car scene that is no longer on screen. */
+  private static disposeScene(scene: THREE.Object3D) {
+    scene.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.geometry?.dispose();
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((mat) => {
+        if (!mat) return;
+        Object.values(mat).forEach((v) => {
+          if (v instanceof THREE.Texture) v.dispose();
+        });
+        mat.dispose();
+      });
+    });
+  }
+
+  /** Warms the model cache so switching to this car is instant. Runs when the browser is idle. */
   public preloadCar(car: CarModel) {
-    if (car.modelUrl) this.loadCarTemplate(car.modelUrl).catch(() => {});
+    const url = car.modelUrl;
+    if (!url) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    const run = () => {
+      if (!this.isDisposed) this.loadCarTemplate(url).catch(() => {});
+    };
+    if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 3000 });
+    else setTimeout(run, 300);
   }
 
   /**
@@ -1060,6 +1100,7 @@ export class CarConfiguratorEngine {
     model.position.y -= box.min.y;
     model.updateMatrixWorld(true);
 
+    const carBox = new THREE.Box3().setFromObject(model);
     const paintRe = CarConfiguratorEngine.safeRegex(car.paintMeshMatch, 'paint|body|carpaint|exterior');
     // Whole words only by default, so "trim" or "brim" never count as a rim.
     const legacyHide = 'wheel|rim|tyre|tire|brake|caliper|rotor';
@@ -1073,6 +1114,7 @@ export class CarConfiguratorEngine {
     const corners = new Map<string, THREE.Box3>();
     const unmatched: string[] = [];
     const wheelMeshes: THREE.Mesh[] = [];
+    let modelCalipers = false;
 
     const usedVariants = new Set<THREE.MeshPhysicalMaterial>();
     this.pendingVariants = usedVariants;
@@ -1107,6 +1149,14 @@ export class CarConfiguratorEngine {
       }
 
       const ownNames = `${mesh.name} ${materialNames}`;
+      // A car whose hide pattern leaves its own calipers visible keeps them: the painted body of the
+      // caliper takes the caliper colour (like ours), its hardware keeps a metal look
+      if (/caliper|calliper/i.test(materialNames)) {
+        mesh.material = this.kit.caliper;
+        mesh.userData.modelCaliper = true;
+        modelCalipers = true;
+        return;
+      }
       if (paintRe.test(ownNames) && !notPaintRe.test(ownNames)) {
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map((m) => this.paintMaterialFor(m))
@@ -1117,11 +1167,18 @@ export class CarConfiguratorEngine {
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map((m) => passMaterial(m, partNames))
           : passMaterial(mesh.material, partNames);
+        if (!Array.isArray(mesh.material)) {
+          const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
+          mesh.material = blackenGrilleChrome(mesh.material, c, carBox);
+        }
+        bindEnvironment(mesh.material, this.scene.environment, this.scene.environmentIntensity);
         // Full-strength Fresnel reflections on single-material glazing (see glassReflectionMaterial)
         // (a cached model mounted again arrives with the overlay child cloned along: never twice)
         const glass = !Array.isArray(mesh.material) && mesh.material.userData.partKind === 'glass';
         if (glass && !mesh.children.some((c) => c.userData.isOverlay)) {
-          const overlay = new THREE.Mesh(mesh.geometry, glassReflectionMaterial());
+          const glassMat = glassReflectionMaterial();
+          bindEnvironment(glassMat, this.scene.environment, this.scene.environmentIntensity);
+          const overlay = new THREE.Mesh(mesh.geometry, glassMat);
           overlay.name = 'glass_reflection';
           overlay.renderOrder = mesh.renderOrder + 1;
           overlay.userData.isOverlay = true;
@@ -1142,6 +1199,9 @@ export class CarConfiguratorEngine {
       if (byVertex.size === 4) byVertex.forEach((box, key) => corners.set(key, box));
     }
     if (corners.size === 4) CarConfiguratorEngine.stripLeftoverWheelParts(model, [...corners.values()]);
+
+    // The model's own calipers replace ours (they match its brakes and arches)
+    this.wheelAssemblies.forEach((a) => (a.caliper.visible = !modelCalipers));
 
     this.disposeBody();
     this.bodyMeshGroup.add(model);
@@ -1177,7 +1237,7 @@ export class CarConfiguratorEngine {
     const v = new THREE.Vector3();
     model.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
-      if (!mesh.isMesh || !mesh.visible || mesh.userData.isOverlay) return;
+      if (!mesh.isMesh || !mesh.visible || mesh.userData.isOverlay || mesh.userData.modelCaliper) return;
       const geo = mesh.geometry;
       // Decided once per geometry: a cached model is mounted as a clone whose userData is a copy,
       // but whose geometry is shared, so the decision lives on the geometry
@@ -1266,7 +1326,8 @@ export class CarConfiguratorEngine {
   /** Stops rendering while the canvas is hidden (e.g. another page is on top). */
   public setPaused(paused: boolean) {
     this.isPaused = paused;
-    if (!paused) this.requestRender();
+    if (paused) this.trimModelCache();
+    else this.requestRender();
   }
 
   /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
@@ -1733,9 +1794,20 @@ export class CarConfiguratorEngine {
    * and roof out to flat white; ~0.45 keeps a crisp softbox reflection with the paint colour showing
    * through, which is how BMW's own studio renders read.
    */
-  static BODY_ENV_INTENSITY = 0.45;
+  static BODY_ENV_INTENSITY: number = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]bodyenv=([0-9.]+)/.exec(window.location.search) : null;
+    return m ? +m[1] : 0.45;
+  })();
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
-  static SOFTBOX_INTENSITY = 1.0;
+  static SOFTBOX_INTENSITY: number = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
+    return m ? +m[1] : 0.55;
+  })();
+  /** Paint gloss: the base coat's roughness is scaled and the clear coat made sharper (?gloss= compares). */
+  static GLOSS: number = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]gloss=([0-9.]+)/.exec(window.location.search) : null;
+    return m ? +m[1] : 0.65;
+  })();
 
   private currentPaint: PaintColor | null = null;
 
@@ -1745,10 +1817,13 @@ export class CarConfiguratorEngine {
       applyPaintLayers(m, paint);
       m.envMapIntensity = CarConfiguratorEngine.BODY_ENV_INTENSITY;
       m.color.set(paint.hex);
-      m.roughness = paint.roughness;
+      // Gloss: a sharper clear coat and a smoother base coat for glossy paints; Frozen stays matte
+      const glossy = paint.type !== 'Frozen';
+      const g = glossy ? CarConfiguratorEngine.GLOSS : 1;
+      m.roughness = paint.roughness * g;
       m.metalness = paint.metalness;
       m.clearcoat = paint.clearcoat;
-      m.clearcoatRoughness = paint.clearcoatRoughness;
+      m.clearcoatRoughness = glossy ? Math.min(paint.clearcoatRoughness, 0.025) : paint.clearcoatRoughness;
       m.needsUpdate = true;
     }
     this.requestRender();
@@ -2009,6 +2084,9 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   private setupInputHandlers() {
     const el = this.container;
+    // The canvas is a drag surface: stop the browser turning touches on it into page scrolls,
+    // pull-to-refresh or pinch/double-tap zoom of the whole page.
+    el.style.touchAction = 'none';
 
     this.boundOnPointerDown = (e: MouseEvent | TouchEvent) => {
       this.isUserInteracting = true;
@@ -2073,13 +2151,7 @@ export class CarConfiguratorEngine {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
-    if (this.composer) {
-      this.composer.setSize(w, h);
-    }
     this.currentInset = { right: this.currentInset.right + 0.01, bottom: this.currentInset.bottom };
-    if (this.bloomPass) {
-      this.bloomPass.resolution.set(w, h);
-    }
     this.requestRender();
   }
 
@@ -2148,12 +2220,7 @@ export class CarConfiguratorEngine {
     wheelShadingUniforms.uArchStrength.value = this.isShowcase ? 0 : 1;
     wheelShadingUniforms.uFloorY.value = this.isShowcase ? -10 : 0;
 
-    // Render frame through Post-Processing Bloom composer or direct WebGL fallback
-    if (this.isBloomEnabled && this.composer) {
-      this.composer.render();
-    } else {
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
   }
 
   // ----------------------------------------------------
@@ -2187,9 +2254,8 @@ export class CarConfiguratorEngine {
     if (this.container && this.boundOnWheel) {
       this.container.removeEventListener('wheel', this.boundOnWheel);
     }
-
-    if (this.composer) {
-      this.composer.dispose();
+    if (this.boundOnContextRestored) {
+      this.renderer?.domElement.removeEventListener('webglcontextrestored', this.boundOnContextRestored);
     }
 
     if (this.renderer) {
@@ -2198,6 +2264,9 @@ export class CarConfiguratorEngine {
       }
       this.renderer.dispose();
     }
+    this.modelScenes.forEach((scene) => CarConfiguratorEngine.disposeScene(scene));
+    this.modelScenes.clear();
+    this.modelCache.clear();
     this.wheelTextureCache.forEach((t) => t.dispose());
     this.wheelTextureCache.clear();
     this.rimFaceGeometryCache.forEach((g) => g.dispose());
@@ -2214,37 +2283,5 @@ export class CarConfiguratorEngine {
     this.paintVariants.forEach((m) => m.dispose());
     this.environmentTarget?.dispose();
     this.dracoLoader?.dispose();
-  }
-
-  // ----------------------------------------------------
-  // PUBLIC BLOOM PASS CONTROLS
-  // ----------------------------------------------------
-  public setBloomEnabled(enabled: boolean) {
-    this.isBloomEnabled = enabled;
-    if (this.bloomPass) {
-      this.bloomPass.enabled = enabled;
-    }
-  }
-
-  public getBloomEnabled(): boolean {
-    return this.isBloomEnabled;
-  }
-
-  public setBloomStrength(strength: number) {
-    if (this.bloomPass) {
-      this.bloomPass.strength = strength;
-    }
-  }
-
-  public setBloomThreshold(threshold: number) {
-    if (this.bloomPass) {
-      this.bloomPass.threshold = threshold;
-    }
-  }
-
-  public setBloomRadius(radius: number) {
-    if (this.bloomPass) {
-      this.bloomPass.radius = radius;
-    }
   }
 }
