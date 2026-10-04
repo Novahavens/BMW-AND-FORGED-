@@ -176,12 +176,12 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
 
         <div>
           <Eyebrow className="mb-3">Size</Eyebrow>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {rimSizes(wheel).map((s) => (
               <button
                 key={s}
                 onClick={() => setSize(s)}
-                className={cx('rounded-xl py-2.5 ring-1 transition-all duration-300', size === s ? 'bg-gold text-carbon ring-gold' : 'ring-line hover:ring-ink/30')}
+                className={cx('rounded-xl py-2.5 px-2 ring-1 transition-all duration-300 text-center min-h-12 flex items-center justify-center', size === s ? 'bg-gold text-carbon ring-gold' : 'ring-line hover:ring-ink/30')}
               >
                 <span className="block font-display text-[15px] font-extrabold">{s}</span>
               </button>

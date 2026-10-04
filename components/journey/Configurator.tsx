@@ -278,7 +278,7 @@ const PaintStep: React.FC<ConfiguratorProps> = (p) => {
       {groups.map((g) => (
         <section key={g.family} className="mb-6">
           <Eyebrow className="mb-3">{g.family}</Eyebrow>
-          <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-4">
             {g.paints.map((paint) => {
               const active = paint.id === p.paint.id;
               return (
