@@ -1216,6 +1216,7 @@ export class CarConfiguratorEngine {
     this.bodyMeshGroup.add(model);
     this.paintVariants = usedVariants;
     this.markShadowDirty();
+    this.syncRenderedBody();
 
 
     if (corners.size === 4) {
@@ -1903,6 +1904,7 @@ export class CarConfiguratorEngine {
   // CAMERA VIEW PRESETS (Aston Martin style)
   // ----------------------------------------------------
   public setCameraPreset(view: CameraViewPreset, opts: { instant?: boolean; aspect?: number } = {}) {
+    if (this.renderedBody) opts = { instant: true, aspect: CarConfiguratorEngine.RENDER_ASPECT };
     // Whole-car views back off on narrow screens (or when UI covers part of it) so the car always fits.
     // `aspect` frames for a fixed picture (the summary stills) instead of the screen.
     const w = this.container.clientWidth || 1;
@@ -1974,6 +1976,7 @@ export class CarConfiguratorEngine {
 
   /** Starts wide and glides into the current preset: use when a stage first appears. */
   public playReveal() {
+    if (this.renderedBody) return;
     this.spherical.radius = this.targetSpherical.radius * 1.7;
     this.spherical.theta = this.targetSpherical.theta - 0.9;
     this.spherical.phi = Math.max(0.5, this.targetSpherical.phi - 0.25);
@@ -1984,6 +1987,29 @@ export class CarConfiguratorEngine {
    * Keeps the car centred in the part of the screen not covered by UI (e.g. a right-hand panel or
    * a bottom sheet). Pixels in CSS units; animates.
    */
+  /**
+   * Pre-rendered body mode (components/journey/RenderedCarView.tsx): a Blender render of the car
+   * sits under the canvas, so the engine draws only our wheels and calipers, on a transparent
+   * background, from the exact camera the render used (fixed aspect, no orbit).
+   */
+  static RENDER_ASPECT = 1.6;
+  private renderedBody = false;
+  public setRenderedBody(on: boolean) {
+    if (on === this.renderedBody) return;
+    this.renderedBody = on;
+    this.syncRenderedBody();
+    if (on) this.isAutoRotate = false;
+    this.requestRender();
+  }
+  private syncRenderedBody() {
+    const on = this.renderedBody;
+    this.bodyMeshGroup.visible = !on;
+    if (this.contactShadow) this.contactShadow.group.visible = !on;
+    this.wheelAssemblies.forEach((a) => {
+      if (on) a.caliper.visible = true;
+    });
+  }
+
   public setViewInset(right: number, bottom = 0) {
     this.viewInset = { right, bottom: Math.max(0, bottom) }; // negative right = shift the car right
   }
@@ -2021,6 +2047,11 @@ export class CarConfiguratorEngine {
     // The stills are always 16:9 (the summary page and the PDF lay them out that way), whatever the
     // screen: a phone's portrait canvas used to be cropped into a 16:9 frame, cutting the car off.
     const outW = 1600, outH = 900;
+    const wasRendered = this.renderedBody; // stills need the 3D body
+    if (wasRendered) {
+      this.renderedBody = false;
+      this.syncRenderedBody();
+    }
     const saved = {
       spherical: { ...this.spherical },
       target: { ...this.targetSpherical },
@@ -2061,6 +2092,10 @@ export class CarConfiguratorEngine {
 
     this.renderer.setPixelRatio(saved.pixelRatio);
     this.renderer.setSize(saved.size.x, saved.size.y, false);
+    if (wasRendered) {
+      this.renderedBody = true;
+      this.syncRenderedBody();
+    }
     this.camera.aspect = saved.aspect;
     this.camera.updateProjectionMatrix();
     this.spherical = saved.spherical;
@@ -2078,6 +2113,7 @@ export class CarConfiguratorEngine {
   }
 
   public setAutoRotate(enabled: boolean) {
+    if (this.renderedBody) enabled = false;
     this.isAutoRotate = enabled;
     this.requestRender();
   }
@@ -2098,6 +2134,7 @@ export class CarConfiguratorEngine {
     el.style.touchAction = 'none';
 
     this.boundOnPointerDown = (e: MouseEvent | TouchEvent) => {
+      if (this.renderedBody) return;
       this.isUserInteracting = true;
       this.cameraDamping = 0.12;
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -2133,6 +2170,7 @@ export class CarConfiguratorEngine {
 
     this.boundOnWheel = (e: WheelEvent) => {
       e.preventDefault();
+      if (this.renderedBody) return;
       this.cameraDamping = 0.12;
       this.targetSpherical.radius = THREE.MathUtils.clamp(
         this.targetSpherical.radius + e.deltaY * 0.0035,

@@ -1,91 +1,75 @@
-"""Photoreal studio render of a configurator car GLB with Blender Cycles (bpy).
+"""Pre-renders one car for the image configurator with Blender Cycles (pip install bpy).
 
-Usage: python3 render_car.py <car.glb> <out_dir> --paint '#1f4d3a' --paint-match 'regex' \
-         [--views frontThreeQuarter,side] [--samples 64] [--size 1200x800]
-The GLB must be decompressed first (npx @gltf-transform/cli copy in.glb out.glb).
+Input is the GLB from export-scene.cjs (the body exactly as the engine places it, with stock
+wheels hidden, plus one CAM_<view> camera per view). For each view it renders the paint four
+times: gloss (clearcoat) and matte (frozen), each with white and black base colour. The browser
+recolours any paint as  black + (white - black) * colour, so no paint ever needs a re-render.
+Background is transparent; the floor is a shadow catcher.
+
+  python3 scripts/prerender/render_car.py scene.glb public/renders/<carId> [--samples 32] [--width 1440]
 """
-import argparse, math, os, re, sys
-import bpy
-from mathutils import Vector
+import argparse, math, os, sys
+import bpy, bmesh
 
 ap = argparse.ArgumentParser()
 ap.add_argument('glb'); ap.add_argument('out')
-ap.add_argument('--paint', default='#8a8f94')
-ap.add_argument('--paint-match', default='paint|body')
-ap.add_argument('--finish', default='metallic', choices=['metallic', 'uni', 'frozen'])
-ap.add_argument('--views', default='frontThreeQuarter,side,rearThreeQuarter,frontWheel,top')
-ap.add_argument('--samples', type=int, default=64)
-ap.add_argument('--size', default='1200x800')
-ap.add_argument('--subdiv', type=int, default=1)
-a = ap.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:])
+ap.add_argument('--samples', type=int, default=32)
+ap.add_argument('--width', type=int, default=1440)
+ap.add_argument('--views', default='')
+a = ap.parse_args()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=a.glb)
-meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+sc = bpy.context.scene
+objs = list(sc.objects)
+cams = {o.name.split('CAM_', 1)[1].split('.')[0]: o for o in objs if o.type == 'CAMERA' and 'CAM_' in o.name}
+meshes = [o for o in objs if o.type == 'MESH']
 
-# Normalise: car centred on origin, wheels on the floor, length along X.
-bpy.ops.object.select_all(action='DESELECT')
-pts = [o.matrix_world @ Vector(c) for o in meshes for c in o.bound_box]
-lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
-hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
-size = hi - lo
-root = bpy.data.objects.new('root', None); bpy.context.scene.collection.objects.link(root)
-for o in bpy.context.scene.objects:
-    if o.parent is None and o is not root:
-        o.parent = root
-root.location = (-(lo.x + hi.x) / 2, -(lo.y + hi.y) / 2, -lo.z)
-if size.y > size.x:  # length along Y -> rotate so it runs along X
-    root.rotation_euler.z = math.pi / 2
-    root.location = ((lo.y + hi.y) / 2, -(lo.x + hi.x) / 2, -lo.z)
-length = max(size.x, size.y); height = size.z
-bpy.context.view_layer.update()
+def principled(name):
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    return m, m.node_tree.nodes['Principled BSDF']
 
-def hexrgb(h):
-    h = h.lstrip('#'); c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-    return [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c] + [1]
+paint, pb = principled('PAINT')
+pb.inputs['Coat Roughness'].default_value = 0.02
 
-def car_paint():
-    m = bpy.data.materials.new('CarPaint'); m.use_nodes = True
-    b = m.node_tree.nodes['Principled BSDF']
-    b.inputs['Base Color'].default_value = hexrgb(a.paint)
-    rough = {'metallic': 0.32, 'uni': 0.18, 'frozen': 0.55}[a.finish]
-    b.inputs['Metallic'].default_value = {'metallic': 0.6, 'uni': 0.0, 'frozen': 0.55}[a.finish]
-    b.inputs['Roughness'].default_value = rough
-    coat = 0.0 if a.finish == 'frozen' else 1.0
-    b.inputs['Coat Weight'].default_value = coat
-    b.inputs['Coat Roughness'].default_value = 0.02
-    return m
-
-paint = car_paint(); rx = re.compile(a.paint_match, re.I)
 for o in meshes:
-    names = [o.name] + [s.material.name for s in o.material_slots if s.material]
-    painted = False
-    for s in o.material_slots:
-        if s.material and rx.search(s.material.name):
-            s.material = paint; painted = True
-    if painted or rx.search(o.name):
-        if not painted:
-            for s in o.material_slots: s.material = paint
-        # Geometry cleanup: the source panels are faceted/wavy. Smooth normals with
-        # weighted-normal + subdivision removes the "crumpled sheet metal" reflections.
-        bpy.context.view_layer.objects.active = o
-        import bmesh
+    is_paint = any(s.material and s.material.name.startswith('PAINT') for s in o.material_slots)
+    if is_paint:
+        o.data.materials.clear(); o.data.materials.append(paint)
+        # The source panels are faceted and split: weld, smooth and subdivide them so the
+        # reflections run clean instead of looking like crumpled sheet metal.
         bm = bmesh.new(); bm.from_mesh(o.data)
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
         bm.to_mesh(o.data); bm.free()
         for p in o.data.polygons: p.use_smooth = True
-        if a.subdiv:
-            sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = a.subdiv; sd.boundary_smooth = 'PRESERVE_CORNERS'
+        sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
+        sd.boundary_smooth = 'PRESERVE_CORNERS'
         o.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
+    else:
+        for p in o.data.polygons: p.use_smooth = True
+        for s in o.material_slots:
+            m = s.material
+            b = m and m.node_tree and m.node_tree.nodes.get('Principled BSDF')
+            if b and m.name.split('.')[0] in ('part', 'other', 'blackTrim'):
+                # unnamed plastics, arch liners and trim: satin black, as on the real car
+                b.inputs['Base Color'].default_value = (0.02, 0.02, 0.022, 1)
+                b.inputs['Metallic'].default_value = 0.0
+                b.inputs['Roughness'].default_value = 0.45
+            if m and 'glass' in m.name.lower():
+                b = m.node_tree.nodes.get('Principled BSDF')
+                if b:
+                    b.inputs['Transmission Weight'].default_value = 1.0
+                    b.inputs['Roughness'].default_value = 0.02
+                    b.inputs['Base Color'].default_value = (0.05, 0.06, 0.07, 1)
+                    b.inputs['Alpha'].default_value = 1.0
 
-# Studio: white cyclorama floor, large softboxes, soft grey world (Aston-style).
-sc = bpy.context.scene
-bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, 0))
-floor = bpy.context.object
-fm = bpy.data.materials.new('Floor'); fm.use_nodes = True
-fb = fm.node_tree.nodes['Principled BSDF']
-fb.inputs['Base Color'].default_value = (0.8, 0.8, 0.8, 1); fb.inputs['Roughness'].default_value = 0.35
-floor.data.materials.append(fm)
+# Car extents (Blender is Z-up after import).
+xs = [(o.matrix_world @ v.co) for o in meshes for i, v in enumerate(o.data.vertices) if i % 50 == 0]
+L = max(max(p.x for p in xs) - min(p.x for p in xs), max(p.y for p in xs) - min(p.y for p in xs))
+H = max(p.z for p in xs)
+
+bpy.ops.mesh.primitive_plane_add(size=60, location=(0, 0, 0))
+floor = bpy.context.object; floor.is_shadow_catcher = True
 
 w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
 w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.75, 0.75, 0.77, 1)
@@ -96,37 +80,35 @@ def softbox(name, loc, rot, sx, sy, energy):
     l.size, l.size_y, l.energy = sx, sy, energy
     ob = bpy.data.objects.new(name, l); ob.location = loc; ob.rotation_euler = rot
     sc.collection.objects.link(ob)
-L = length
-softbox('top', (0, 0, height + 3.0), (0, 0, 0), L * 1.4, L * 0.7, 2500)       # long overhead strip
-softbox('left', (0, -L, height), (math.radians(70), 0, 0), L * 1.2, 1.2, 900)
-softbox('right', (0, L, height), (math.radians(-70), 0, 0), L * 1.2, 1.2, 900)
-softbox('front', (L * 1.1, 0, height), (0, math.radians(70), 0), 2, 2, 500)
+long_y = (max(p.y for p in xs) - min(p.y for p in xs)) > (max(p.x for p in xs) - min(p.x for p in xs))
+rz = math.pi / 2 if long_y else 0  # the softboxes follow the car's long axis
+softbox('top', (0, 0, H + 3.0), (0, 0, rz), L * 1.4, L * 0.7, 2500)
+for sgn in (1, -1):
+    d = (0, sgn * L) if not long_y else (sgn * L, 0)
+    rot = (math.radians(-70 * sgn), 0, 0) if not long_y else (0, math.radians(70 * sgn), 0)
+    softbox(f'side{sgn}', (d[0], d[1], H), rot, L * 1.2, 1.2, 900)
 
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'
 sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
-W, H = map(int, a.size.split('x')); sc.render.resolution_x, sc.render.resolution_y = W, H
-sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Medium High Contrast'
-sc.render.image_settings.file_format = 'PNG'
+sc.render.film_transparent = True
+sc.render.resolution_x = a.width; sc.render.resolution_y = round(a.width / 1.6)
+sc.view_settings.view_transform = 'Standard'  # linear-safe: the browser mixes black/white passes
+sc.view_settings.exposure = -1.6
+sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
 
-cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d)
-sc.collection.objects.link(cam); sc.camera = cam
-VIEWS = {  # (azimuth deg from +X front, elevation deg, distance x length, lens mm, target z x height)
-    'frontThreeQuarter': (35, 10, 1.55, 50, 0.4),
-    'side': (90, 4, 1.55, 50, 0.4),
-    'rearThreeQuarter': (145, 10, 1.55, 50, 0.4),
-    'frontWheel': (60, 6, 0.55, 50, 0.25),
-    'top': (90, 75, 1.9, 50, 0.3),
+PASSES = {  # name: (base value, metallic, roughness, coat)
+    'gloss_w': (1.0, 0.0, 0.30, 1.0), 'gloss_b': (0.0, 0.0, 0.30, 1.0),
+    'matte_w': (1.0, 0.0, 0.55, 0.0), 'matte_b': (0.0, 0.0, 0.55, 0.0),
 }
-os.makedirs(a.out, exist_ok=True)
-for v in a.views.split(','):
-    az, el, dist, lens, tz = VIEWS[v]
-    tgt = Vector((L * 0.32 if v == 'frontWheel' else 0, 0, height * tz))
-    d = dist * L
-    cam.location = tgt + Vector((d * math.cos(math.radians(el)) * math.cos(math.radians(az)),
-                                 -d * math.cos(math.radians(el)) * math.sin(math.radians(az)),
-                                 d * math.sin(math.radians(el))))
-    cam.rotation_euler = (tgt - cam.location).to_track_quat('-Z', 'Y').to_euler()
-    cam_d.lens = lens
-    sc.render.filepath = os.path.join(a.out, f'{v}.png')
-    bpy.ops.render.render(write_still=True)
-    print('rendered', sc.render.filepath)
+views = a.views.split(',') if a.views else list(cams)
+for v in views:
+    sc.camera = cams[v]
+    os.makedirs(os.path.join(a.out, v), exist_ok=True)
+    for name, (base, met, rough, coat) in PASSES.items():
+        pb.inputs['Base Color'].default_value = (base, base, base, 1)
+        pb.inputs['Metallic'].default_value = met
+        pb.inputs['Roughness'].default_value = rough
+        pb.inputs['Coat Weight'].default_value = coat
+        sc.render.filepath = os.path.join(a.out, v, name + '.png')
+        bpy.ops.render.render(write_still=True)
+        print('rendered', sc.render.filepath, flush=True)

@@ -21,6 +21,7 @@ import { ConfigStep, Configurator, MoreOptionsModal } from './components/journey
 import { SummaryPage } from './components/journey/SummaryPage';
 import { EnquiryModal } from './components/journey/EnquiryModal';
 import { Button } from './components/journey/ui';
+import RenderedCarView, { RENDER_ASPECT, loadRenderManifest } from './components/journey/RenderedCarView';
 
 // Pages off the main journey load on demand
 const ForgedPage = lazy(() => import('./components/ForgedPage').then((m) => ({ default: m.ForgedPage })));
@@ -133,6 +134,12 @@ export const App: React.FC = () => {
   const [driving, setDriving] = useState(false);
   const [step, setStep] = useState<ConfigStep>('overview');
   const [cameraView, setCameraView] = useState<CameraViewPreset>('frontThreeQuarter');
+  // Cars with pre-rendered (Blender) bodies show those in the configurator; see RenderedCarView
+  const [renderedCars, setRenderedCars] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    loadRenderManifest().then(setRenderedCars);
+  }, []);
+  const [stage, setStage] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const [autoRotate, setAutoRotate] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
@@ -248,12 +255,42 @@ export const App: React.FC = () => {
     engine?.preloadCar(cars[(carIndex - 1 + cars.length) % cars.length]);
   }, [booted, cars, carIndex]);
 
+  // Pre-rendered mode: a fixed-aspect stage, centred in the space the controls leave
+  const rendered = route.name === 'configure' && (renderedCars[selectedCar.id]?.includes(cameraView) ?? false);
+  const renderedRef = useRef(rendered);
+  renderedRef.current = rendered;
+  const computeStage = useCallback(() => {
+    const inset = controlsInset();
+    const aw = window.innerWidth - Math.max(0, inset.right);
+    const ah = window.innerHeight - inset.bottom;
+    const width = Math.min(aw, ah * RENDER_ASPECT);
+    const height = width / RENDER_ASPECT;
+    return { left: (aw - width) / 2, top: Math.max(0, (ah - height) / 2), width, height };
+  }, []);
+  useEffect(() => {
+    if (!rendered) return setStage(null);
+    const update = () => setStage(computeStage());
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [rendered, computeStage]);
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.setRenderedBody(rendered);
+    engine.handleResize();
+    applyInsetRef.current();
+    if (route.name === 'configure') engine.setCameraPreset(cameraView, { instant: rendered });
+  }, [rendered, stage]);
+
   // Keep the car centred in the space the panel leaves
   const applyInsetRef = useRef<() => void>(() => {});
   applyInsetRef.current = () => {
     const engine = engineRef.current;
     if (!engine) return;
-    if (route.name === 'configure') {
+    if (renderedRef.current) {
+      engine.setViewInset(0, 0);
+    } else if (route.name === 'configure') {
       // the same sheet/panel rule and sizes as the CSS (services/layout.ts)
       const inset = controlsInset();
       engine.setViewInset(inset.right, inset.bottom);
@@ -515,10 +552,17 @@ export const App: React.FC = () => {
     <div className="relative w-screen h-[100dvh] overflow-hidden bg-stage select-none">
       <ShowroomBackdrop car={selectedCar} visible={booted && route.name === 'showroom'} />
 
-      {/* The studio: transparent WebGL canvas over the backdrop */}
+      {rendered && stage && (
+        <div className="absolute z-[5] pointer-events-none" style={stage}>
+          <RenderedCarView carId={selectedCar.id} view={cameraView} paint={selectedPaint} />
+        </div>
+      )}
+
+      {/* The studio: transparent WebGL canvas over the backdrop (only the wheels in rendered mode) */}
       <div
         ref={containerRef}
-        className={`absolute inset-0 z-10 transition-opacity duration-700 ${route.name === 'configure' ? 'cursor-grab active:cursor-grabbing' : ''} ${onJourney ? 'opacity-100' : 'opacity-0'}`}
+        style={rendered && stage ? stage : undefined}
+        className={`absolute ${rendered && stage ? '' : 'inset-0'} z-10 transition-opacity duration-700 ${route.name === 'configure' ? 'cursor-grab active:cursor-grabbing' : ''} ${onJourney ? 'opacity-100' : 'opacity-0'}`}
       />
 
       {booted && route.name === 'welcome' && (
