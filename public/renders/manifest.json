@@ -1,4 +1,11 @@
 {
+ "m4_cs_g82": [
+  "frontThreeQuarter",
+  "frontWheel",
+  "rearThreeQuarter",
+  "side",
+  "top"
+ ],
  "m4_g82": [
   "frontThreeQuarter",
   "frontWheel",
