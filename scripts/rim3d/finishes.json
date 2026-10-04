@@ -5,7 +5,8 @@
   "hex": "#dfe4e8",
   "metalness": 0.98,
   "roughness": 0.12,
-  "clearcoat": 1
+  "clearcoat": 1,
+  "look": "AgX - High Contrast"
  },
  "bronze": {
   "id": "bronze",
@@ -23,41 +24,25 @@
   "metalness": 0.7,
   "roughness": 0.15,
   "clearcoat": 0.95,
-  "kind": "gloss-paint"
+  "kind": "gloss-paint",
+  "look": "AgX - Very High Contrast"
  },
  "silver": {
   "id": "silver",
   "name": "Silver",
-  "hex": "#a9afb4",
-  "metalness": 0.9,
-  "roughness": 0.25,
-  "clearcoat": 0.85,
-  "kind": "metallic"
- },
- "satin_gold": {
-  "id": "satin_gold",
-  "name": "Satin Gold",
-  "hex": "#b08530",
-  "metalness": 0.85,
-  "roughness": 0.38,
-  "clearcoat": 0.4,
-  "kind": "satin"
- },
- "gunmetal": {
-  "id": "gunmetal",
-  "name": "Gunmetal Matte",
-  "hex": "#4a4d52",
-  "metalness": 0.85,
-  "roughness": 0.5,
-  "clearcoat": 0.2
- },
- "silver_brushed": {
-  "id": "silver_brushed",
-  "name": "Silver (brushed aluminium)",
   "hex": "#b9bec3",
   "metalness": 1.0,
   "roughness": 0.34,
   "clearcoat": 0.3,
   "kind": "brushed"
+ },
+ "satin_gold": {
+  "id": "satin_gold",
+  "name": "Satin Gold",
+  "hex": "#c4aa7f",
+  "metalness": 0.85,
+  "roughness": 0.42,
+  "clearcoat": 0.4,
+  "kind": "satin"
  }
 }

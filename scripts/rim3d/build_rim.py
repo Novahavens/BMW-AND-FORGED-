@@ -35,7 +35,9 @@ if a.shapes and 'fold' not in spec: spec['fold'] = json.load(open(a.shapes)).get
 if a.bevel is None: a.bevel = spec.get('bevel', 0.012)
 CHANNEL = spec.get('channel', 0); CHANNEL_DEPTH = spec.get('channel_depth', 0.025)
 fold = spec['fold']; hub_r = spec.get('hub', 0.33); rot = spec.get('rotate', 0)
-FF = spec.get('face_front', 0.24); FT = spec.get('face_thick', 0.10); DISH = spec.get('dish', 0.10)
+FF = spec.get('face_front', 0.24); FT = spec.get('face_thick', 0.10)
+# Traced faces stay flat (the template's face is a flat plate; bending a curve-filled face kinks its long triangles)
+DISH = spec.get('dish', 0.0 if a.shapes else 0.10)
 NB = spec.get('bolts', 5); PCD = spec.get('pcd', 0.20); BR = spec.get('bolt_r', 0.035); BORE = spec.get('bore', 0.10)
 FACE_R = 0.916      # spokes meet the lip here (make-bar-face convention)
 WALL_IN = 0.90      # inner barrel wall radius
@@ -121,11 +123,14 @@ else:
                 c0, c1 = p0 + u * 0.02, p1 - u * 0.04
                 cw0, cw1 = w0 * CHANNEL, w1 * CHANNEL
                 channels.append([c0 + nrm * cw0, c1 + nrm * cw1, c1 - nrm * cw1, c0 - nrm * cw0])
-# hub pad
-bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=128, radius1=hub_r, radius2=hub_r, depth=FT)
-bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
-bmesh.ops.translate(bm, verts=bm.verts, vec=(FF - FT / 2, 0, 0))
-boolean(face, new_obj('hub', bm), 'UNION')
+# hub pad (bar faces only: a traced mask already has its solid hub; a second pad in the same plane
+# makes coplanar faces and the boolean crumples them)
+if not a.shapes:
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=128, radius1=hub_r, radius2=hub_r, depth=FT)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
+    bmesh.ops.translate(bm, verts=bm.verts, vec=(FF - FT / 2, 0, 0))
+    boolean(face, new_obj('hub', bm), 'UNION')
+
 # clip to the face disc (r <= 0.95: the plate runs a little into the lip wall)
 bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=a.segments, radius1=0.95, radius2=0.95, depth=1.0)
 bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
@@ -155,7 +160,10 @@ for v in me.vertices:
 bev = face.modifiers.new('bevel', 'BEVEL'); bev.width = a.bevel; bev.segments = 2; bev.limit_method = 'ANGLE'
 bev.angle_limit = math.radians(40); bev.harden_normals = True
 bpy.context.view_layer.objects.active = face; bpy.ops.object.modifier_apply(modifier='bevel')
-for p in face.data.polygons: p.use_smooth = True
+# flat front, rounded edges: smooth only across edges under 30 degrees (the bevel's own steps),
+# so the spoke sides never blend into the face plate
+bpy.ops.object.select_all(action='DESELECT'); face.select_set(True)
+bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30))
 face.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
 face.name = 'face'
 

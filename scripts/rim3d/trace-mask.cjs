@@ -7,13 +7,15 @@
  *   node scripts/rim3d/trace-mask.cjs <photo.png|/served/path.png> <out.json> [--mask] [--res 1024]
  *
  * --mask: the input is already a clean face mask (public/rim-faces), not a photo.
+ * --smooth N (10) / --tol T (1.6): outline smoothing and simplification, in mask pixels; higher = cleaner edges.
  * Coordinates: rim-plane units, radius 1 = the photo's rim circle, y up.
  */
 const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright');
 const fs = require('fs'); const path = require('path');
 const args = process.argv.slice(2); const flags = new Set(args.filter((x) => x.startsWith('--')));
-const [input, out] = args.filter((x, i) => !x.startsWith('--') && args[i - 1] !== '--res');
-const ri = args.indexOf('--res'); const res = ri >= 0 ? +args[ri + 1] : 1024;
+const [input, out] = args.filter((x, i) => !x.startsWith('--') && !['--res', '--smooth', '--tol'].includes(args[i - 1]));
+const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? +args[i + 1] : d; };
+const res = num('--res', 1024), smooth = num('--smooth', 10), tol = num('--tol', 1.6);
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
   const p = await b.newPage();
@@ -23,16 +25,16 @@ const ri = args.indexOf('--res'); const res = ri >= 0 ? +args[ri + 1] : 1024;
     await p.route(/local\.rim\//, (r) => r.fulfill({ body: fs.readFileSync(input), contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } }));
   } else if (input.startsWith('/')) url = 'http://127.0.0.1:5173' + input;
   await p.goto('http://127.0.0.1:5173/scripts/render/blank.html', { waitUntil: 'domcontentloaded', timeout: 240000 });
-  const result = await p.evaluate(async ({ url, res, clean }) => {
+  const result = await p.evaluate(async ({ url, res, clean, smooth, tol }) => {
     const kit = await import('/services/wheelKit.ts');
     const rx = await import('/services/rimExtrusion.ts');
     const img = new Image(); img.crossOrigin = 'anonymous'; img.src = url; await img.decode();
     const m = kit.processRimPhoto(img, res, { cleanFace: clean });
     if (!m) return { error: 'not a usable cut-out' };
-    const shapes = rx.traceMaskShapes(m.data, m.size, m.size, 0.5, 1.2, 4) || [];
+    const shapes = rx.traceMaskShapes(m.data, m.size, m.size, 0.5, tol, smooth) || [];
     const pts = (c) => c.getPoints(8).map((q) => [+q.x.toFixed(5), +q.y.toFixed(5)]);
     return { symmetry: m.symmetry, mode: m.mode, size: m.size, shapes: shapes.map((s) => ({ outer: pts(s), holes: s.holes.map(pts) })) };
-  }, { url, res, clean: flags.has('--mask') });
+  }, { url, res, clean: flags.has('--mask'), smooth, tol });
   await b.close();
   if (result.error) { console.error(result.error); process.exit(1); }
   fs.writeFileSync(out, JSON.stringify(result));

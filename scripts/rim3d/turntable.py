@@ -68,7 +68,7 @@ def light(name, loc, rot, sx, sy, e):
 light('key', (-3.5, -4.5, 5.0), (math.radians(45), 0, math.radians(-38)), 3.2, 1.6, 1800)    # upper left, raking the face
 light('fill', (5.5, -5.0, 1.8), (math.radians(72), 0, math.radians(48)), 2.5, 4, 450)       # right, soft
 light('strip', (0, -0.5, 6.5), (0, 0, 0), 10, 0.9, 1000)                                      # long overhead strip: the highlight line along the lip
-light('front', (0, -7, 1.2), (math.radians(90), 0, 0), 3.5, 2.2, 120)                        # a faint panel behind the camera
+light('front', (0, -7.5, 2.6), (math.radians(72), 0, 0), 7, 0.22, 140)              # a thin strip high behind the camera: the crisp line gloss black and chrome show
 light('back', (0, 5, 3), (math.radians(-60), 0, 0), 6, 2, 400)                               # separates the barrel from the dark surround
 bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, 0)); floor = bpy.context.object; floor.is_shadow_catcher = True
 # the catcher must not show up in the rim's reflections as a white plane (it still catches shadows)
@@ -85,15 +85,18 @@ sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mod
 from PIL import Image
 os.makedirs(a.out, exist_ok=True)
 for fid, f in finishes.items():
+    # tone curve per finish: gloss black and chrome are photographed with hard contrast, satins soft
+    sc.view_settings.look = f.get('look', 'AgX - Base Contrast')
     m = material(f)
     for o in objs:
         o.data.materials.clear(); o.data.materials.append(m)
     d = os.path.join(a.out, fid); os.makedirs(d, exist_ok=True)
     for i in range(a.frames):
+        if os.path.exists(os.path.join(d, f'f{i:02d}.webp')): continue  # resume an interrupted run
         spin.rotation_euler.z = math.radians(-25 + 360 * i / a.frames)  # start a little off face-on
         tmp = os.path.join(d, f'f{i:02d}.png'); sc.render.filepath = tmp
         bpy.ops.render.render(write_still=True)
-        Image.open(tmp).save(os.path.join(d, f'f{i:02d}.webp'), quality=86, method=4); os.remove(tmp)
+        Image.open(tmp).save(os.path.join(d, f'f{i:02d}.webp'), quality=80, method=4); os.remove(tmp)
         print(f'{fid} {i + 1}/{a.frames}', flush=True)
 json.dump({'frames': a.frames, 'finishes': list(finishes), 'size': [W, H]}, open(os.path.join(a.out, 'spin.json'), 'w'))
 print('done', a.out)

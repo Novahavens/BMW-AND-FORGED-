@@ -433,11 +433,11 @@ export const WHEEL_FINISHES: Record<FinishVariantKey, WheelFinish> = {
     id: 'satin_gold',
     name: 'Satin Gold',
     colorName: 'Champagne Gold',
-    hex: '#C5A059',
-    metalness: 0.9,
-    roughness: 0.3,
-    clearcoat: 0.85,
-    description: 'Soft champagne gold metallic with a smooth satin-gloss sheen.',
+    hex: '#c4aa7f',
+    metalness: 0.85,
+    roughness: 0.45,
+    clearcoat: 0.35,
+    description: 'Champagne gold metallic under a soft satin clear coat.',
     badge: 'New'
   },
   gunmetal: {
@@ -472,7 +472,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '20"': 4725.27, '21"': 5164.84, '22"': 5714.29 },
     description: 'Five slender split spokes float over a deep, polished outer lip, with exposed assembly bolts around the barrel.',
     highlights: ['Two-piece construction', 'Split five-spoke face', 'Deep polished lip'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_01-1790526477908.png',
     imageExtrude: true
@@ -493,7 +493,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
     description: 'Ten spokes divide into fine branches as they reach the rim, creating an intricate, airy face with a flush centre cap.',
     highlights: ['Branched ten-spoke design', 'Open, airy face', 'Flush centre cap'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_02-1790526479977.png',
     imageExtrude: true
@@ -514,7 +514,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
     description: 'Fifteen straight, evenly spaced spokes run from a crisp five-lug hub to a slim outer lip for a clean motorsport look.',
     highlights: ['Fifteen straight spokes', 'Slim outer lip', 'Timeless motorsport style'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_03-1790526482896.png',
     imageExtrude: true
@@ -535,7 +535,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '20"': 4725.27, '21"': 5164.84, '22"': 5714.29 },
     description: 'Twisted split spokes sit inside a stepped, polished lip ringed with exposed rivets for a bold multi-piece look.',
     highlights: ['Multi-piece look', 'Twisted split spokes', 'Exposed rivet ring'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_04-1790526486272.png',
     imageExtrude: true
@@ -556,7 +556,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
     description: 'Five pairs of razor-thin spokes stretch from the hub to a broad lip, leaving large open windows.',
     highlights: ['Twin five-spoke layout', 'Razor-thin spokes', 'Large open windows'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_05-1790526488573.png',
     imageExtrude: true
@@ -577,7 +577,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
     description: 'Fifteen fine spokes fork just before the lip, framing the rim with a delicate lattice of windows.',
     highlights: ['Spokes fork at the lip', 'Delicate lattice windows', 'Clean five-lug hub'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_06-1790526491193.png',
     imageExtrude: true
@@ -598,7 +598,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '20"': 4725.27, '21"': 5164.84, '22"': 5714.29 },
     description: 'Sharp split spokes form a layered star around the hub, set inside a bright stepped lip.',
     highlights: ['Layered star pattern', 'Two-piece stepped lip', 'Sharp split spokes'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_07-1790526493764.png',
     imageExtrude: true
@@ -619,7 +619,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '20"': 4725.27, '21"': 5164.84, '22"': 5714.29 },
     description: 'Branching Y-spokes meet a pentagon centre, wrapped by a polished lip studded with exposed rivets.',
     highlights: ['Branching Y-spokes', 'Pentagon centre', 'Polished riveted lip'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_08-1790526496586.png',
     imageExtrude: true
@@ -640,7 +640,7 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '20"': 4725.27, '21"': 5164.84, '22"': 5714.29 },
     description: 'A dense cross-spoke mesh radiates from a large centre cap, framed by a riveted step lip for a heritage racing look.',
     highlights: ['Cross-spoke mesh', 'Riveted step lip', 'Heritage racing style'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_09-1790526498397.png',
     imageExtrude: true
@@ -662,13 +662,61 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
     description: 'Five pairs of slim spokes leave the hub together and open toward the lip, cut from a single forged monoblock and hand-polished.',
     highlights: ['Twin-Y five-spoke layout', 'True 3D rim model', 'Hand-polished monoblock'],
-    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
     defaultVariant: 'liquid_metal',
     // PLACEHOLDER name, sizes and prices (copied from FSA-05) until the owner confirms them in /admin.
-    // The rim is a built 3D model (scripts/rim3d, docs/rim-template/fsa_12-spec.json), not a photo.
+    // The car shows the bar face drawn from the photo (docs/rim-template/fsa_12-spec.json); the rim page
+    // uses the rendered 360° spin (scripts/rim3d).
     imageUrl: '/rim-faces/forged_fsa_12.png',
-    imageExtrude: true,
-    modelUrl: '/models/rims/forged_fsa_12.glb'
+    imageExtrude: true
+  },
+  {
+    id: 'forged_fsa_13',
+    code: 'FSA-13',
+    name: 'Forged SA Star 6',
+    subtitle: 'Brushed six-point split star',
+    style: 'Two-Piece Forged',
+    spokeType: 'multi',
+    spokeCount: 12,
+    weightFrontKg: 0,
+    weightRearKg: 0,
+    weightSavingsKg: 0,
+    standardSizes: ['19"', '20"', '21"', '22"'],
+    pricePerSet: 3736.26,
+    priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
+    description: 'Six pairs of slim brushed spokes form a star around a centre-lock hub, inside a polished two-piece lip.',
+    highlights: ['Six-point split star', 'Centre-lock hub', 'Polished two-piece lip'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
+    defaultVariant: 'liquid_metal',
+    // PLACEHOLDER name, sizes and prices (copied from FSA-05) until the owner confirms them in /admin.
+    // Photo rectified front-on (scripts/rim3d/rectify.py); the car uses the bar face drawn from it
+    // (services/rimFaces.ts, docs/rim-template/fsa_13-spec.json). The rim page uses the rendered spin.
+    imageUrl: '/rim-images/forged_fsa_13.png',
+    imageExtrude: true
+  },
+  {
+    id: 'forged_fsa_14',
+    code: 'FSA-14',
+    name: 'Forged SA Turbine 25',
+    subtitle: 'Gloss black 25-spoke turbine',
+    style: 'Monoblock Forged',
+    spokeType: 'multi',
+    spokeCount: 25,
+    weightFrontKg: 0,
+    weightRearKg: 0,
+    weightSavingsKg: 0,
+    standardSizes: ['19"', '20"', '21"', '22"'],
+    pricePerSet: 3736.26,
+    priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
+    description: 'Twenty-five swept spokes spiral out from the hub like a turbine, cut from one forged monoblock.',
+    highlights: ['25 swept spokes', 'Directional turbine face', 'Forged monoblock'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver', 'satin_gold'],
+    defaultVariant: 'liquid_metal',
+    // PLACEHOLDER name, sizes and prices (copied from FSA-05) until the owner confirms them in /admin.
+    // Photo rectified front-on (scripts/rim3d/rectify.py); the car uses the bar face drawn from it
+    // (services/rimFaces.ts, docs/rim-template/fsa_14-spec.json). The rim page uses the rendered spin.
+    imageUrl: '/rim-images/forged_fsa_14.png',
+    imageExtrude: true
   }
 ];
 
