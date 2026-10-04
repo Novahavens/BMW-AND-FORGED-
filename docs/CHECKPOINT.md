@@ -21,19 +21,24 @@ here for later.
 | Item | M4 Competition | M5 G90 | Rim page spin |
 |---|---|---|---|
 | Body (Blender) | done | done | n/a |
-| FSA-12 Twin-Y | done (on-car check) | done | rendering |
-| FSA-13 Star 6 | done | done | queued |
-| FSA-03 Kyalami 15 | done | done | queued |
-| FSA-14 Turbine 25 | done after fold fix | done after fold fix | queued |
+| FSA-12 Twin-Y | done (on-car check) | done | done; Liquid Metal + Silver re-rendering |
+| FSA-13 Star 6 | done | done | done; Liquid Metal + Silver re-rendering |
+| FSA-03 Kyalami 15 | done | done | done; Liquid Metal + Silver re-rendering |
+| FSA-14 Turbine 25 | done after fold fix | done after fold fix | done; Liquid Metal + Silver re-rendering |
 
 On-car check sheets: `docs/rim-template/oncar/m4_g82.jpg`, `m5_g90.jpg` (made with `scripts/render/oncar.cjs`).
 
 ## Queue (do the top unchecked item; tick it when committed)
-- [ ] Finish spins: FSA-12 → FSA-13 → FSA-03 → FSA-14. One wheel per background job (2 h limit); turntable resumes.
+- [x] Spins for FSA-12, FSA-13, FSA-03, FSA-14 (all five finishes).
+- [ ] Re-render Liquid Metal + Silver for those four (brighter chrome surround, plain barrel; review fixes):
+      `rm -rf public/renders/rims/<id>/{liquid_metal,silver}` then `turntable.py <glb> public/renders/rims/<id> --frames 36
+      --samples 10 --size 900x675 --only liquid_metal,silver`, then `spin-manifest.py`. Commit per wheel.
+- (old note) One wheel per background job (2 h limit); turntable resumes.
       Commit each wheel's frames when its `spin.json` exists, then `python3 scripts/rim3d/spin-manifest.py`.
       GLBs to spin from: FSA-12 `build_rim.py docs/rim-template/fsa_12-spec.json` (has the spoke channel),
       FSA-13/14 `build_rim.py docs/rim-template/fsa_1N-spec.json`, FSA-03 `convert.sh <catalogue cut-out> forged_fsa_03`.
 - [ ] Re-shoot the on-car sheets for Black (the two old grey shots: M4 front ¾, M5 wheel close-up) after the gloss fix.
+- [ ] Ask the owner: keep Star 6 as the bar version, or send a front-on photo to trace it properly.
 - [ ] Owner approval of the four spins → Supabase insert of FSA-12/13/14 (names, sizes, prices are PLACEHOLDERS
       copied from FSA-05) via `/admin` or a migration. Until then they exist only in the bundled catalogue.
 - [ ] Rim page screenshots (phone + desktop) for the four wheels, two finishes each.
@@ -45,7 +50,8 @@ On-car check sheets: `docs/rim-template/oncar/m4_g82.jpg`, `m5_g90.jpg` (made wi
 - Cars: M4 Convertible and M5 Touring have no real 3D model (placeholder body); X3 M50's model has filled
   wheel arches. Paid models need the owner's OK.
 - Summary page and PDF stills still come from the live WebGL car, not the Blender renders.
-- Spin frames are in git (~5 MB per wheel). For many wheels, move them to Supabase storage.
+- Spin frames are in git (~12 MB per wheel). Before the full catalogue, move them to Supabase storage
+  (and consider 720×540 or lazy preloading in `RimSpinView`).
 - Not modelled on 3D rims: lip engraving, logos, milled channels on traced faces.
 
 ## Decisions log (so they aren't asked twice)
