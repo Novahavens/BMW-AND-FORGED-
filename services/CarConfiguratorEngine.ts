@@ -182,10 +182,14 @@ export class CarConfiguratorEngine {
    */
   static STUDIO: 'softbox' | 'hdri' =
     typeof window !== 'undefined' && /[?&]studio=hdri/.test(window.location.search) ? 'hdri' : 'softbox';
-  /** The reflected studio room: 'walls' (default: dark room with tall side panels), 'dark' or 'light'; ?room= compares. */
+  /**
+   * The reflected studio room (?room= compares). 'studio' (default): BMW's render look, a dark surround at door
+   * height with crisp light lines, so deep paints stay deep; 'white' is the brighter white room; 'walls', 'dark'
+   * and 'light' are earlier looks. The page behind the car stays white whatever the room.
+   */
   static ROOM: 'dark' | 'light' | 'walls' | 'white' | 'studio' = (() => {
     const m = typeof window !== 'undefined' ? /[?&]room=(light|walls|dark|white|studio)/.exec(window.location.search) : null;
-    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white' | 'studio') ?? 'white';
+    return (m?.[1] as 'dark' | 'light' | 'walls' | 'white' | 'studio') ?? 'studio';
   })();
   /** Tone mapping: 'aces' (default), 'agx' or 'neutral'; ?tone=agx compares. */
   static TONE: 'aces' | 'agx' | 'neutral' = (() => {
@@ -1840,10 +1844,14 @@ export class CarConfiguratorEngine {
     const m = typeof window !== 'undefined' ? /[?&]bodyenv=([0-9.]+)/.exec(window.location.search) : null;
     return m ? +m[1] : 1;
   })();
-  /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
+  /**
+   * Overall strength of the generated softbox studio (scene.environmentIntensity). With ROOM 'studio', 0.45
+   * puts the M4's door closest to BMW's own renders across light, mid and dark paints (mean ΔE00 6.4 over
+   * ten paints, against 10.6 for the white room at 0.55; scripts/render/paint-door.html, ?envi= compares).
+   */
   static SOFTBOX_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.55;
+    return m ? +m[1] : 0.45;
   })();
   /** Tuning only: scales the base coat's roughness of glossy paints (?gloss= compares). The catalogue's
    * per-paint values are the real ones, so this is 1. */
