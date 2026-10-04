@@ -22,6 +22,24 @@ Stack: Supabase project `qxlfkfhzpqbxffuqqewg` (Postgres, Auth, Storage).
   `standard_sizes` are computed on save.
 - A wheel offers only its ticked finishes, and *Default finish* must be one of them.
 
+## Factory tyre per car (`cars.tyre`)
+
+- **What it is:** the tyre BMW fits to the car at the factory (OE), drawn on the 3D tyre
+  sidewalls: `{ "brand": "Michelin", "model": "Pilot Sport 4S", "marking": "★",
+  "front": "275/35 ZR19 100Y XL", "rear": "285/30 ZR20 99Y XL" }` (jsonb, default `{}`).
+  Inner keys are single words because `rowToApp` only camelCases top-level keys. App type:
+  `TyreSpec` in `types.ts`.
+- **Edit it in /admin:** Cars → *Factory (OE) tyre* (brand, model, marking, front, rear). Sizes are
+  written as on the sidewall; the section width and the tread pattern come from them (`Cup 2`,
+  `P Zero` and `Pilot Sport` names pick their own tread). Marking `★` draws the BMW star.
+- **Generic markings:** leave the sizes empty (`{}`). An empty brand with sizes draws the OE size
+  without a maker (used for the M235, whose maker could not be verified).
+- **Brand rule (owner-approved, Oct 2026):** maker and model are drawn as plain lettering, never a
+  logo; see `3d-car-perfect`. Add only what BMW actually fits, with the source in the migration.
+- **Data:** `supabase/migrations/20261004110000_car_tyres.sql` (sources per car), mirrored in
+  `data/configuratorData.ts`. The column must exist before the admin saves a tyre: apply that
+  migration before deploying.
+
 ## Admin accounts
 
 - **Allowlist:** `insert into public.admin_users (email) values ('x@y.com');`. Delete the row to

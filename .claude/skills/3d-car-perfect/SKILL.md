@@ -81,7 +81,8 @@ Never use the photo as the face texture, and never extrude the whole photo. Inst
      the bevel and walls, and the dish's exact normal on the front cap (averaged with the bevel,
      the tops shade in blotches).
 3. **Everything else is generated:**
-   - tyre profile with grooves, tread normal map and sidewall markings;
+   - tyre profile with grooves, tread normal map and sidewall markings (the car's OE tyre, or
+     generic; see 8–9 below);
    - lip and barrel lathe (polished, bolted lip for two- and three-piece designs);
    - cross-drilled vented disc with **radial** anisotropy;
    - 6-piston M Compound-style caliper about 278 mm long: firm 7 mm cast edges, a raised face,
@@ -99,9 +100,23 @@ Never use the photo as the face texture, and never extrude the whole photo. Inst
 6. **Rubber colour:** #302e2d–#333130 with `sheenColor` set. Below about #262626, ACES makes it a
    black hole.
 7. **Check the sidewall text orientation on a render:** it must read clockwise with the letter
-   tops towards the tread. Use generic tyre markings only (no Michelin, Pirelli or Brembo logos). The BMW M logo on the
-   caliper is the owner's choice (Oct 2026); don't add other brands' marks.
-8. **Clearance:** the caliper sits behind the concave spokes and inside the 19" drop centre. Move
+   tops towards the tread (each item is drawn turned 180° on the canvas; see `drawSidewall`).
+8. **Marks and brands (owner-approved exceptions, Oct 2026):**
+   - the BMW M logo on the caliper is the owner's choice;
+   - **the tyre carries the brand BMW fits to the car (OE fitment):** each car's `tyre` spec
+     (maker, model, ★, front/rear size) is drawn on the outer sidewall. Maker and model are
+     **plain moulded lettering** in a neutral bold condensed sans: never logo artwork (no Michelin
+     Man/Bibendum, no Pirelli long-P logotype, no Continental horse). The BMW star ★ and the
+     regulatory text (size, load/speed, DOT, TWI, TUBELESS) are allowed;
+   - cars without a spec and the rim showcase page get generic markings (size, RADIAL TUBELESS);
+   - no other brands' marks (no Brembo).
+9. **Tyre spec → tyre** (`buildTyre(dims, kit, spec)`, `engine.setTyreSpec`): the tread layout
+   follows the tyre family (`treadPatternFor`: PS4S asymmetric four grooves, Cup 2 two grooves and
+   a near-slick outer half, P Zero four grooves with slots); the section widths come from the
+   spec (`tyreWidthFor`, within 20 mm of 265/295); on a non-OE rim size the label keeps the OE
+   width and outer diameter (`tyreSizeText`). Letter heights come from the sidewall the geometry
+   really has, so 19" and 22" both keep square letters.
+10. **Clearance:** the caliper sits behind the concave spokes and inside the 19" drop centre. Move
    the disc plane (`discX`), never the spokes.
 
 **Wheel QA:** measured first, then by eye (the `visual-qa` skill):
