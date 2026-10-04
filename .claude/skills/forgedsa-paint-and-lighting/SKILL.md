@@ -8,44 +8,40 @@ description: Tune car paint, reflections and studio lighting in the FORGEDSA Thr
 Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `public.paints`
 (mirrored in `data/configuratorData.ts`).
 
-## Current tuned values (chosen from side-by-side renders on the M235 and M5)
+## Current values (Oct 2026)
 
-| Paint type | metalness | roughness | clearcoat | clearcoatRoughness |
-|---|---|---|---|---|
-| Metallic | 0.8 | 0.45 | 1 | 0.05 |
-| Uni (solid) | 0 | 0.5 | 1 | 0.05 |
-| Frozen (matte) | 0.4 | 0.55 | 0 | – |
+**Paint finishes** (per-paint numbers in `paints`, finish extras in `services/paintShader.ts` `PAINT_LAYERS`;
+sources in `docs/bmw-factory-paints.md`, "Material values"):
 
-- **`material.envMapIntensity` does nothing here.** In three r181 it only applies when the material
-  has its own `envMap`; ours use `scene.environment`, so the strength is `scene.environmentIntensity`
-  (`SOFTBOX_INTENSITY`, now 1.15). `BODY_ENV_INTENSITY` (`?bodyenv=`) is kept but has no effect.
-- **White studio (current default, `?room=white`):** white page backdrop (`.bg-stage`; parts of the UI
-  on it use `.stage-light`, dialogs `.stage-dark`) with a mid-grey reflection room lit by big bright
-  softboxes. A uniformly white room washes paint out; contrast between softboxes and room is what
-  reads as gloss. `SOFTBOX_INTENSITY` 0.55 (`?envi=`); ROOM_WHITE panels are 2.5x brighter with 0.3x feather for crisp reflections.
-- **Clear-coat boost (`COAT_BOOST` 1.2, `?coat=`):** `paintShader.ts` multiplies the clear coat's
-  indirect reflection. `clearcoat` can't go above 1, and a plain 4% reflection of a soft room looks
-  matte. Glossy paints also get base roughness x `GLOSS` 0.65 (`?gloss=`) and clearcoatRoughness
-  at most 0.025; Frozen is unchanged.
-- **Studio room** (`?room=walls|dark|light|white`; older `walls` = dark room with side panels): a dark room plus tall soft panels either
-  side of the car, so doors and flanks show broad gradients. The light-grey room washed the paint out
-  and a dark room alone read as satin: paint only looks glossy when something big and bright is
-  reflected in it. White paints blow out above about 1.3 environment intensity.
-- **Reflections (since Oct 2026):** a generated **softbox studio** (`services/studioSoftbox.ts`).
-  - Feathered diffuser panels: overhead 2.3, side strips 2.4, low strips 1.3, kickers, a 0.08
-    floor bounce, in a dark room.
-  - Built with `PMREMGenerator.fromScene(..., { size: 512 })`.
-  - `?studio=hdri` brings back the old HDRI (`/env/studio_small_09_1k.hdr`, Poly Haven CC0) for
-    comparison.
-- **Paint layers** (`services/paintShader.ts`):
-  - metallic flake in **world space** (0.7 mm cells, strength 0.07, fading out below about
-    0.4 px) plus face/flop darkening; Frozen 0.03/0.78, Uni 0/0.92;
-  - the clear coat keeps the unperturbed normal.
-- **Studio lights:** softbox 0.6, rim lights 0.55 and 0.45.
-- **Tone mapping:** ACES Filmic at exposure 1.08 (the default after comparing AgX and Neutral);
-  `?tone=agx|neutral&exposure=` switches for reviews.
-- Paint changes go in a migration (e.g. `20260927100000_x5m_lci_and_photoreal_paint.sql`) **and**
-  the fallback catalogue.
+| Type | metalness | roughness | clearcoat / rough | specular | flake / flop | extra |
+|---|---|---|---|---|---|---|
+| Uni (solid) | 0 | 0.40 | 1 / 0.03 | 0.2 | 0 / 1.0 | |
+| Metallic | 0.60 | 0.38 | 1 / 0.03 | 0.5 | 0.10 / 0.65 | 0.3 mm flakes (`FLAKE_SCALE` 3200) |
+| Pearl | 0.45 | 0.40 | 1 / 0.03 | 0.5 | 0.14 / 0.70 | iridescence 0.2, IOR 1.9, 250-450 nm |
+| Frozen | 0.60 | 0.58 | 1 / 0.45 (satin coat) | 0.5 | 0.02 / 0.78 | sheen 0.25, no coat boost |
+
+Per-code looks: `PAINT_CODE_LOOKS` (A96 Mineral White, C3E Amber effect, X16 Frozen Brilliant White).
+The catalogue values are used as they are (`GLOSS` is 1, a tuning switch only).
+
+- **Every lit material is bound to the environment** (`syncEnvironment` in `services/carMaterials.ts`,
+  run before each drawn frame). three r181 only honours `envMapIntensity` (and `envMapRotation`) when a
+  material carries its own `envMap`, so the engine gives every standard material the scene's environment,
+  intensity scaled by the scene's, rotation copied. So per-part values work (wheel barrel 0.45, tyre 0.7,
+  interior...) and a WebGL context restore or HDRI load re-binds everything. `BODY_ENV_INTENSITY` is
+  relative: 1 = the studio level.
+- **Studio room** (`?room=`): default `studio` (`ROOM_STUDIO`): bright overhead softbox and strip lines,
+  dark surround at door height and a thin sill line, like BMW's own renders, so deep paints stay deep.
+  `white` (the Oct 2026 white room) greyed dark paints with broad wall reflections (M4 door mean ΔE00
+  to BMW's renders: 10.6 white vs 6.4 studio). The page behind the car stays white either way.
+- **Studio intensity:** `SOFTBOX_INTENSITY` 0.45 (`?envi=`). **Clear-coat boost:** `COAT_BOOST` 1.2 on
+  glossy paints (`?coat=`), 1 on Frozen.
+- **Tone mapping:** ACES Filmic, exposure 1.08 (`?tone=agx|neutral&exposure=` for reviews).
+- **Paint colours are calibrated, not swatches.** `paints.hex` is a base colour solved so the M4's front
+  door matches BMW's own renders (`scripts/render/paint-calibrate.cjs` with `paint-door.html`; method
+  and table in `docs/bmw-factory-paints.md`, "Recalibration"). Any change to the finish values, tone
+  mapping, exposure or the calibration lighting changes what a hex looks like: re-run the solver, and
+  ship the new hexes (migration + fallback) with the code change.
+- Paint changes go in a migration **and** the fallback catalogue (`data/configuratorData.ts`).
 
 ## Method
 
