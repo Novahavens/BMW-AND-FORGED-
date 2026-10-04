@@ -50,7 +50,7 @@ const VIEWS = ['frontThreeQuarter', 'side', 'rearThreeQuarter', 'frontWheel', 't
     for (const v of VIEWS) {
       e.setCameraPreset(v, { instant: true, aspect: ASPECT });
       const c = e.camera.clone(); c.aspect = ASPECT; c.updateProjectionMatrix();
-      c.matrixWorld.decompose(c.position, c.quaternion, c.scale); c.scale.set(1, 1, 1);
+      c.clearViewOffset(); c.position.copy(e.camera.position); c.quaternion.copy(e.camera.quaternion); c.scale.set(1, 1, 1);
       c.name = 'CAM_' + v; root.add(c);
     }
     const buf = await new GLTFExporter().parseAsync(root, { binary: true });
