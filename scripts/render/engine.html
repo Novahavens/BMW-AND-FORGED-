@@ -24,7 +24,9 @@ if (q.get('model')) {
   car = STATIC_CATALOG.cars[+(q.get('car')||0)];
 }
 e.applyPaintColor(STATIC_CATALOG.paints[+(q.get('paint')||0)]);
-const wheel = STATIC_CATALOG.wheels[+(q.get('wheel')||0)];
+let wheel = STATIC_CATALOG.wheels[+(q.get('wheel')||0)];
+// rimModel=/path.glb puts a 3D rim file on the chosen wheel (rimFlip=1 if its face points inward)
+if (q.get('rimModel')) wheel = { ...wheel, modelUrl: q.get('rimModel'), modelFlip: !!q.get('rimFlip') };
 e.applyWheelDesign(wheel);
 e.applyWheelFinish(STATIC_CATALOG.finishes[q.get('finish')||'liquid_metal'] || STATIC_CATALOG.finishes.liquid_metal);
 e.setRimSize(q.get('size')||'20"');

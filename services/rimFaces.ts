@@ -16,7 +16,8 @@ import type { RimPhotoOptions } from './wheelKit';
 export const RIM_FACE_MASKS: Record<string, string> = {
   forged_fsa_07: '/rim-faces/forged_fsa_07.png',
   forged_fsa_10: '/rim-faces/forged_fsa_10.png',
-  forged_fsa_11: '/rim-faces/forged_fsa_11.png'
+  forged_fsa_11: '/rim-faces/forged_fsa_11.png',
+  forged_fsa_12: '/rim-faces/forged_fsa_12.png' // bar face drawn from the photo (docs/rim-template/fsa_12-spec.json)
 };
 
 /**

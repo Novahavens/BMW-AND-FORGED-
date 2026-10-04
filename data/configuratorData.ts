@@ -645,6 +645,31 @@ export const WHEEL_DESIGNS: WheelDesign[] = [
     imageUrl: 'https://qxlfkfhzpqbxffuqqewg.supabase.co/storage/v1/object/public/rim-images/pipeline/forged_fsa_09-1790526498397.png',
     imageExtrude: true
   }
+,
+  {
+    id: 'forged_fsa_12',
+    code: 'FSA-12',
+    name: 'Forged SA Twin-Y',
+    subtitle: 'Polished twin-Y five-spoke',
+    style: 'Monoblock Forged',
+    spokeType: 'multi',
+    spokeCount: 10,
+    weightFrontKg: 0,
+    weightRearKg: 0,
+    weightSavingsKg: 0,
+    standardSizes: ['19"', '20"', '21"', '22"'],
+    pricePerSet: 3736.26,
+    priceBySize: { '19"': 3736.26, '20"': 4065.93, '21"': 4505.49, '22"': 5054.95 },
+    description: 'Five pairs of slim spokes leave the hub together and open toward the lip, cut from a single forged monoblock and hand-polished.',
+    highlights: ['Twin-Y five-spoke layout', 'True 3D rim model', 'Hand-polished monoblock'],
+    availableVariants: ['liquid_metal', 'bronze', 'black', 'silver'],
+    defaultVariant: 'liquid_metal',
+    // PLACEHOLDER name, sizes and prices (copied from FSA-05) until the owner confirms them in /admin.
+    // The rim is a built 3D model (scripts/rim3d, docs/rim-template/fsa_12-spec.json), not a photo.
+    imageUrl: '/rim-faces/forged_fsa_12.png',
+    imageExtrude: true,
+    modelUrl: '/models/rims/forged_fsa_12.glb'
+  }
 ];
 
 export const CALIPER_COLORS: CaliperColor[] = [

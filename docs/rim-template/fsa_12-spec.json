@@ -1,0 +1,29 @@
+{
+ "fold": 5,
+ "mirror": true,
+ "rotate": 5,
+ "hub": 0.27,
+ "fillet": 0.01,
+ "bars": [
+  {
+   "from": [
+    0.3,
+    3.5
+   ],
+   "to": [
+    0.916,
+    14.5
+   ],
+   "w": 0.075,
+   "w_tip": 0.058
+  }
+ ],
+ "face_front": 0.24,
+ "face_thick": 0.1,
+ "dish": 0.1,
+ "bolts": 5,
+ "pcd": 0.19,
+ "bolt_r": 0.032,
+ "bore": 0.11,
+ "_source": "measured from the polished FORGEDSA twin-Y photo, rectified by fitting the spoke-tip ellipse (docs/RIM_3D_PROCESS.md). Widths set to about 1.5 bolt-hole diameters, as in the photo."
+}

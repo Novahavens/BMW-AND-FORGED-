@@ -23,5 +23,10 @@ Full process: `docs/RIM_3D_PROCESS.md`. Template numbers and the CC-BY credit: `
 ## Limits (say them out loud)
 A photo has no depth: complex or concave designs need CAD. The template is another maker's design: benchmark and proportions only, credit it if its geometry is ever shown.
 
-## Status
-The Blender builder (`scripts/rim3d/build_rim.py`) is **not written yet**; the process is. See "Not built yet" in the doc.
+## Scripts (scripts/rim3d/)
+- `build_rim.py <spec.json> <out.glb>`: bar spec → complete rim (face, barrel, lip, hub, cap), bpy.
+- `pack.mjs in.glb out.glb [maxTris]`: weld, simplify, quantize, meshopt for the live site.
+- `preview.py out.png a.glb [b.glb]`: studio close-up side by side (auto-orients the face).
+- `scripts/render/engine.html?rimModel=/models/rims/x.glb` puts any GLB on the chosen wheel for screenshots.
+Worked example: FSA-12 (`docs/rim-template/fsa_12-spec.json`), measured from an angled photo by
+rectifying the spoke-tip ellipse. Full commands in `docs/RIM_3D_PROCESS.md`.

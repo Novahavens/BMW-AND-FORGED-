@@ -43,9 +43,33 @@ Ask every manufacturer for **CAD of the rim only**. It always beats a photo rout
 - The photo route reproduces the spoke **shape**, not a manufacturer's finish detail (machining marks, engraving, logos). Add a normal/roughness map only where it matters.
 - The template is a sibling design, not our wheel: use it for proportions and finish, never as the product.
 
-## Not built yet (next steps, in order)
+## The commands (built and proven on FSA-12, the polished twin-Y wheel)
 
-1. `scripts/rim3d/build_rim.py` (steps 3–7) and `scripts/rim3d/qa.cjs` (the overlay check in step 9).
-2. One real FORGEDSA wheel as the proof, shown next to the template on the M4 close-up, for approval.
-3. The lighting match (step 10).
-4. A free-orbit wheel close-up (the pre-rendered view is fixed-camera).
+```bash
+# 1. Measure the photo. If it is angled, fit the spoke-tip ellipse and rectify it to a circle first
+#    (numpy; see the ellipse/rectify steps recorded in docs/rim-template/fsa_12-spec.json notes).
+# 2. Describe one sector as straight bars and draw the symmetric face mask (+ overlay to check):
+python3 scripts/render/make-bar-face.py docs/rim-template/<id>-spec.json <wheelId> rectified.png overlay.png
+#    Add the wheel to RIM_FACE_MASKS in services/rimFaces.ts, then:
+node scripts/render/wheel-qa.cjs <rimCacheDir> <outDir> <wheelId>          # must PASS
+# 3. Build the complete 3D rim from the same spec (face + barrel + lip + hub, template proportions):
+python3 scripts/rim3d/build_rim.py docs/rim-template/<id>-spec.json full.glb --segments 512
+# 4. Pack for the live site (weld, simplify to budget, quantize, meshopt):
+node scripts/rim3d/pack.mjs full.glb public/models/rims/<wheelId>.glb 40000
+# 5. Look at it: next to the template, and on the cars in every finish
+python3 scripts/rim3d/preview.py out.png full.glb <template.glb>
+node scripts/render/shoot.cjs out shots.json rimCache    # shots with "q": "&rimModel=/models/rims/<wheelId>.glb"
+```
+
+Spec keys beyond make-bar-face's: `face_front`, `face_thick`, `dish`, `bolts`, `pcd`, `bolt_r`, `bore`
+(fractions of the lip's outer radius; defaults in `build_rim.py` follow the template profile).
+
+FSA-12 result: 18.8k triangles, 115 kB, mask QA PASS (1 piece, 10 windows, symmetry 0.99, thinnest spoke 16.5 mm), all four
+finishes on the car (proofs: `rim-template/fsa_12-vs-template.jpg`, `rim-template/fsa_12-on-car.jpg`). Known gaps: the milled channel along each spoke and the lip engraving are not
+modelled; the live wheel's lighting still differs from the Blender body (step 10).
+
+## Still to do
+
+1. Lighting match (step 10).
+2. A free-orbit wheel close-up (the pre-rendered view is fixed-camera).
+3. Optional spoke surface detail (channel, chamfer profile) as spec options.

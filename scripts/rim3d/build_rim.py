@@ -1,0 +1,151 @@
+"""Builds a complete 3D rim (GLB) from a bar-face spec, to the "High poly Rims" template profile
+(docs/rim-template/PROFILE.md). Blender as a Python module: pip install bpy.
+
+  python3 scripts/rim3d/build_rim.py <spec.json> <out.glb> [--segments 384] [--bevel 0.012]
+
+The spec is the same file scripts/render/make-bar-face.py reads (fold, mirror, hub, bars with
+from/to as [radius, degrees] and width w; radii are fractions of the lip's outer radius = 1).
+Extra optional keys used here only:
+  "face_front": 0.24   front of the spoke plate (x, as a fraction of R; lip front is 0.446)
+  "face_thick": 0.10   spoke plate thickness
+  "dish": 0.10         how far the hub sits behind the spoke tips (concave face)
+  "bolts": 5, "pcd": 0.20, "bolt_r": 0.035, "bore": 0.10
+Output: axle along X, face toward +X (what CarConfiguratorEngine.mountRimModel expects with no
+flip), two meshes (face, barrel), one material, smooth + weighted normals.
+"""
+import argparse, json, math, sys
+import bpy, bmesh
+from mathutils import Vector
+
+ap = argparse.ArgumentParser()
+ap.add_argument('spec'); ap.add_argument('out')
+ap.add_argument('--segments', type=int, default=384)
+ap.add_argument('--bevel', type=float, default=0.012)
+a = ap.parse_args()
+spec = json.load(open(a.spec))
+fold = spec['fold']; hub_r = spec.get('hub', 0.33); rot = spec.get('rotate', 0)
+FF = spec.get('face_front', 0.24); FT = spec.get('face_thick', 0.10); DISH = spec.get('dish', 0.10)
+NB = spec.get('bolts', 5); PCD = spec.get('pcd', 0.20); BR = spec.get('bolt_r', 0.035); BORE = spec.get('bore', 0.10)
+FACE_R = 0.916      # spokes meet the lip here (make-bar-face convention)
+WALL_IN = 0.90      # inner barrel wall radius
+LIP_FRONT = 0.446   # template: lip front, barrel back (fractions of R)
+BACK = -0.571
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+sc = bpy.context.scene
+mat = bpy.data.materials.new('RimFinish')
+
+def new_obj(name, bm):
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    ob = bpy.data.objects.new(name, me); sc.collection.objects.link(ob)
+    me.materials.append(mat)
+    return ob
+
+# Polar (r, deg clockwise from 12 o'clock when viewed from the front) -> (y, z): the face is the
+# YZ plane, looked at from +X. Clockwise on the photo = clockwise seen from +X.
+def yz(r, deg):
+    t = math.radians(deg)
+    return r * math.sin(t), r * math.cos(t)
+
+def prism(points_yz, x0, x1):
+    """Extrudes a convex polygon in the YZ plane from x0 to x1."""
+    bm = bmesh.new()
+    bot = [bm.verts.new((x0, y, z)) for y, z in points_yz]
+    top = [bm.verts.new((x1, y, z)) for y, z in points_yz]
+    bm.faces.new(bot[::-1]); bm.faces.new(top)
+    n = len(bot)
+    for i in range(n):
+        bm.faces.new((bot[i], bot[(i + 1) % n], top[(i + 1) % n], top[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+def boolean(target, cutter, op):
+    m = target.modifiers.new('b', 'BOOLEAN'); m.operation = op; m.object = cutter; m.solver = 'EXACT'
+    bpy.context.view_layer.objects.active = target
+    bpy.ops.object.modifier_apply(modifier=m.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+
+# ---- spokes: each bar is a tapered quad, extended into the hub and past the lip, then clipped
+x_back, x_front = FF - FT, FF
+bars = []
+for b in spec['bars']:
+    bars.append(b)
+    if spec.get('mirror', True) and abs(b['from'][1]) + abs(b['to'][1]) > 0:
+        bars.append({**b, 'from': [b['from'][0], -b['from'][1]], 'to': [b['to'][0], -b['to'][1]]})
+face = None
+for k in range(fold):
+    base = rot + k * 360 / fold
+    for b in bars:
+        p0 = Vector(yz(b['from'][0], b['from'][1] + base)); p1 = Vector(yz(b['to'][0], b['to'][1] + base))
+        u = (p1 - p0).normalized(); nrm = Vector((-u.y, u.x))
+        pa, pb = p0 - u * 0.25, p1 + u * 0.12
+        w0, w1 = b['w'] / 2, b.get('w_tip', b['w']) / 2
+        quad = [pa + nrm * w0, pb + nrm * w1, pb - nrm * w1, pa - nrm * w0]
+        ob = new_obj('bar', prism([(p.x, p.y) for p in quad], x_back, x_front))
+        if face is None: face = ob
+        else: boolean(face, ob, 'UNION')
+# hub pad
+bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=128, radius1=hub_r, radius2=hub_r, depth=FT)
+bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
+bmesh.ops.translate(bm, verts=bm.verts, vec=(FF - FT / 2, 0, 0))
+boolean(face, new_obj('hub', bm), 'UNION')
+# clip to the face disc (r <= 0.95: the plate runs a little into the lip wall)
+bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=a.segments, radius1=0.95, radius2=0.95, depth=1.0)
+bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
+bmesh.ops.translate(bm, verts=bm.verts, vec=(FF - FT / 2, 0, 0))
+boolean(face, new_obj('clip', bm), 'INTERSECT')
+# centre bore and bolt holes
+def cyl(r, depth, cx, cy, cz, seg=48):
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r, depth=depth)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
+    bmesh.ops.translate(bm, verts=bm.verts, vec=(cx, cy, cz)); return new_obj('cut', bm)
+boolean(face, cyl(BORE, 2, FF - FT / 2, 0, 0, 64), 'DIFFERENCE')
+for i in range(NB):
+    y, z = yz(PCD, i * 360 / NB + rot)
+    boolean(face, cyl(BR, 2, FF - FT / 2, y, z), 'DIFFERENCE')
+
+# concave dish: everything inside the face slopes back toward the hub
+me = face.data
+for v in me.vertices:
+    r = math.hypot(v.co.y, v.co.z)
+    t = min(1.0, max(0.0, (FACE_R - r) / (FACE_R - hub_r)))
+    v.co.x -= DISH * (t ** 1.3)
+
+# bevel every edge of the face, then smooth
+bev = face.modifiers.new('bevel', 'BEVEL'); bev.width = a.bevel; bev.segments = 2; bev.limit_method = 'ANGLE'
+bev.angle_limit = math.radians(40); bev.harden_normals = True
+bpy.context.view_layer.objects.active = face; bpy.ops.object.modifier_apply(modifier='bevel')
+for p in face.data.polygons: p.use_smooth = True
+face.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
+face.name = 'face'
+
+# ---- barrel + lip: revolve a closed profile (r, x) around X
+prof = [(WALL_IN, BACK + 0.07), (WALL_IN, FF - 0.02), (0.93, 0.30), (0.955, 0.40), (0.975, LIP_FRONT),
+        (1.0, LIP_FRONT - 0.02), (1.0, 0.36), (0.97, 0.30), (0.97, BACK + 0.02), (0.93, BACK)]
+bm = bmesh.new()
+rings = []
+for (r, x) in prof:
+    rings.append([bm.verts.new((x, r * math.sin(2 * math.pi * i / a.segments), r * math.cos(2 * math.pi * i / a.segments))) for i in range(a.segments)])
+n = len(prof)
+for j in range(n):
+    A, B = rings[j], rings[(j + 1) % n]
+    for i in range(a.segments):
+        bm.faces.new((A[i], A[(i + 1) % a.segments], B[(i + 1) % a.segments], B[i]))
+bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+barrel = new_obj('barrel', bm)
+for p in barrel.data.polygons: p.use_smooth = True
+barrel.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
+
+# centre cap: a separate disc sitting in the bore, a little behind the dished hub face (the engine
+# hides its own hub in model mode, so the rim must bring one)
+cap = cyl(BORE * 0.92, 0.035, FF - DISH - 0.03, 0, 0, 96); cap.name = 'cap'
+for p in cap.data.polygons: p.use_smooth = True
+cb = cap.modifiers.new('bevel', 'BEVEL'); cb.width = 0.006; cb.segments = 2
+bpy.context.view_layer.objects.active = cap; bpy.ops.object.modifier_apply(modifier='bevel')
+cap.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
+
+bpy.ops.object.select_all(action='DESELECT')
+face.select_set(True); barrel.select_set(True); cap.select_set(True)
+bpy.ops.export_scene.gltf(filepath=a.out, export_format='GLB', use_selection=True, export_apply=True, export_yup=True)
+tris = sum(len(p.vertices) - 2 for ob in (face, barrel, cap) for p in ob.data.polygons)
+print(f'wrote {a.out}  triangles={tris}')
