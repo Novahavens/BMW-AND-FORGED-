@@ -134,7 +134,7 @@ export interface StudioRoom {
 export const ROOM_DARK: StudioRoom = { base: 0.035, horizon: 0.14, ceiling: 0.03, floor: 0.018, bounce: 0.08 };
 export const ROOM_WALLS: StudioRoom = { ...ROOM_DARK, base: 0.05, bounce: 0.15, floor: 0.05, sideWalls: 1.1 };
 /** A white-studio look: big bright softboxes (overhead, either side) in a mid-grey room, so paint shows deep colour between crisp bright reflections. */
-export const ROOM_WHITE: StudioRoom = { base: 0.1, horizon: 0.18, ceiling: 0.08, floor: 0.2, bounce: 0.3, sideWalls: 1.7, panelGain: 8, edge: 0.3 };
+export const ROOM_WHITE: StudioRoom = { base: 0.1, horizon: 0.18, ceiling: 0.08, floor: 0.2, bounce: 0.3, sideWalls: 1.7, panelGain: 4, edge: 0.7 };
 export const ROOM_LIGHT: StudioRoom = { base: 0.22, horizon: 0.3, ceiling: 0.1, floor: 0.2, bounce: 0.5 };
 
 function roomMaterial(room: StudioRoom) {

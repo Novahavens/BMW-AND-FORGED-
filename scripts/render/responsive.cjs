@@ -30,6 +30,8 @@ const DEVICES = {
   'phone-360x740': { width: 360, height: 740, touch: true },
   'phone-390x844': { width: 390, height: 844, touch: true, dpr: 2 },
   'phone-large-430x932': { width: 430, height: 932, touch: true, dpr: 2 },
+  'phone-android-412x800': { width: 412, height: 800, touch: true, dpr: 2.6 },
+  'phone-zoomed-316x600': { width: 316, height: 600, touch: true, dpr: 3.3 },
   'phone-landscape-844x390': { width: 844, height: 390, touch: true },
   'phone-landscape-667x375': { width: 667, height: 375, touch: true },
   'tablet-portrait-768x1024': { width: 768, height: 1024, touch: true },
@@ -41,7 +43,7 @@ const DEVICES = {
   'uhd-2560x1440': { width: 2560, height: 1440 }
 };
 
-const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', 'summary', 'forged', 'rim', 'terms', 'delivery'];
+const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', 'expanded', 'summary', 'forged', 'rim', 'terms', 'delivery'];
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -129,6 +131,12 @@ const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', '
     await record('wheels', async () => { await p.getByRole('button', { name: /step 2: wheels/i }).first().click(); });
     await record('size', async () => { await p.getByRole('button', { name: /step 3: size/i }).first().click(); });
     await record('finish', async () => { await p.getByRole('button', { name: /step 4: finish/i }).first().click(); });
+    // phones: the bottom sheet opened up (paint list), via its handle
+    await record('expanded', async () => {
+      await p.getByRole('button', { name: /step 1: paint/i }).first().click();
+      const handle = p.getByRole('button', { name: /show more/i }).first();
+      if (await handle.isVisible().catch(() => false)) await handle.click();
+    });
     await record('summary', async () => {
       await p.getByRole('button', { name: /^summary$/i }).first().click().catch(() => p.locator('button:has-text("View your")').first().click());
       await p.getByRole('button', { name: /^pdf$|download pdf/i }).first().waitFor({ timeout: 120000 });

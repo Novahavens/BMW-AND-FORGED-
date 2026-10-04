@@ -56,7 +56,7 @@ export function installPaintLayers(material: THREE.MeshPhysicalMaterial): PaintL
     uCoatBoost: { value: COAT_BOOST }
   };
   material.userData.paintLayers = uniforms;
-  material.customProgramCacheKey = () => 'forgedsa-paint-v3';
+  material.customProgramCacheKey = () => 'forgedsa-paint-v4';
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
@@ -77,6 +77,18 @@ vec3 paintHash3(vec3 p) {
   p += dot(p, p.yxz + 33.33);
   return fract((p.xxy + p.yxx) * p.zyx);
 }`
+      )
+      .replace(
+        '#include <lights_physical_fragment>',
+        `#include <lights_physical_fragment>
+  // Specular anti-aliasing, doubled: three.js already widens highlights where the surface normal
+  // changes fast between neighbouring pixels (geometryRoughness); on game-grade car meshes under
+  // bright, hard-edged softboxes that is not enough, and highlights stair-step along the triangles
+  // (very visible on a phone). Adding the term once more smooths them at no visible cost to gloss.
+  material.roughness = min(material.roughness + geometryRoughness, 1.0);
+  #ifdef USE_CLEARCOAT
+    material.clearcoatRoughness = min(material.clearcoatRoughness + geometryRoughness * 1.5, 1.0);
+  #endif`
       )
       .replace(
         '#include <lights_fragment_end>',

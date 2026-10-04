@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -69,13 +69,27 @@ export interface ConfiguratorProps {
 
 export const Configurator: React.FC<ConfiguratorProps> = (p) => {
   const [infoWheel, setInfoWheel] = useState<WheelDesign | null>(null);
+  // Phone bottom sheet: a peek height that leaves the car visible, or opened up to just under the
+  // "Change model" button by tapping or dragging its handle. The height is the --sheet-h variable, so
+  // the camera view bar and the car framing (App measures [data-stage-copy]) follow it.
+  const [expanded, setExpanded] = useState(false);
+  const dragY = useRef<number | null>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (expanded) root.style.setProperty('--sheet-h', 'calc(100dvh - 76px)');
+    else root.style.removeProperty('--sheet-h');
+    // after the sheet's height transition: re-frame the car in what is left
+    const t = setTimeout(() => window.dispatchEvent(new Event('stage-layout')), 320);
+    return () => clearTimeout(t);
+  }, [expanded]);
+  useEffect(() => () => document.documentElement.style.removeProperty('--sheet-h'), []);
   const price = rimPrice(p.wheel, p.size);
   const stepIndex = STEPS.findIndex((s) => s.id === p.step);
 
   return (
     <>
       {/* Top-left: back to the showroom */}
-      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 animate-fade">
+      <div data-stage-top className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 animate-fade">
         <Button variant="light" size="sm" onClick={p.onChangeModel} icon={null} className="pl-3">
           <ChevronLeft className="h-4 w-4 -ml-0.5" strokeWidth={1.8} />
           Change model
@@ -84,21 +98,28 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
 
       {/* Camera controls, centred under the car */}
       {/* Centred in the part of the screen the controls leave (panel mode), or just above the sheet */}
-      <div className="absolute z-30 left-[calc((100%-var(--panel-w))/2)] -translate-x-1/2 bottom-8 short:bottom-3 sheet:left-1/2 sheet:bottom-[calc(var(--sheet-h)+14px)] animate-rise delay-300">
+      <div
+        data-stage-copy
+        className={cx(
+          'absolute z-30 left-[calc((100%-var(--panel-w))/2)] -translate-x-1/2 bottom-8 short:bottom-3 sheet:left-1/2 sheet:bottom-[calc(var(--sheet-h)+12px)] transition-[bottom,opacity] duration-300 ease-lux animate-rise delay-300',
+          // the opened-up sheet leaves no room for it next to "Change model"
+          expanded && 'sheet:opacity-0 sheet:pointer-events-none'
+        )}
+      >
         <div className="flex items-center gap-0.5 rounded-full bg-surface/85 backdrop-blur-md p-1 ring-1 ring-line shadow-float max-w-[calc(100vw-var(--panel-w)-24px)] sheet:max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
           {VIEWS.map((v) => (
             <button
               key={v.id}
               onClick={() => p.onCamera(v.id)}
               className={cx(
-                'h-10 shrink-0 rounded-full px-3 sm:px-4 text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em] transition-all duration-300 ease-lux',
+                'h-10 min-w-10 shrink-0 rounded-full px-3 [@media(max-width:380px)]:px-2 sm:px-4 text-[10px] [@media(max-width:380px)]:text-[9.5px] sm:text-[10.5px] font-semibold uppercase tracking-[0.1em] [@media(max-width:380px)]:tracking-[0.05em] sm:tracking-[0.14em] transition-all duration-300 ease-lux',
                 p.cameraView === v.id ? 'bg-gold text-carbon' : 'text-mute hover:text-ink'
               )}
             >
               {v.label}
             </button>
           ))}
-          <span className="mx-0.5 sm:mx-1 h-5 w-px bg-line" />
+          <span className="mx-0.5 sm:mx-1 h-5 w-px bg-line [@media(max-width:380px)]:hidden" />
           <IconButton label={p.autoRotate ? 'Stop turntable' : 'Turntable'} onClick={p.onToggleRotate} active={p.autoRotate} className="h-10 w-10 shrink-0">
             {p.autoRotate ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
           </IconButton>
@@ -109,13 +130,30 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
       <aside
         className="absolute z-40 bg-surface/[0.97] backdrop-blur-xl shadow-panel flex flex-col animate-slide-in
           right-0 top-0 bottom-0 w-[var(--panel-w)] border-l border-line
-          sheet:inset-x-0 sheet:top-auto sheet:right-auto sheet:w-auto sheet:h-[var(--sheet-h)] sheet:rounded-t-[26px] sheet:border-l-0"
+          sheet:inset-x-0 sheet:top-auto sheet:w-auto sheet:h-[var(--sheet-h)] sheet:rounded-t-[26px] sheet:border-l-0 sheet:transition-[height] sheet:duration-300 sheet:ease-lux"
       >
-        <div className="hidden sheet:block mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-ink/15" />
-        <div className="flex items-start justify-between gap-3 px-7 pt-7 short:pt-3 sheet:px-6 sheet:pt-3">
+        {/* Handle: tap or drag to open the sheet up, or back down to the peek height */}
+        <button
+          type="button"
+          aria-label={expanded ? 'Show less' : 'Show more'}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((e) => !e)}
+          onPointerDown={(e) => (dragY.current = e.clientY)}
+          onPointerUp={(e) => {
+            if (dragY.current === null) return;
+            const dy = e.clientY - dragY.current;
+            dragY.current = null;
+            if (dy < -30) setExpanded(true);
+            else if (dy > 30) setExpanded(false);
+          }}
+          className="hidden sheet:flex h-10 -mb-4 w-full shrink-0 items-start pt-2.5 justify-center touch-none"
+        >
+          <span className="h-1 w-10 rounded-full bg-ink/25" />
+        </button>
+        <div className="flex items-start justify-between gap-3 px-7 pt-7 short:pt-3 sheet:px-5 sheet:pt-0 sheet:items-center">
           <div className="min-w-0">
-            <Eyebrow>Your build</Eyebrow>
-            <div className="mt-1.5 short:mt-0.5 truncate font-display text-[19px] short:text-[16px] font-extrabold tracking-[-0.01em]">{p.car.name}</div>
+            <Eyebrow className="sheet:hidden">Your build</Eyebrow>
+            <div className="mt-1.5 short:mt-0.5 sheet:mt-0 truncate font-display text-[19px] short:text-[16px] sheet:text-[16px] font-extrabold tracking-[-0.01em]">{p.car.name}</div>
           </div>
           <div className="flex items-center -mr-2">
             <IconButton label="More options" onClick={p.onOpenMore}>
@@ -128,7 +166,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
         </div>
 
         {/* Stepper */}
-        <nav className="mt-6 short:mt-1 sheet:mt-2 px-7 sheet:px-6">
+        <nav className="mt-6 short:mt-1 sheet:mt-0 px-7 sheet:px-5">
           <div className="flex items-center justify-between">
             <button onClick={() => p.onStep('overview')} className="flex h-10 items-center font-display text-[13px] font-bold uppercase tracking-[0.12em]">
               Exterior
@@ -154,7 +192,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
               ))}
             </div>
           </div>
-          <div className="mt-3 h-px bg-line relative overflow-hidden">
+          <div className="mt-3 sheet:mt-1 h-px bg-line relative overflow-hidden">
             <div
               className="absolute inset-y-0 left-0 bg-bronze transition-all duration-500 ease-lux"
               style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
@@ -162,7 +200,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
           </div>
         </nav>
 
-        <div key={p.step} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-7 pt-5 pb-6 short:pt-3 short:pb-3 sheet:px-6">
+        <div key={p.step} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-7 pt-5 pb-6 short:pt-3 short:pb-3 sheet:px-5 sheet:pt-4">
           <div className="animate-step">
             {p.step === 'overview' && <Overview {...p} />}
             {p.step === 'paint' && <PaintStep {...p} />}
@@ -173,7 +211,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
         </div>
 
         {/* Sticky total + primary action */}
-        <div className="shrink-0 border-t border-line px-7 py-5 short:py-2 sheet:px-6 sheet:py-3 bg-surface sheet:flex sheet:items-center sheet:gap-4">
+        <div className="shrink-0 border-t border-line px-7 py-5 short:py-2 sheet:px-5 sheet:py-2.5 bg-surface sheet:flex sheet:items-center sheet:gap-3">
           <div className="flex items-end justify-between gap-3 sheet:flex-col sheet:items-start sheet:gap-0 sheet:shrink-0">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">Wheel set of four</div>
@@ -183,8 +221,9 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
             </div>
             <div className="shrink-0 font-display text-[20px] short:text-[17px] font-extrabold tabular-nums">{formatMoney(price, p.region)}</div>
           </div>
-          <Button className="mt-4 short:mt-2 sheet:mt-0 w-full sheet:flex-1 short:h-11 sheet:h-12" size="lg" onClick={p.onSummary} icon={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}>
-            View your {shortModelName(p.car)}
+          <Button className="mt-4 short:mt-2 sheet:mt-0 w-full sheet:flex-1 sheet:min-w-0 short:h-11 sheet:h-12 sheet:px-5 [@media(max-width:380px)]:tracking-[0.08em]" size="lg" onClick={p.onSummary} icon={<ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />}>
+            <span className="[@media(max-width:380px)]:hidden">View your {shortModelName(p.car)}</span>
+            <span className="hidden [@media(max-width:380px)]:inline">Summary</span>
           </Button>
         </div>
       </aside>
@@ -291,7 +330,7 @@ const PaintStep: React.FC<ConfiguratorProps> = (p) => {
                   >
                     <PaintChip paint={paint} size={46} />
                   </span>
-                  <span className={cx('mt-2 text-[10.5px] leading-tight', active ? 'text-ink font-semibold' : 'text-mute')}>{paint.name}</span>
+                  <span className={cx('mt-2 text-[11px] leading-tight', active ? 'text-ink font-semibold' : 'text-mute')}>{paint.name}</span>
                 </button>
               );
             })}

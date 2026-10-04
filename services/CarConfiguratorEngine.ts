@@ -217,8 +217,8 @@ export class CarConfiguratorEngine {
     resolve: () => void;
   } | null = null;
   private cameraDamping = 0.12;
-  private viewInset = { right: 0, bottom: 0 };
-  private currentInset = { right: 0, bottom: 0 };
+  private viewInset = { right: 0, bottom: 0, top: 0 };
+  private currentInset = { right: 0, bottom: 0, top: 0 };
 
   constructor(container: HTMLElement, onReady?: () => void, options: { showcase?: boolean } = {}) {
     this.container = container;
@@ -246,7 +246,9 @@ export class CarConfiguratorEngine {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setSize(w, h);
     // Phones: 1.5x is still sharp on a ~400 px wide canvas and renders half the pixels of 2x
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, w < 700 ? 1.5 : 2));
+    // 2x on phones too: at 1.5x the car's highlights and edges visibly stair-step on a 3x screen; frames
+    // are only drawn when something moves (render on demand), so the extra pixels cost little
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     const tone = CarConfiguratorEngine.TONE;
     this.renderer.toneMapping = tone === 'agx' ? THREE.AgXToneMapping : tone === 'neutral' ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = CarConfiguratorEngine.EXPOSURE ?? (tone === 'agx' ? 1.25 : tone === 'neutral' ? 0.95 : 1.08);
@@ -1810,7 +1812,7 @@ export class CarConfiguratorEngine {
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
   static SOFTBOX_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.28;
+    return m ? +m[1] : 0.4;
   })();
   /** Paint gloss: the base coat's roughness is scaled and the clear coat made sharper (?gloss= compares). */
   static GLOSS: number = (() => {
@@ -1907,8 +1909,16 @@ export class CarConfiguratorEngine {
     // `aspect` frames for a fixed picture (the summary stills) instead of the screen.
     const w = this.container.clientWidth || 1;
     const h = this.container.clientHeight || 1;
-    const visibleAspect = opts.aspect ?? Math.max(w - Math.abs(this.viewInset.right), 1) / Math.max(h - this.viewInset.bottom, 1);
-    const fit = THREE.MathUtils.clamp(1.78 / Math.max(visibleAspect, 0.3), 1, 2.6);
+    // The vertical field of view spans the whole canvas (the UI inset only shifts the picture), so:
+    // - the car's length must fit the free width, measured against the full canvas height;
+    // - the car's height must fit the free height (between the header and the controls).
+    // (Fitting to the free area's aspect alone made the car *bigger* when the free area got shorter.)
+    const availW = Math.max(w - Math.abs(this.viewInset.right), 1);
+    const availH = Math.max(h - this.viewInset.bottom - this.viewInset.top, 1);
+    const fitWidth = (opts.aspect ? 1.78 : 1.12) / Math.max(opts.aspect ?? availW / h, 0.25);
+    const fitHeight = opts.aspect ? 0 : (0.46 * h) / availH;
+    const fit = THREE.MathUtils.clamp(Math.max(fitWidth, fitHeight), 1, 3.4);
+    const visibleAspect = opts.aspect ?? availW / h;
     switch (view) {
       case 'showroom':
         this.targetLookAt.set(0, 0.55, 0);
@@ -1937,7 +1947,7 @@ export class CarConfiguratorEngine {
         const wheel = this.wheelAssemblies.find((a) => a.isRight && a.isFront === isFront);
         const c = wheel ? wheel.group.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0.92, 0.35, isFront ? 1.45 : -1.38);
         const s = wheel ? wheel.group.scale.x : 1;
-        const near = THREE.MathUtils.clamp(1.25 / Math.max(visibleAspect, 0.3), 1, 2.2);
+        const near = THREE.MathUtils.clamp(Math.max(1.25 / Math.max(visibleAspect, 0.3), opts.aspect ? 0 : (0.42 * h) / availH), 1, 2.6);
         this.targetLookAt.copy(c);
         this.targetCameraPos.set(c.x + 1.55 * s * near, c.y + 0.16, c.z + (isFront ? 0.55 : 0.3) * s * near);
         break;
@@ -1984,8 +1994,9 @@ export class CarConfiguratorEngine {
    * Keeps the car centred in the part of the screen not covered by UI (e.g. a right-hand panel or
    * a bottom sheet). Pixels in CSS units; animates.
    */
-  public setViewInset(right: number, bottom = 0) {
-    this.viewInset = { right, bottom: Math.max(0, bottom) }; // negative right = shift the car right
+  /** Screen space the UI covers (CSS px): the car is framed in what is left. Negative right = shift the car right. */
+  public setViewInset(right: number, bottom = 0, top = 0) {
+    this.viewInset = { right, bottom: Math.max(0, bottom), top: Math.max(0, top) };
   }
 
   private applyViewInset(delta: number) {
@@ -1993,13 +2004,15 @@ export class CarConfiguratorEngine {
     const cur = this.currentInset;
     cur.right += (this.viewInset.right - cur.right) * k;
     cur.bottom += (this.viewInset.bottom - cur.bottom) * k;
+    cur.top += (this.viewInset.top - cur.top) * k;
     const w = this.container.clientWidth || 1;
     const h = this.container.clientHeight || 1;
-    if (Math.abs(cur.right) < 0.5 && Math.abs(cur.bottom) < 0.5 && Math.abs(this.viewInset.right) < 0.5 && this.viewInset.bottom < 0.5) {
+    const dy = cur.bottom - cur.top;
+    if (Math.abs(cur.right) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(this.viewInset.right) < 0.5 && Math.abs(this.viewInset.bottom - this.viewInset.top) < 0.5) {
       if (this.camera.view?.enabled) this.camera.clearViewOffset();
       return;
     }
-    this.camera.setViewOffset(w, h, cur.right / 2, cur.bottom / 2, w, h);
+    this.camera.setViewOffset(w, h, cur.right / 2, dy / 2, w, h);
   }
 
   private updateCameraTransform() {
@@ -2034,7 +2047,7 @@ export class CarConfiguratorEngine {
       aspect: this.camera.aspect
     };
     const savedInset = { ...this.viewInset };
-    this.viewInset = { right: 0, bottom: 0 }; // stills are framed for the full image, not around the UI
+    this.viewInset = { right: 0, bottom: 0, top: 0 }; // stills are framed for the full image, not around the UI
     if (this.camera.view?.enabled) this.camera.clearViewOffset();
     this.renderer.setPixelRatio(1);
     this.renderer.setSize(outW, outH, false); // the canvas on screen keeps its CSS size
@@ -2071,7 +2084,7 @@ export class CarConfiguratorEngine {
     this.cameraDamping = saved.damping;
     this.zoomRange = saved.zoom;
     this.viewInset = savedInset;
-    this.currentInset = { right: 0, bottom: 0 }; // re-applied smoothly on the next frame
+    this.currentInset = { right: 0, bottom: 0, top: 0 }; // re-applied smoothly on the next frame
     this.updateCameraTransform();
     this.requestRender();
     return shots;
@@ -2160,7 +2173,7 @@ export class CarConfiguratorEngine {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
-    this.currentInset = { right: this.currentInset.right + 0.01, bottom: this.currentInset.bottom };
+    this.currentInset = { right: this.currentInset.right + 0.01, bottom: this.currentInset.bottom, top: this.currentInset.top };
     this.requestRender();
   }
 
@@ -2201,7 +2214,8 @@ export class CarConfiguratorEngine {
       Math.abs(this.targetSpherical.phi - this.spherical.phi) < 5e-4 &&
       this.currentLookAt.distanceToSquared(this.targetLookAt) < 1e-7 &&
       Math.abs(this.viewInset.right - this.currentInset.right) < 0.5 &&
-      Math.abs(this.viewInset.bottom - this.currentInset.bottom) < 0.5;
+      Math.abs(this.viewInset.bottom - this.currentInset.bottom) < 0.5 &&
+      Math.abs(this.viewInset.top - this.currentInset.top) < 0.5;
     const now = performance.now();
     const busy =
       !settled || this.isUserInteracting || (this.isAutoRotate && !this.isUserInteracting) || !!this.drive ||

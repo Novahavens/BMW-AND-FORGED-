@@ -21,7 +21,7 @@ export const WelcomeGate: React.FC<{
     <div className="absolute inset-y-0 left-0 hidden sm:block w-[44%] bg-gradient-to-r from-carbon/80 via-carbon/40 to-transparent" />
     <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-carbon via-carbon/80 to-transparent sm:hidden" />
 
-    <header className="absolute top-0 inset-x-0 flex items-center justify-between px-6 sm:px-12 pt-6 sm:pt-9 animate-fade">
+    <header data-stage-top className="absolute top-0 inset-x-0 flex items-center justify-between px-6 sm:px-12 pt-6 sm:pt-9 animate-fade">
       <Logo />
       <button
         onClick={onOpenForged}
@@ -31,14 +31,14 @@ export const WelcomeGate: React.FC<{
       </button>
     </header>
 
-    <div className="absolute left-0 bottom-0 w-full sm:max-w-xl px-6 sm:px-12 pb-10 sm:pb-16 short:pb-4 short:max-w-md pointer-events-auto">
+    <div data-stage-copy className="absolute left-0 bottom-0 w-full sm:max-w-xl px-6 sm:px-12 pb-8 sm:pb-16 short:pb-4 short:max-w-md pointer-events-auto">
       <div className="text-[10.5px] font-semibold uppercase tracking-[0.34em] text-bronze animate-rise">{BRAND.descriptor}</div>
-      <h1 className="mt-4 short:mt-2 font-display text-[34px] leading-[1.02] sm:text-[56px] short:text-[32px] font-extrabold tracking-[-0.03em] text-ink animate-rise delay-100">
+      <h1 className="mt-4 short:mt-2 [@media(max-width:380px)]:mt-2 font-display text-[34px] [@media(max-width:380px)]:text-[28px] leading-[1.02] sm:text-[56px] short:text-[32px] font-extrabold tracking-[-0.03em] text-ink animate-rise delay-100">
         {BRAND.welcomeTitle}
       </h1>
-      <p className="mt-5 short:mt-2 max-w-md text-[14.5px] short:text-[13px] leading-relaxed text-mute animate-rise delay-200 short:hidden lg:block">{BRAND.welcomeBody}</p>
+      <p className="mt-5 short:mt-2 max-w-md text-[14.5px] short:text-[13px] leading-relaxed text-mute animate-rise delay-200 short:hidden lg:block [@media(max-height:720px)]:hidden">{BRAND.welcomeBody}</p>
 
-      <div className="mt-8 short:mt-3 flex flex-col sm:flex-row short:flex-row gap-3 animate-rise delay-300">
+      <div className="mt-8 [@media(max-width:380px)]:mt-5 short:mt-3 flex flex-col sm:flex-row short:flex-row gap-3 animate-rise delay-300">
         <label className="relative flex h-14 short:h-11 w-full sm:flex-1 shrink-0 items-center rounded-full bg-surface ring-1 ring-line pl-5 pr-11 hover:ring-ink/25 transition">
           <Globe className="h-4 w-4 text-mute shrink-0" strokeWidth={1.6} />
           <span className="sr-only">Region</span>
@@ -59,7 +59,7 @@ export const WelcomeGate: React.FC<{
           Enter
         </Button>
       </div>
-      <SocialLinks size="sm" className="mt-7 short:mt-3 animate-rise delay-500" />
+      <SocialLinks size="sm" className="mt-7 [@media(max-width:380px)]:mt-4 short:mt-3 animate-rise delay-500" />
     </div>
   </div>
 );

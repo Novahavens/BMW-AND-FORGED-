@@ -205,9 +205,16 @@ export const App: React.FC = () => {
       }
     };
     window.addEventListener('resize', onResize);
+    // A stage's UI changed size (the configurator sheet opened or closed): re-frame the car around it
+    const onStageLayout = () => {
+      applyInsetRef.current();
+      applyCameraRef.current();
+    };
+    window.addEventListener('stage-layout', onStageLayout);
     return () => {
       clearInterval(tick);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('stage-layout', onStageLayout);
       engine.cleanup();
       engineRef.current = null;
     };
@@ -253,18 +260,25 @@ export const App: React.FC = () => {
   applyInsetRef.current = () => {
     const engine = engineRef.current;
     if (!engine) return;
+    // Frame the car in the space the UI leaves, measured from the DOM: below the lowest header element
+    // ([data-stage-top]) and above the copy or controls ([data-stage-copy]). Measuring (instead of fixed
+    // fractions) keeps the car clear of the text at any screen size, text size or browser zoom.
+    const vh = window.innerHeight;
+    const tops = [...document.querySelectorAll<HTMLElement>('[data-stage-top]')].map((el) => el.getBoundingClientRect().bottom);
+    const copies = [...document.querySelectorAll<HTMLElement>('[data-stage-copy]')].map((el) => el.getBoundingClientRect().top);
+    const top = tops.length ? Math.max(0, Math.min(vh * 0.35, Math.max(...tops) + 8)) : 0;
+    const copyBottom = copies.length ? Math.max(0, vh - Math.min(...copies) + 8) : 0;
     if (route.name === 'configure') {
       // the same sheet/panel rule and sizes as the CSS (services/layout.ts)
       const inset = controlsInset();
-      engine.setViewInset(inset.right, inset.bottom);
+      engine.setViewInset(inset.right, Math.max(inset.bottom, copyBottom), top);
     } else if (route.name === 'welcome') {
-      // Car to the right of the welcome copy (above it when the copy sits underneath)
-      if (layoutMode() === 'sheet') engine.setViewInset(0, window.innerHeight * 0.42);
-      else engine.setViewInset(-window.innerWidth * 0.34, 0);
-    } else if (route.name === 'showroom' && window.innerHeight < 520) {
-      // a phone on its side: the model card takes the lower third, the car sits above it
-      engine.setViewInset(0, window.innerHeight * 0.32);
-    } else engine.setViewInset(0, 0);
+      // Car above the welcome copy on a portrait screen, to the right of it on a wide one
+      if (layoutMode() === 'sheet' || window.innerWidth < 640) engine.setViewInset(0, copyBottom || vh * 0.42, top);
+      else engine.setViewInset(-window.innerWidth * 0.34, 0, 0);
+    } else if (route.name === 'showroom') {
+      engine.setViewInset(0, copyBottom, top);
+    } else engine.setViewInset(0, 0, 0);
   };
   // The current stage's camera preset (re-applied when the layout changes)
   const applyCameraRef = useRef<() => void>(() => {});
@@ -297,6 +311,12 @@ export const App: React.FC = () => {
       if (!revealedRef.current) engine.playReveal();
     }
     revealedRef.current = true;
+    // The stage's copy has animated into place by now: measure it again and re-frame
+    const settle = setTimeout(() => {
+      applyInsetRef.current();
+      applyCameraRef.current();
+    }, 450);
+    return () => clearTimeout(settle);
   }, [route.name, booted]);
 
   const selectView = useCallback((view: CameraViewPreset) => {

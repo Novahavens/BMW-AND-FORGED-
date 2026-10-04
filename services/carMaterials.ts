@@ -188,7 +188,9 @@ export function passMaterial(material: THREE.Material, names: string): THREE.Mat
       const p = toPhysical(m);
       if (!p.map && luminance(p.color) > 0.08) p.color.multiplyScalar(0.6);
       // A textured grille is a light bar pattern on some files: tint it down to gloss black, keeping the bars
-      if (/grille|grill|engine|radiator|RED_PAINT\.012/i.test(`${names} ${m0.name}`)) p.color.multiplyScalar(0.07);
+      // Grille parts, the radiator seen through them and per-file livery quirks are gloss black whatever their
+      // own colour or texture brightness: a near-black tint (the texture still gives the slats their shape)
+      if (/grille|grill|engine|radiator|RED_PAINT\.012|white41/i.test(`${names} ${m0.name}`)) p.color.setRGB(0.018, 0.018, 0.02);
       p.metalness = Math.min(p.metalness, 0.1);
       p.roughness = THREE.MathUtils.clamp(p.roughness, 0.22, 0.4);
       p.clearcoat = 0.6;

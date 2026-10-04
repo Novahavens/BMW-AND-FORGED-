@@ -97,7 +97,7 @@ export const Showroom: React.FC<{
         }}
       />
 
-      <div className="absolute top-20 sm:top-24 inset-x-0 text-center animate-fade short:hidden">
+      <div data-stage-top className="absolute top-20 sm:top-24 inset-x-0 text-center animate-fade short:hidden [@media(max-width:380px)]:top-16">
         <Eyebrow className="tracking-[0.42em]">{BRAND.tagline}</Eyebrow>
       </div>
 
@@ -124,10 +124,10 @@ export const Showroom: React.FC<{
       )}
 
       {/* Model card */}
-      <div className="absolute inset-x-0 bottom-0 pb-8 sm:pb-12 short:pb-3 px-6 flex flex-col items-center text-center pointer-events-auto">
+      <div data-stage-copy className="absolute inset-x-0 bottom-0 pb-6 sm:pb-12 short:pb-3 px-6 flex flex-col items-center text-center pointer-events-auto">
         <div key={car.id} className="flex flex-col items-center">
           <Eyebrow className="animate-rise short:hidden">{BRAND.vehicleLine} · {car.generation}</Eyebrow>
-          <h2 className="mt-2 short:mt-0 font-display text-[28px] sm:text-[40px] short:text-[22px] font-extrabold tracking-[-0.02em] text-ink animate-rise delay-100">
+          <h2 className="mt-2 short:mt-0 font-display text-[28px] [@media(max-width:380px)]:text-[23px] leading-[1.1] sm:text-[40px] short:text-[22px] font-extrabold tracking-[-0.02em] text-ink animate-rise delay-100">
             {car.name}
           </h2>
           {headline.length > 0 && (
@@ -142,7 +142,7 @@ export const Showroom: React.FC<{
           )}
         </div>
 
-        <div className="mt-7 short:mt-2 flex items-center gap-3">
+        <div className="mt-6 [@media(max-width:380px)]:mt-4 short:mt-2 flex items-center gap-3">
           <Button variant="secondary" onClick={() => setExplore(true)} icon={<Info className="h-4 w-4" strokeWidth={1.6} />}>
             Explore
           </Button>
@@ -152,17 +152,20 @@ export const Showroom: React.FC<{
         </div>
 
         {n > 1 && (
-          <div className="mt-7 short:mt-2 flex items-center gap-4">
+          <div className="mt-3 short:mt-0 flex items-center gap-4">
             <span className="font-mono text-[11px] text-mute tabular-nums">{String(index + 1).padStart(2, '0')}</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1" data-allow-small>
               {cars.map((c, i) => (
                 <button
                   key={c.id}
                   aria-label={c.name}
                   onClick={() => i !== index && onJump(i)}
                   disabled={busy}
-                  className={cx('h-[3px] rounded-full transition-all duration-500 ease-lux', i === index ? 'w-8 bg-gold' : 'w-3 bg-ink/15 hover:bg-ink/35')}
-                />
+                  // a 3 px bar is the visual; the button around it is a full-height tap target
+                  className="group flex h-10 items-center"
+                >
+                  <span className={cx('block h-[3px] rounded-full transition-all duration-500 ease-lux', i === index ? 'w-8 bg-gold' : 'w-3 bg-ink/15 group-hover:bg-ink/35')} />
+                </button>
               ))}
             </div>
             <span className="font-mono text-[11px] text-mute tabular-nums">{String(n).padStart(2, '0')}</span>
