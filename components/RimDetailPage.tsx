@@ -10,6 +10,7 @@ import { WheelDesign, WheelFinish } from '../types';
 import { nearestRimSize, rimPrice, rimSizes } from '../services/pricing';
 import { Region, formatMoney } from '../config/brand';
 import { Button, Eyebrow, FinishChip, IconButton, cx } from './journey/ui';
+import RimSpinView, { loadRimSpinManifest } from './RimSpinView';
 
 interface RimDetailPageProps {
   wheels: WheelDesign[];
@@ -50,11 +51,19 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   const [finish, setFinish] = useState<WheelFinish | undefined>(defaultFinish);
   const [size, setSize] = useState<string>(() => (wheel ? nearestRimSize(wheel, initialSize ?? '20"') : '20"'));
 
+  // Rims with a rendered 360° spin (scripts/rim3d/turntable.py) show that instead of the live engine
+  const [spins, setSpins] = useState<Record<string, { frames: number; finishes: string[] }> | null>(null);
+  useEffect(() => {
+    loadRimSpinManifest().then(setSpins);
+  }, []);
+  const spin = wheel && finish && spins?.[wheel.id]?.finishes.includes(finish.id) ? spins[wheel.id] : null;
+  const liveEngine = spins !== null && !spin;
+
   // One showcase engine for the page's lifetime. Waits for the wheel: on a direct link to a wheel
   // that only exists in Supabase, the first render is "not found" and has no container yet.
   const hasWheel = !!wheel;
   useEffect(() => {
-    if (!hasWheel || !containerRef.current) return;
+    if (!hasWheel || !liveEngine || !containerRef.current) return;
     const engine = new CarConfiguratorEngine(containerRef.current, () => setReady(true), { showcase: true });
     engineRef.current = engine;
     engine.setAutoRotate(true);
@@ -65,7 +74,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
       engine.cleanup();
       engineRef.current = null;
     };
-  }, [hasWheel]);
+  }, [hasWheel, liveEngine]);
 
   // Switching rims keeps the finish/size when the new rim offers them
   useEffect(() => {
@@ -99,8 +108,14 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
     <div className="absolute inset-0 overflow-hidden bg-studio text-ink flex flex-col lg:flex-row short:flex-row select-none">
       {/* 360° turntable */}
       <div className="relative h-[46dvh] shrink-0 lg:h-auto lg:flex-1 lg:min-h-0 short:h-auto short:flex-1 short:min-h-0">
-        <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
-        {!ready && (
+        {spin ? (
+          <div className="absolute inset-0 p-4 sm:p-8">
+            <RimSpinView wheelId={wheel.id} finishId={finish!.id} frames={spin.frames} autoRotate={autoRotate} />
+          </div>
+        ) : (
+          <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
+        )}
+        {!ready && !spin && spins !== null && (
           <div className="absolute inset-0 flex items-center justify-center bg-studio">
             <div className="h-10 w-10 rounded-full border border-ink/15 border-t-ink animate-spin" />
           </div>
@@ -128,7 +143,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
               <ChevronRight className="h-4 w-4" />
             </IconButton>
           </div>
-          <p className="text-[11px] text-mute whitespace-nowrap">Drag to rotate · Scroll to zoom</p>
+          <p className="text-[11px] text-mute whitespace-nowrap">{spin ? 'Drag to rotate' : 'Drag to rotate · Scroll to zoom'}</p>
         </div>
       </div>
 

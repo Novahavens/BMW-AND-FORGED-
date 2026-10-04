@@ -26,6 +26,9 @@ A photo has no depth: complex or concave designs need CAD. The template is anoth
 ## One command (any design, no measuring)
 `scripts/rim3d/convert.sh <photo.png> <wheelId>` (dev server running): trace with the engine's cleaning → build → pack → preview, ~20 s. Then add the wheel with `model_url /models/rims/<wheelId>.glb`.
 
+## Rim detail page = pre-rendered spin
+`turntable.py full.glb public/renders/rims/<id>` (or `convert.sh … --spin`) renders 36 frames × 4 finishes; `spin-manifest.py` updates the manifest; `RimSpinView.tsx` shows it, live engine as fallback. The car view is untouched by this.
+
 ## Scripts (scripts/rim3d/)
 - `trace-mask.cjs <photo> <out.json> [--mask]`: photo → cleaned outlines (processRimPhoto + traceMaskShapes).
 - `build_rim.py <spec.json|-> <out.glb> [--shapes traced.json]`: outlines or bar spec → complete rim (face, barrel, lip, hub, cap, optional spoke channel), bpy.

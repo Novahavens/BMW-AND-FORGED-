@@ -79,6 +79,15 @@ node scripts/render/shoot.cjs out shots.json rimCache    # "q": "&rimModel=/mode
 ```
 Admin → Wheels → Rim 3D model (or `wheels.model_url`), tick **Flip 3D rim** if the face points in.
 
+### The rim detail page: photoreal 360° spin (done)
+The close-up of each rim is not live 3D any more: `scripts/rim3d/turntable.py` renders the rim in
+Blender, standing on its tread, 36 frames round, in every finish (recipes ported from
+`services/wheelFinish.ts`), transparent WebP with a contact shadow, into
+`public/renders/rims/<wheelId>/<finish>/fNN.webp`; `spin-manifest.py` lists them. The page
+(`components/RimDetailPage.tsx` → `RimSpinView.tsx`) drags through the frames and falls back to the
+live engine for rims without a spin. `convert.sh … --spin` does it all. About 18 s per frame on this
+CPU, so ~45 min per wheel; frames are ~40 kB each (about 6 MB per wheel, four finishes).
+
 ### Lighting match (done)
 `scripts/prerender/studio_hdri.py` renders the Blender studio as `public/env/forgedsa_studio.hdr`;
 in rendered-body mode the engine lights the live wheels with it (`RENDER_ENV_URL`, intensity
