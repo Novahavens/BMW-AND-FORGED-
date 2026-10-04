@@ -56,7 +56,7 @@ const W = 1600, H = 900, DSF = 2;
     // wheels layer: body hidden in colour but still occluding; spokes, hub and left-hand wheels off
     await p.evaluate(() => {
       const e = window.e; window.__saved = [];
-      e.bodyMeshGroup.traverse((o) => { if (o.isMesh) [].concat(o.material).forEach((m) => { window.__saved.push([m, m.colorWrite]); m.colorWrite = false; }); });
+      const seen = new Set(); e.bodyMeshGroup.traverse((o) => { if (o.isMesh) [].concat(o.material).forEach((m) => { if (seen.has(m)) return; seen.add(m); window.__saved.push([m, m.colorWrite]); m.colorWrite = false; }); });
       e.wheelAssemblies.forEach((a) => { a.spokeMeshGroup.visible = false; a.hub.visible = false; a.group.visible = a.isRight; });
     });
     await shot(`wheels-${size.replace('"', '')}.png`);

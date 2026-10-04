@@ -19,7 +19,7 @@ box = None
 for f in files:
     a = np.asarray(Image.open(f).convert('RGBA'))[..., 3] > 6
     ys, xs = np.where(a)
-    b = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+    b = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
     box = b if box is None else (min(box[0], b[0]), min(box[1], b[1]), max(box[2], b[2]), max(box[3], b[3]))
 m = 24
 im0 = Image.open(files[0]); W, H = im0.size
