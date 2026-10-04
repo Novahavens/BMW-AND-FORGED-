@@ -161,6 +161,7 @@ export const App: React.FC = () => {
       !!wheel.imageUrl && !wheel.modelUrl && stageAvailable(stageManifest, selectedCar.id, selectedPaint.id, size),
     [stageManifest, selectedCar.id, selectedPaint.id, selectedWheel]
   );
+  const stageOn = booted && route.name === 'configure' && cameraView === 'side' && stageFor(selectedSize);
 
   // ----------------------------------------------------
   // Routing
@@ -317,6 +318,13 @@ export const App: React.FC = () => {
     }
     revealedRef.current = true;
   }, [route.name, booted]);
+
+  // The 3D view sleeps while the 2D stage is showing (no point drawing what is hidden)
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine || !booted) return;
+    engine.setPaused(!['welcome', 'showroom', 'configure'].includes(route.name) || stageOn);
+  }, [stageOn, route.name, booted]);
 
   const selectView = useCallback((view: CameraViewPreset) => {
     setCameraView(view);
@@ -534,7 +542,6 @@ export const App: React.FC = () => {
 
   const enquirySummary = `${selectedCar.name} · ${selectedPaint.name} · ${selectedWheel.name} ${selectedSize} in ${selectedFinish.name}`;
   const onJourney = ['welcome', 'showroom', 'configure'].includes(route.name);
-  const stageOn = booted && route.name === 'configure' && cameraView === 'side' && stageFor(selectedSize);
 
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden bg-stage select-none">
