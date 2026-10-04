@@ -86,8 +86,15 @@ export async function fetchCatalog(): Promise<{ catalog: Catalog; source: 'supab
       selectTable<CaliperColor>('calipers')
     ]);
     const catalog: Catalog = {
-      // paint_ids -> paintIds; rows from before the factory-paints migration have none
-      cars: cars ? cars.map((c) => ({ ...c, paintIds: Array.isArray(c.paintIds) ? c.paintIds : [] })) : STATIC_CATALOG.cars,
+      // paint_ids -> paintIds; rows from before the factory-paints migration have none. Rows from
+      // before the car-tyres migration have no tyre column: the bundled spec stands in until it lands.
+      cars: cars
+        ? cars.map((c) => ({
+            ...c,
+            paintIds: Array.isArray(c.paintIds) ? c.paintIds : [],
+            tyre: c.tyre !== undefined ? c.tyre : STATIC_CATALOG.cars.find((s) => s.id === c.id)?.tyre ?? null
+          }))
+        : STATIC_CATALOG.cars,
       paints: paints ?? STATIC_CATALOG.paints,
       wheels: wheels ?? STATIC_CATALOG.wheels,
       finishes: finishes
