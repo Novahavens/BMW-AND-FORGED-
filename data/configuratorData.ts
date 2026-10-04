@@ -408,6 +408,17 @@ export const WHEEL_FINISHES: Record<FinishVariantKey, WheelFinish> = {
     clearcoat: 0.85,
     description: 'Soft champagne gold metallic with a smooth satin-gloss sheen.',
     badge: 'New'
+  },
+  gunmetal: {
+    id: 'gunmetal',
+    name: 'Gunmetal Matte',
+    colorName: 'Matte Gunmetal',
+    hex: '#4a4d52',
+    metalness: 0.85,
+    roughness: 0.5,
+    clearcoat: 0.2,
+    description: 'Dark satin gunmetal metallic with a soft, low-sheen finish.',
+    badge: 'New'
   }
 };
 
