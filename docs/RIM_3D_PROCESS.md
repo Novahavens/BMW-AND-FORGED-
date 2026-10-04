@@ -43,33 +43,49 @@ Ask every manufacturer for **CAD of the rim only**. It always beats a photo rout
 - The photo route reproduces the spoke **shape**, not a manufacturer's finish detail (machining marks, engraving, logos). Add a normal/roughness map only where it matters.
 - The template is a sibling design, not our wheel: use it for proportions and finish, never as the product.
 
-## The commands (built and proven on FSA-12, the polished twin-Y wheel)
+## The commands
+
+### Route 1 (default): photo in, rim out, no measuring
 
 ```bash
-# 1. Measure the photo. If it is angled, fit the spoke-tip ellipse and rectify it to a circle first
-#    (numpy; see the ellipse/rectify steps recorded in docs/rim-template/fsa_12-spec.json notes).
-# 2. Describe one sector as straight bars and draw the symmetric face mask (+ overlay to check):
-python3 scripts/render/make-bar-face.py docs/rim-template/<id>-spec.json <wheelId> rectified.png overlay.png
-#    Add the wheel to RIM_FACE_MASKS in services/rimFaces.ts, then:
-node scripts/render/wheel-qa.cjs <rimCacheDir> <outDir> <wheelId>          # must PASS
-# 3. Build the complete 3D rim from the same spec (face + barrel + lip + hub, template proportions):
-python3 scripts/rim3d/build_rim.py docs/rim-template/<id>-spec.json full.glb --segments 512
-# 4. Pack for the live site (weld, simplify to budget, quantize, meshopt):
-node scripts/rim3d/pack.mjs full.glb public/models/rims/<wheelId>.glb 40000
-# 5. Look at it: next to the template, and on the cars in every finish
-python3 scripts/rim3d/preview.py out.png full.glb <template.glb>
-node scripts/render/shoot.cjs out shots.json rimCache    # shots with "q": "&rimModel=/models/rims/<wheelId>.glb"
+bunx vite --host 127.0.0.1 --port 5173                 # dev server, in another shell
+scripts/rim3d/convert.sh <photo.png> <wheelId>          # ~20 s per wheel
 ```
+`convert.sh` runs the engine's own cut-out cleaning (`processRimPhoto`: symmetry folding, arm
+tracing, edge straightening) and outline tracer on the photo (`scripts/rim3d/trace-mask.cjs`),
+builds the complete rim from the outlines to the template profile (`build_rim.py --shapes`), packs
+it (`pack.mjs`) to `public/models/rims/<wheelId>.glb`, and writes a studio preview to
+`.prerender/rims/<wheelId>/preview.png`. Any spoke design. Photo rules as for the photo wheels
+(front-on, rim only, cut out or plain background). Pass a spec JSON as the third argument to
+override hub, dish, bolts, bevel, etc.; `--mask` if the input is a prepared face mask.
 
-Spec keys beyond make-bar-face's: `face_front`, `face_thick`, `dish`, `bolts`, `pcd`, `bolt_r`, `bore`
-(fractions of the lip's outer radius; defaults in `build_rim.py` follow the template profile).
+### Route 2 (fallback): angled photo, straight-bar design
 
-FSA-12 result: 18.8k triangles, 115 kB, mask QA PASS (1 piece, 10 windows, symmetry 0.99, thinnest spoke 16.5 mm), all four
-finishes on the car (proofs: `rim-template/fsa_12-vs-template.jpg`, `rim-template/fsa_12-on-car.jpg`). Known gaps: the milled channel along each spoke and the lip engraving are not
-modelled; the live wheel's lighting still differs from the Blender body (step 10).
+Measure the bars (rectify the spoke-tip ellipse first), write a spec, then:
+```bash
+python3 scripts/render/make-bar-face.py docs/rim-template/<id>-spec.json <wheelId> rectified.png overlay.png
+python3 scripts/rim3d/build_rim.py docs/rim-template/<id>-spec.json full.glb --segments 512
+node scripts/rim3d/pack.mjs full.glb public/models/rims/<wheelId>.glb 40000
+```
+Spec keys beyond make-bar-face's: `face_front`, `face_thick`, `dish`, `bolts`, `pcd`, `bolt_r`,
+`bore`, `bevel`, `channel` (milled groove along each bar, fraction of its width), `channel_depth`.
+FSA-12 was made this way (`docs/rim-template/fsa_12-spec.json`): 17.3k triangles, 108 kB, mask QA
+PASS, proofs in `rim-template/fsa_12-vs-template.jpg` and `rim-template/fsa_12-on-car.jpg`.
+
+### Check it, then publish
+```bash
+python3 scripts/rim3d/preview.py out.png full.glb <template.glb>        # beside the template
+node scripts/render/shoot.cjs out shots.json rimCache    # "q": "&rimModel=/models/rims/<wheelId>.glb"
+```
+Admin → Wheels → Rim 3D model (or `wheels.model_url`), tick **Flip 3D rim** if the face points in.
+
+### Lighting match (done)
+`scripts/prerender/studio_hdri.py` renders the Blender studio as `public/env/forgedsa_studio.hdr`;
+in rendered-body mode the engine lights the live wheels with it (`RENDER_ENV_URL`, intensity
+`RENDER_ENV_INTENSITY` = 0.33 because the bodies were rendered at −1.6 EV; `?renvi=` tunes).
 
 ## Still to do
 
-1. Lighting match (step 10).
-2. A free-orbit wheel close-up (the pre-rendered view is fixed-camera).
-3. Optional spoke surface detail (channel, chamfer profile) as spec options.
+1. A free-orbit wheel close-up (the pre-rendered view is fixed-camera).
+2. Spoke channel for traced (Route 1) faces: today it is a bar-spec option only.
+3. Lip engraving / logos: not modelled.

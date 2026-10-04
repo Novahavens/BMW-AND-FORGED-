@@ -2002,14 +2002,62 @@ export class CarConfiguratorEngine {
    * background, from the exact camera the render used (fixed aspect, no orbit).
    */
   static RENDER_ASPECT = 1.6;
+  /**
+   * The Blender studio the bodies were rendered in, as an HDR panorama (scripts/prerender/studio_hdri.py):
+   * the live wheels are lit by it in this mode, so wheel and body read as one photo. ?renvi= tunes.
+   */
+  static RENDER_ENV_URL = '/env/forgedsa_studio.hdr';
+  static RENDER_ENV_INTENSITY: number = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]renvi=([0-9.]+)/.exec(window.location.search) : null;
+    return m ? +m[1] : 0.33; // the bodies were rendered at -1.6 EV (scripts/prerender/render_car.py)
+  })();
   private static DEPTH_ONLY = new THREE.MeshBasicMaterial({ colorWrite: false });
   private renderedBody = false;
+  private renderEnvTarget: THREE.WebGLRenderTarget | null = null;
+  private renderEnvLoading = false;
+  private liveEnv: { env: THREE.Texture | null; intensity: number; rotation: THREE.Euler } | null = null;
   public setRenderedBody(on: boolean) {
     if (on === this.renderedBody) return;
     this.renderedBody = on;
     this.syncRenderedBody();
+    this.applyRenderedEnvironment(on);
     if (on) this.isAutoRotate = false;
     this.requestRender();
+  }
+  private applyRenderedEnvironment(on: boolean) {
+    if (!on) {
+      if (this.liveEnv) {
+        this.scene.environment = this.liveEnv.env;
+        this.scene.environmentIntensity = this.liveEnv.intensity;
+        this.scene.environmentRotation.copy(this.liveEnv.rotation);
+        this.liveEnv = null;
+      }
+      return;
+    }
+    if (!this.liveEnv) this.liveEnv = { env: this.scene.environment, intensity: this.scene.environmentIntensity, rotation: this.scene.environmentRotation.clone() };
+    const use = (target: THREE.WebGLRenderTarget) => {
+      if (!this.renderedBody) return;
+      this.scene.environment = target.texture;
+      this.scene.environmentIntensity = CarConfiguratorEngine.RENDER_ENV_INTENSITY;
+      // Blender's car ran along X with the side strips at +/-Y; here the car runs along Z
+      this.scene.environmentRotation.set(0, Math.PI / 2, 0);
+      this.requestRender();
+    };
+    if (this.renderEnvTarget) return use(this.renderEnvTarget);
+    if (this.renderEnvLoading) return;
+    this.renderEnvLoading = true;
+    new HDRLoader()
+      .loadAsync(CarConfiguratorEngine.RENDER_ENV_URL)
+      .then((hdr) => {
+        if (this.isDisposed) return;
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        this.renderEnvTarget = pmrem.fromEquirectangular(hdr);
+        hdr.dispose();
+        pmrem.dispose();
+        use(this.renderEnvTarget);
+      })
+      .catch((err) => console.warn('Rendered-body studio HDR unavailable; wheels keep the live studio.', err))
+      .finally(() => (this.renderEnvLoading = false));
   }
   private syncRenderedBody() {
     const on = this.renderedBody;
@@ -2352,6 +2400,7 @@ export class CarConfiguratorEngine {
     this.carBodyMaterial?.dispose();
     this.paintVariants.forEach((m) => m.dispose());
     this.environmentTarget?.dispose();
+    this.renderEnvTarget?.dispose();
     this.dracoLoader?.dispose();
   }
 }

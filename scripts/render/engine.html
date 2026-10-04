@@ -30,5 +30,5 @@ if (q.get('rimModel')) wheel = { ...wheel, modelUrl: q.get('rimModel'), modelFli
 e.applyWheelDesign(wheel);
 e.applyWheelFinish(STATIC_CATALOG.finishes[q.get('finish')||'liquid_metal'] || STATIC_CATALOG.finishes.liquid_metal);
 e.setRimSize(q.get('size')||'20"');
-e.loadCar(car).then(r=>{e.setCameraPreset(q.get('view')||'frontThreeQuarter',{instant:true}); window.done=r; window.mode=r;});
+e.loadCar(car).then(r=>{if (q.get('rendered')) e.setRenderedBody(true); e.setCameraPreset(q.get('view')||'frontThreeQuarter',{instant:true}); window.done=r; window.mode=r;});
 </script></body></html>

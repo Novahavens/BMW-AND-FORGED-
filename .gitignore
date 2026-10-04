@@ -26,3 +26,4 @@ dist-ssr
 
 # Throwaway helper scripts
 scripts/_*.mjs
+.prerender/

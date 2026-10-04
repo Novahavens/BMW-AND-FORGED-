@@ -62,6 +62,6 @@ bpy.ops.mesh.primitive_plane_add(size=60, location=(0, 0, -1.05)); bpy.context.o
 fm = bpy.data.materials.new('Floor'); fm.use_nodes = True; fm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.35, 0.35, 0.36, 1)
 fm.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.4; bpy.context.object.data.materials.append(fm)
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
-cam.location = (0, -(2.6 + 1.7 * n), 0.9); cam.rotation_euler = (Vector((0, 0, -0.1)) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = 45
+cam.location = (0, -(3.0 + 2.4 * n), 0.9); cam.rotation_euler = (Vector((0, 0, -0.1)) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = 60
 sc.view_settings.view_transform = 'AgX'; sc.render.filepath = a.out
 bpy.ops.render.render(write_still=True); print('rendered', a.out)

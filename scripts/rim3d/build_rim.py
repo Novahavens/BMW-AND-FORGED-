@@ -1,7 +1,12 @@
 """Builds a complete 3D rim (GLB) from a bar-face spec, to the "High poly Rims" template profile
 (docs/rim-template/PROFILE.md). Blender as a Python module: pip install bpy.
 
-  python3 scripts/rim3d/build_rim.py <spec.json> <out.glb> [--segments 384] [--bevel 0.012]
+  python3 scripts/rim3d/build_rim.py <spec.json|-> <out.glb> [--segments 384] [--bevel 0.012] [--shapes traced.json]
+  ('-' = all defaults; with --shapes the fold comes from the trace)
+
+With --shapes (from scripts/rim3d/trace-mask.cjs) the spoke face is the traced cut-out of the photo:
+any spoke design, no measuring; the spec then only needs fold/hub and the optional keys below
+(bars may be empty).
 
 The spec is the same file scripts/render/make-bar-face.py reads (fold, mirror, hub, bars with
 from/to as [radius, degrees] and width w; radii are fractions of the lip's outer radius = 1).
@@ -10,6 +15,8 @@ Extra optional keys used here only:
   "face_thick": 0.10   spoke plate thickness
   "dish": 0.10         how far the hub sits behind the spoke tips (concave face)
   "bolts": 5, "pcd": 0.20, "bolt_r": 0.035, "bore": 0.10
+  "bevel": 0.012          edge rounding; "channel": 0.45  milled channel along each bar (fraction
+  of its width, bars only), "channel_depth": 0.025
 Output: axle along X, face toward +X (what CarConfiguratorEngine.mountRimModel expects with no
 flip), two meshes (face, barrel), one material, smooth + weighted normals.
 """
@@ -20,9 +27,13 @@ from mathutils import Vector
 ap = argparse.ArgumentParser()
 ap.add_argument('spec'); ap.add_argument('out')
 ap.add_argument('--segments', type=int, default=384)
-ap.add_argument('--bevel', type=float, default=0.012)
+ap.add_argument('--bevel', type=float, default=None, help='edge bevel width (default: spec "bevel" or 0.012)')
+ap.add_argument('--shapes', help='traced outlines from scripts/rim3d/trace-mask.cjs: the face comes from these instead of the bars')
 a = ap.parse_args()
-spec = json.load(open(a.spec))
+spec = json.load(open(a.spec)) if a.spec != '-' else {}
+if a.shapes and 'fold' not in spec: spec['fold'] = json.load(open(a.shapes)).get('symmetry', 5)
+if a.bevel is None: a.bevel = spec.get('bevel', 0.012)
+CHANNEL = spec.get('channel', 0); CHANNEL_DEPTH = spec.get('channel_depth', 0.025)
 fold = spec['fold']; hub_r = spec.get('hub', 0.33); rot = spec.get('rotate', 0)
 FF = spec.get('face_front', 0.24); FT = spec.get('face_thick', 0.10); DISH = spec.get('dish', 0.10)
 NB = spec.get('bolts', 5); PCD = spec.get('pcd', 0.20); BR = spec.get('bolt_r', 0.035); BORE = spec.get('bore', 0.10)
@@ -65,25 +76,51 @@ def boolean(target, cutter, op):
     bpy.ops.object.modifier_apply(modifier=m.name)
     bpy.data.objects.remove(cutter, do_unlink=True)
 
-# ---- spokes: each bar is a tapered quad, extended into the hub and past the lip, then clipped
+# ---- spoke face: traced outlines (any design) or straight bars
 x_back, x_front = FF - FT, FF
-bars = []
-for b in spec['bars']:
-    bars.append(b)
-    if spec.get('mirror', True) and abs(b['from'][1]) + abs(b['to'][1]) > 0:
-        bars.append({**b, 'from': [b['from'][0], -b['from'][1]], 'to': [b['to'][0], -b['to'][1]]})
 face = None
-for k in range(fold):
-    base = rot + k * 360 / fold
-    for b in bars:
-        p0 = Vector(yz(b['from'][0], b['from'][1] + base)); p1 = Vector(yz(b['to'][0], b['to'][1] + base))
-        u = (p1 - p0).normalized(); nrm = Vector((-u.y, u.x))
-        pa, pb = p0 - u * 0.25, p1 + u * 0.12
-        w0, w1 = b['w'] / 2, b.get('w_tip', b['w']) / 2
-        quad = [pa + nrm * w0, pb + nrm * w1, pb - nrm * w1, pa - nrm * w0]
-        ob = new_obj('bar', prism([(p.x, p.y) for p in quad], x_back, x_front))
-        if face is None: face = ob
-        else: boolean(face, ob, 'UNION')
+if a.shapes:
+    traced = json.load(open(a.shapes))
+    SC = 0.975  # traced radius 1 = the photo's rim circle; the engine puts it at 0.24/0.94 of lipOuter 0.262
+    cu = bpy.data.curves.new('face', 'CURVE'); cu.dimensions = '2D'; cu.fill_mode = 'BOTH'
+    cu.extrude = FT / 2
+    for sh in traced['shapes']:
+        for loop in [sh['outer']] + sh['holes']:
+            sp = cu.splines.new('POLY'); sp.points.add(len(loop) - 1); sp.use_cyclic_u = True
+            for pt, (px, py) in zip(sp.points, loop):
+                pt.co = (px * SC, py * SC, 0, 1)
+    ob = bpy.data.objects.new('face', cu); sc.collection.objects.link(ob)
+    bpy.context.view_layer.objects.active = ob; ob.select_set(True)
+    bpy.ops.object.convert(target='MESH')
+    face = bpy.context.object; face.data.materials.append(mat)
+    # curve plane (x, y, extrude z) -> wheel: face in YZ, extruded along X
+    face.rotation_euler = (0, math.radians(90), 0); face.location = (FF - FT / 2, 0, 0)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bm = bmesh.new(); bm.from_mesh(face.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(face.data); bm.free()
+else:
+    bars = []
+    for b in spec['bars']:
+        bars.append(b)
+        if spec.get('mirror', True) and abs(b['from'][1]) + abs(b['to'][1]) > 0:
+            bars.append({**b, 'from': [b['from'][0], -b['from'][1]], 'to': [b['to'][0], -b['to'][1]]})
+    channels = []
+    for k in range(fold):
+        base = rot + k * 360 / fold
+        for b in bars:
+            p0 = Vector(yz(b['from'][0], b['from'][1] + base)); p1 = Vector(yz(b['to'][0], b['to'][1] + base))
+            u = (p1 - p0).normalized(); nrm = Vector((-u.y, u.x))
+            pa, pb = p0 - u * 0.25, p1 + u * 0.12
+            w0, w1 = b['w'] / 2, b.get('w_tip', b['w']) / 2
+            quad = [pa + nrm * w0, pb + nrm * w1, pb - nrm * w1, pa - nrm * w0]
+            ob = new_obj('bar', prism([(p.x, p.y) for p in quad], x_back, x_front))
+            if face is None: face = ob
+            else: boolean(face, ob, 'UNION')
+            if CHANNEL > 0:  # the milled channel: a narrower bar, cut into the front face, hub to lip
+                c0, c1 = p0 + u * 0.02, p1 - u * 0.04
+                cw0, cw1 = w0 * CHANNEL, w1 * CHANNEL
+                channels.append([c0 + nrm * cw0, c1 + nrm * cw1, c1 - nrm * cw1, c0 - nrm * cw0])
 # hub pad
 bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=128, radius1=hub_r, radius2=hub_r, depth=FT)
 bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
@@ -99,6 +136,9 @@ def cyl(r, depth, cx, cy, cz, seg=48):
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r, depth=depth)
     bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
     bmesh.ops.translate(bm, verts=bm.verts, vec=(cx, cy, cz)); return new_obj('cut', bm)
+if not a.shapes and CHANNEL > 0:
+    for quad in channels:
+        boolean(face, new_obj('channel', prism([(p.x, p.y) for p in quad], x_front - CHANNEL_DEPTH, x_front + 0.05)), 'DIFFERENCE')
 boolean(face, cyl(BORE, 2, FF - FT / 2, 0, 0, 64), 'DIFFERENCE')
 for i in range(NB):
     y, z = yz(PCD, i * 360 / NB + rot)

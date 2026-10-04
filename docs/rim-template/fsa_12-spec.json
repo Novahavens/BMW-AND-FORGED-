@@ -25,5 +25,7 @@
  "pcd": 0.19,
  "bolt_r": 0.032,
  "bore": 0.11,
- "_source": "measured from the polished FORGEDSA twin-Y photo, rectified by fitting the spoke-tip ellipse (docs/RIM_3D_PROCESS.md). Widths set to about 1.5 bolt-hole diameters, as in the photo."
+ "_source": "measured from the polished FORGEDSA twin-Y photo, rectified by fitting the spoke-tip ellipse (docs/RIM_3D_PROCESS.md). Widths set to about 1.5 bolt-hole diameters, as in the photo.",
+ "channel": 0.42,
+ "channel_depth": 0.022
 }
