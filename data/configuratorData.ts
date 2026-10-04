@@ -328,72 +328,72 @@ export const BMW_MODELS: CarModel[] = [
 // colours (matched to BMW's own car renders), not the raw swatch samples in the doc.
 // Mirrors supabase/migrations/20260927030000_factory_paints.sql; each car lists its own in paintIds.
 export const BMW_PAINTS: PaintColor[] = [
-  { id: 'fire_red', name: 'Fire Red', code: 'C68', hex: '#8c2226', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'skyscraper_grey', name: 'Skyscraper Grey', code: 'C4W', hex: '#555a5d', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'brooklyn_grey', name: 'Brooklyn Grey', code: 'C4P', hex: '#889296', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'black_sapphire', name: 'Black Sapphire', code: '475', hex: '#151617', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'portimao_blue', name: 'Portimao Blue', code: 'C31', hex: '#1e3066', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'zandvoort_blue', name: 'Zandvoort Blue', code: 'C6E', hex: '#547bad', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'sao_paulo_yellow', name: 'São Paulo Yellow', code: 'C4H', hex: '#88a11c', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'alpine_white', name: 'Alpine White III', code: '300', hex: '#c8c8c9', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'frozen_portimao_blue_c6r', name: 'Frozen Portimao Blue', code: 'C6R', hex: '#0e2357', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'frozen_pure_grey', name: 'Frozen Pure Grey', code: 'C5A', hex: '#44494c', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'java_green', name: 'Java Green', code: 'P7V', hex: '#638954', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW USA M2 press)
-  { id: 'grigio_telesto', name: 'Grigio Telesto', code: 'P6M', hex: '#555858', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Pearl Effect"
-  { id: 'twilight_purple', name: 'Twilight Purple', code: 'P28', hex: '#5a2c4d', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Twilight Purple Pearl effect"
-  { id: 'voodoo_blue', name: 'Voodoo Blue', code: 'P7L', hex: '#888888', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid; BMW USA M2 press, Individual Visualizer chip
-  { id: 'thundernight', name: 'Thundernight', code: 'C56', hex: '#3a1f3d', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'storm_bay', name: 'Storm Bay', code: 'C3N', hex: '#5f686e', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'isle_of_man_green', name: 'Isle of Man Green', code: 'C4G', hex: '#0f5444', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'toronto_red', name: 'Toronto Red', code: 'C3G', hex: '#9d3307', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'aventurine_red_iii', name: 'Aventurine Red III', code: 'C57', hex: '#630f1c', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'tanzanite_blue_ii', name: 'Tanzanite Blue II', code: 'C3Z', hex: '#151f32', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'dravit_grey', name: 'Dravit Grey', code: 'C36', hex: '#3c4041', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'san_marino_blue', name: 'San Marino Blue', code: 'B51', hex: '#092455', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW Individual name)
-  { id: 'wildberry', name: 'Wildberry', code: 'T09', hex: '#5a2834', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'ruby_black', name: 'Ruby Black', code: 'X03', hex: '#24181c', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'frozen_deep_green', name: 'Frozen Deep Green', code: 'P80', hex: '#3f4d3c', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'frozen_dark_grey_ii', name: 'Frozen Dark Grey II', code: 'P79', hex: '#2a3235', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'fire_orange_iii', name: 'Fire Orange III', code: 'P7E', hex: '#975305', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'frozen_black', name: 'Frozen Black', code: 'U91', hex: '#18191b', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'thunder', name: 'Thunder', code: 'P6L', hex: '#373f43', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'mineral_white', name: 'Mineral White', code: 'A96', hex: '#ebeae9', type: 'Pearl', roughness: 0.4, metalness: 0.15, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // tri-coat pearl
-  { id: 'riviera_blue', name: 'Riviera Blue', code: 'P5C', hex: '#028fc1', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid; BMW UK press "Riviera Blue solid"
-  { id: 'marina_bay_blue', name: 'Marina Bay Blue', code: 'C1K', hex: '#1c4085', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'mint_green', name: 'Mint Green', code: 'W97', hex: '#409084', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid; BMW Individual "Mint Green Uni"
-  { id: 'sepia_iii', name: 'Sepia III', code: 'S0N', hex: '#4b494b', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'frozen_tanzanite_blue', name: 'Frozen Tanzanite Blue', code: 'X1G', hex: '#02023f', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'frozen_portimao_blue', name: 'Frozen Portimao Blue', code: 'X1E', hex: '#0e2357', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'frozen_pure_grey_ii', name: 'Frozen Pure Grey II', code: 'X1F', hex: '#717e82', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'anglesey_green', name: 'Anglesey Green', code: 'P9R', hex: '#024b3a', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'ruby_star', name: 'Ruby Star', code: 'P9L', hex: '#75084c', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
-  { id: 'frozen_brilliant_white', name: 'Frozen Brilliant White', code: 'X16', hex: '#cbcec4', type: 'Frozen', roughness: 0.6, metalness: 0.2, clearcoat: 1.0, clearcoatRoughness: 0.5 },
-  { id: 'frozen_preciosa_red', name: 'Frozen Preciosa Red', code: 'P9C', hex: '#510202', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'malachite_green_ii', name: 'Malachite Green II', code: 'P85', hex: '#31433a', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW Individual name)
-  { id: 'speed_yellow', name: 'Speed Yellow', code: 'U96', hex: '#b09918', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
-  { id: 'brewster_green', name: 'Brewster Green', code: 'T42', hex: '#1a2c26', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
-  { id: 'urban_green_ii', name: 'Urban Green II', code: 'P9P', hex: '#485037', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'lagoon_green', name: 'Laguna Green', code: '266', hex: '#135861', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW Individual "Laguna Green Metallic")
-  { id: 'le_mans_blue', name: 'Le Mans Blue', code: '381', hex: '#1c5185', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'velvet_blue', name: 'Velvet Blue', code: '379', hex: '#342f58', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'frozen_deep_grey', name: 'Frozen Deep Grey', code: 'P7X', hex: '#25292f', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'velvet_orchid_ii', name: 'Velvet Orchid II', code: 'L74', hex: '#806c72', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'carbon_black', name: 'Carbon Black', code: '416', hex: '#0e1b2b', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'sophisto_grey_brilliant_effect', name: 'Sophisto Grey Brilliant Effect', code: 'A90', hex: '#2b2c2b', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Brilliant Effect" (xirallic)
-  { id: 'damast_red', name: 'Damast Red', code: 'B03', hex: '#45231f', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (carpaints.co); SA M5 special paint request
-  { id: 'imola_red', name: 'Imola Red', code: '405', hex: '#6e1b0d', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'nardo_grey', name: 'Nardo Grey', code: 'P6K', hex: '#666869', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
-  { id: 'oxford_green_ii', name: 'Oxford Green II', code: '430', hex: '#1b3330', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'bernina_grey_amber_effect', name: 'Bernina Grey Amber Effect', code: 'C3E', hex: '#575852', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Amber effect" pearl
-  { id: 'frozen_deep_grey_c64', name: 'Frozen Deep Grey', code: 'C64', hex: '#242628', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
-  { id: 'barcelona_blue', name: 'Barcelona Blue', code: 'C38', hex: '#636f78', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'arctic_race_blue', name: 'Arctic Race Blue', code: 'C4F', hex: '#30495b', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'dune_grey', name: 'Dune Grey', code: 'C7A', hex: '#adada6', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'fire_red_ii', name: 'Fire Red II', code: '375', hex: '#742002', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
-  { id: 'sepang_bronze', name: 'Sepang Bronze', code: 'A32', hex: '#636054', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
-  { id: 'aventurin_red', name: 'Aventurin Red', code: 'X15', hex: '#530202', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03, active: false }, // superseded by C57 on the facelifted M8 (BMW NA order guides MY2023-24)
-  { id: 'frozen_isle_of_man_green', name: 'Frozen Isle of Man Green', code: 'P92', hex: '#0f5444', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 }, // BMW Individual; M4 CS (BMW SA press kit)
-  { id: 'borusan_turkish_blue', name: 'Borusan Turkish Blue', code: 'P9E', hex: '#60bcdc', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW Individual, solid; M2 (Individual Visualizer G87)
+  { id: 'fire_red', name: 'Fire Red', code: 'C68', hex: '#a03133', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'skyscraper_grey', name: 'Skyscraper Grey', code: 'C4W', hex: '#62676a', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'brooklyn_grey', name: 'Brooklyn Grey', code: 'C4P', hex: '#9da8ad', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'black_sapphire', name: 'Black Sapphire', code: '475', hex: '#212223', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'portimao_blue', name: 'Portimao Blue', code: 'C31', hex: '#2a3c74', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'zandvoort_blue', name: 'Zandvoort Blue', code: 'C6E', hex: '#5479a8', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'sao_paulo_yellow', name: 'São Paulo Yellow', code: 'C4H', hex: '#859d25', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'alpine_white', name: 'Alpine White III', code: '300', hex: '#c3c2c3', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'frozen_portimao_blue_c6r', name: 'Frozen Portimao Blue', code: 'C6R', hex: '#01145d', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'frozen_pure_grey', name: 'Frozen Pure Grey', code: 'C5A', hex: '#464c50', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'java_green', name: 'Java Green', code: 'P7V', hex: '#7a9b5d', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW USA M2 press)
+  { id: 'grigio_telesto', name: 'Grigio Telesto', code: 'P6M', hex: '#555757', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Pearl Effect"
+  { id: 'twilight_purple', name: 'Twilight Purple', code: 'P28', hex: '#562e50', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Twilight Purple Pearl effect"
+  { id: 'voodoo_blue', name: 'Voodoo Blue', code: 'P7L', hex: '#025582', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid; BMW USA M2 press, Individual Visualizer chip
+  { id: 'thundernight', name: 'Thundernight', code: 'C56', hex: '#412b4a', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'storm_bay', name: 'Storm Bay', code: 'C3N', hex: '#6d777e', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'isle_of_man_green', name: 'Isle of Man Green', code: 'C4G', hex: '#0f6150', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'toronto_red', name: 'Toronto Red', code: 'C3G', hex: '#b5421a', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'aventurine_red_iii', name: 'Aventurine Red III', code: 'C57', hex: '#711d28', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'tanzanite_blue_ii', name: 'Tanzanite Blue II', code: 'C3Z', hex: '#222a3c', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'dravit_grey', name: 'Dravit Grey', code: 'C36', hex: '#474c4d', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'san_marino_blue', name: 'San Marino Blue', code: 'B51', hex: '#093263', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW Individual name)
+  { id: 'wildberry', name: 'Wildberry', code: 'T09', hex: '#663343', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'ruby_black', name: 'Ruby Black', code: 'X03', hex: '#2f2427', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'frozen_deep_green', name: 'Frozen Deep Green', code: 'P80', hex: '#425139', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'frozen_dark_grey_ii', name: 'Frozen Dark Grey II', code: 'P79', hex: '#202d31', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'fire_orange_iii', name: 'Fire Orange III', code: 'P7E', hex: '#985021', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'frozen_black', name: 'Frozen Black', code: 'U91', hex: '#050608', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'thunder', name: 'Thunder', code: 'P6L', hex: '#424b4e', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'mineral_white', name: 'Mineral White', code: 'A96', hex: '#adabaa', type: 'Pearl', roughness: 0.4, metalness: 0.15, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // tri-coat pearl
+  { id: 'riviera_blue', name: 'Riviera Blue', code: 'P5C', hex: '#016586', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid; BMW UK press "Riviera Blue solid"
+  { id: 'marina_bay_blue', name: 'Marina Bay Blue', code: 'C1K', hex: '#204d98', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'mint_green', name: 'Mint Green', code: 'W97', hex: '#2f6a5d', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid; BMW Individual "Mint Green Uni"
+  { id: 'sepia_iii', name: 'Sepia III', code: 'S0N', hex: '#575457', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'frozen_tanzanite_blue', name: 'Frozen Tanzanite Blue', code: 'X1G', hex: '#01013f', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'frozen_portimao_blue', name: 'Frozen Portimao Blue', code: 'X1E', hex: '#011960', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'frozen_pure_grey_ii', name: 'Frozen Pure Grey II', code: 'X1F', hex: '#7e8e92', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'anglesey_green', name: 'Anglesey Green', code: 'P9R', hex: '#395641', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'ruby_star', name: 'Ruby Star', code: 'P9L', hex: '#56183d', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
+  { id: 'frozen_brilliant_white', name: 'Frozen Brilliant White', code: 'X16', hex: '#b2b3a9', type: 'Frozen', roughness: 0.6, metalness: 0.2, clearcoat: 1.0, clearcoatRoughness: 0.5 },
+  { id: 'frozen_preciosa_red', name: 'Frozen Preciosa Red', code: 'P9C', hex: '#550101', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'malachite_green_ii', name: 'Malachite Green II', code: 'P85', hex: '#3e4e43', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW Individual name)
+  { id: 'speed_yellow', name: 'Speed Yellow', code: 'U96', hex: '#856b15', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
+  { id: 'brewster_green', name: 'Brewster Green', code: 'T42', hex: '#18221d', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
+  { id: 'urban_green_ii', name: 'Urban Green II', code: 'P9P', hex: '#4c5039', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'lagoon_green', name: 'Laguna Green', code: '266', hex: '#13656d', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (BMW Individual "Laguna Green Metallic")
+  { id: 'le_mans_blue', name: 'Le Mans Blue', code: '381', hex: '#1c6299', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'velvet_blue', name: 'Velvet Blue', code: '379', hex: '#353c67', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'frozen_deep_grey', name: 'Frozen Deep Grey', code: 'P7X', hex: '#171f28', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'velvet_orchid_ii', name: 'Velvet Orchid II', code: 'L74', hex: '#907d85', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'carbon_black', name: 'Carbon Black', code: '416', hex: '#1c2736', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'sophisto_grey_brilliant_effect', name: 'Sophisto Grey Brilliant Effect', code: 'A90', hex: '#2d2c2b', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Brilliant Effect" (xirallic)
+  { id: 'damast_red', name: 'Damast Red', code: 'B03', hex: '#502e2f', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // metallic (carpaints.co); SA M5 special paint request
+  { id: 'imola_red', name: 'Imola Red', code: '405', hex: '#6e2823', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'nardo_grey', name: 'Nardo Grey', code: 'P6K', hex: '#4d4e4e', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
+  { id: 'oxford_green_ii', name: 'Oxford Green II', code: '430', hex: '#283d39', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'bernina_grey_amber_effect', name: 'Bernina Grey Amber Effect', code: 'C3E', hex: '#575751', type: 'Pearl', roughness: 0.4, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW "Amber effect" pearl
+  { id: 'frozen_deep_grey_c64', name: 'Frozen Deep Grey', code: 'C64', hex: '#161a1c', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 },
+  { id: 'barcelona_blue', name: 'Barcelona Blue', code: 'C38', hex: '#717f88', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'arctic_race_blue', name: 'Arctic Race Blue', code: 'C4F', hex: '#3b5568', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'dune_grey', name: 'Dune Grey', code: 'C7A', hex: '#c9cac2', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'fire_red_ii', name: 'Fire Red II', code: '375', hex: '#591617', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // solid (carpaints.co)
+  { id: 'sepang_bronze', name: 'Sepang Bronze', code: 'A32', hex: '#736d61', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03 },
+  { id: 'aventurin_red', name: 'Aventurin Red', code: 'X15', hex: '#601324', type: 'Metallic', roughness: 0.38, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.03, active: false }, // superseded by C57 on the facelifted M8 (BMW NA order guides MY2023-24)
+  { id: 'frozen_isle_of_man_green', name: 'Frozen Isle of Man Green', code: 'P92', hex: '#01300b', type: 'Frozen', roughness: 0.58, metalness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.45 }, // BMW Individual; M4 CS (BMW SA press kit)
+  { id: 'borusan_turkish_blue', name: 'Borusan Turkish Blue', code: 'P9E', hex: '#016786', type: 'Uni', roughness: 0.4, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.03 }, // BMW Individual, solid; M2 (Individual Visualizer G87)
 ];
 
 export const WHEEL_FINISHES: Record<FinishVariantKey, WheelFinish> = {

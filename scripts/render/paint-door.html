@@ -21,7 +21,7 @@ e.loadCar(car).then(() => { window.done = true; });
 // Mean displayed sRGB of a 24x12 px patch around a car-space point on the front door (below the shoulder line)
 window.door = (pt = [0, 0.55, 0.3], w = Math.round(24 * (+(q.get('w') || 1000)) / 1000), h = Math.max(2, Math.round(w / 2))) => {
   e.setCameraPreset('side', { instant: true });
-  syncEnvironment(e.scene, e.scene.environment, e.scene.environmentIntensity);
+  syncEnvironment(e.scene, e.scene.environment, e.scene.environmentIntensity, e.scene.environmentRotation);
   e.renderer.render(e.scene, e.camera);
   const gl = e.renderer.getContext();
   const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;

@@ -11,7 +11,7 @@
  * base colour is a property of the paint, and the app's white softbox studio then lights it.
  *
  * targets.json maps a BMW paint code to a displayed sRGB door colour, e.g. { "C68": [108, 9, 21] }.
- * The base colour is iterated per channel in linear light (7 rounds), which converges to about
+ * The base colour is iterated per channel in linear light (9 rounds, each limited to a factor of 2), which converges to about
  * 1 ΔE00 unless a colour is out of reach. Writes { code: { id, hex, measured, target } }. SwiftShader at
  * 500x320: a few seconds a paint.
  */
@@ -41,11 +41,17 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       if (!tgt) continue;
       const tl = tgt.map(s2l);
       let lin = [1, 3, 5].map((i) => s2l(parseInt(pt.hex.slice(i, i + 2), 16)));
-      for (let it = 0; it < 7; it++) {
+      // warm up: the first renders after a finish change can come from a program still compiling
+      window.e.applyPaintColor({ ...pt, hex: hex(lin) });
+      window.door();
+      window.door();
+      for (let it = 0; it < 9; it++) {
         window.e.applyPaintColor({ ...pt, hex: hex(lin) });
         window.door();
         const ml = window.door().rgb.map(s2l);
-        lin = lin.map((c, i) => Math.min(1, Math.max(0.0003, c * Math.pow((tl[i] + 0.0005) / (ml[i] + 0.0005), 0.9))));
+        // damped, and at most a factor of 2 per round, so one bad reading can't throw a channel off
+        const step = (i) => Math.min(2, Math.max(0.5, Math.pow((tl[i] + 0.0005) / (ml[i] + 0.0005), 0.9)));
+        lin = lin.map((c, i) => Math.min(1, Math.max(0.0003, c * step(i))));
       }
       window.e.applyPaintColor({ ...pt, hex: hex(lin) });
       window.door();
