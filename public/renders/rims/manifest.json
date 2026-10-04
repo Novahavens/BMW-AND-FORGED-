@@ -2,10 +2,8 @@
  "forged_fsa_03": {
   "frames": 36,
   "finishes": [
-   "liquid_metal",
    "bronze",
    "black",
-   "silver",
    "satin_gold"
   ]
  },
