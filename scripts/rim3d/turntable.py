@@ -18,39 +18,14 @@ ap.add_argument('--frames', type=int, default=36); ap.add_argument('--size', def
 ap.add_argument('--samples', type=int, default=16)
 ap.add_argument('--finishes', default=os.path.join(os.path.dirname(__file__), 'finishes.json'))
 ap.add_argument('--only', default='')
+ap.add_argument('--lens', type=float, default=70)
 a = ap.parse_args()
 finishes = json.load(open(a.finishes))
 if a.only: finishes = {k: v for k, v in finishes.items() if k in a.only.split(',')}
 
-def srgb_to_lin(h):
-    c = [int(h.lstrip('#')[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-    return [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
-
-def kind(f):  # services/wheelFinish.ts finishKind
-    r, g, b = srgb_to_lin(f['hex']); lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    dark = lum < 0.03
-    if f['metalness'] >= 0.95 and f['roughness'] <= 0.16 and not dark: return 'polished'
-    if (dark or f['metalness'] < 0.3) and f['roughness'] < 0.42: return 'gloss-paint'
-    if f['roughness'] >= 0.42: return 'satin-metallic'
-    return 'metallic-paint'
-
-def material(f):
-    m = bpy.data.materials.new(f['id']); m.use_nodes = True
-    b = m.node_tree.nodes['Principled BSDF']; k = kind(f)
-    b.inputs['Base Color'].default_value = (*srgb_to_lin(f['hex']), 1)
-    if k == 'polished':
-        b.inputs['Metallic'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.07
-        b.inputs['Coat Weight'].default_value = f['clearcoat']; b.inputs['Coat Roughness'].default_value = 0.02
-    elif k == 'gloss-paint':
-        b.inputs['Metallic'].default_value = 0.0; b.inputs['Roughness'].default_value = 0.4
-        b.inputs['Coat Weight'].default_value = max(f['clearcoat'], 0.9); b.inputs['Coat Roughness'].default_value = 0.03
-    elif k == 'satin-metallic':
-        b.inputs['Metallic'].default_value = max(f['metalness'], 0.75); b.inputs['Roughness'].default_value = min(max(f['roughness'], 0.42), 0.7)
-        b.inputs['Coat Weight'].default_value = f['clearcoat']; b.inputs['Coat Roughness'].default_value = 0.5
-    else:
-        b.inputs['Metallic'].default_value = f['metalness']; b.inputs['Roughness'].default_value = f['roughness']
-        b.inputs['Coat Weight'].default_value = max(f['clearcoat'], 0.8); b.inputs['Coat Roughness'].default_value = 0.05
-    return m
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import materials
+material = materials.make
 
 bpy.ops.wm.read_factory_settings(use_empty=True); sc = bpy.context.scene
 before = set(bpy.data.objects); bpy.ops.import_scene.gltf(filepath=a.glb)
@@ -83,23 +58,28 @@ if fwd.y > 0: root.rotation_euler.rotate_axis('Z', math.pi)
 spin = bpy.data.objects.new('spin', None); sc.collection.objects.link(spin); spin.location = (0, 0, 0)
 bpy.context.view_layer.update(); root.matrix_world = root.matrix_world.copy(); root.parent = spin
 
-# studio: soft grey world, overhead strip, key and fill, shadow-catcher floor
+# studio: dark surround, big bright softboxes (how wheels are photographed: chrome and gloss black
+# need dark areas to reflect, satin needs broad soft highlights), shadow-catcher floor
 w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
-w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.55, 0.55, 0.57, 1); w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.8
+w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.08, 0.08, 0.085, 1); w.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.0
 def light(name, loc, rot, sx, sy, e):
     l = bpy.data.lights.new(name, 'AREA'); l.shape = 'RECTANGLE'; l.size, l.size_y, l.energy = sx, sy, e
     o = bpy.data.objects.new(name, l); o.location = loc; o.rotation_euler = rot; sc.collection.objects.link(o)
-light('key', (-3, -4, 5), (math.radians(45), 0, math.radians(-35)), 6, 3, 1500)
-light('fill', (5, -5, 2), (math.radians(70), 0, math.radians(45)), 4, 4, 500)
-light('strip', (0, -1, 6), (0, 0, 0), 12, 1.5, 800)
+light('key', (-3.5, -4.5, 5.0), (math.radians(45), 0, math.radians(-38)), 3.2, 1.6, 1800)    # upper left, raking the face
+light('fill', (5.5, -5.0, 1.8), (math.radians(72), 0, math.radians(48)), 2.5, 4, 450)       # right, soft
+light('strip', (0, -0.5, 6.5), (0, 0, 0), 10, 0.9, 1000)                                      # long overhead strip: the highlight line along the lip
+light('front', (0, -7, 1.2), (math.radians(90), 0, 0), 3.5, 2.2, 120)                        # a faint panel behind the camera
+light('back', (0, 5, 3), (math.radians(-60), 0, 0), 6, 2, 400)                               # separates the barrel from the dark surround
 bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, 0)); floor = bpy.context.object; floor.is_shadow_catcher = True
+# the catcher must not show up in the rim's reflections as a white plane (it still catches shadows)
+floor.visible_glossy = False; floor.visible_diffuse = False; floor.visible_transmission = False
 
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
-cam.location = (0, -6.2, 1.55); cam.rotation_euler = (Vector((0, 0, 0.95)) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = 70
+cam.location = (0, -6.2, 1.55); cam.rotation_euler = (Vector((0, 0, 0.95)) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = a.lens
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
 sc.render.film_transparent = True
 W, H = map(int, a.size.split('x')); sc.render.resolution_x, sc.render.resolution_y = W, H
-sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Medium High Contrast'
+sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Base Contrast'; sc.view_settings.exposure = -0.9
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
 
 from PIL import Image

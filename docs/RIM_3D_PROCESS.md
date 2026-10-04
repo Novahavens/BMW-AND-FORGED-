@@ -79,6 +79,16 @@ node scripts/render/shoot.cjs out shots.json rimCache    # "q": "&rimModel=/mode
 ```
 Admin → Wheels → Rim 3D model (or `wheels.model_url`), tick **Flip 3D rim** if the face points in.
 
+### Finishes in Blender (done)
+`scripts/rim3d/materials.py` builds each finish the way the coating is layered, from the numbers in
+`scripts/rim3d/finishes.json` (same four numbers the admin stores, plus an optional `kind`):
+polished (Liquid Metal), gloss-paint (Gloss Black: paint under a thick clear with a faint orange
+peel), satin (Satin Bronze, Satin Gold: metallic flake under a satin clear, micro-texture in the
+roughness), metallic (Silver: metallic paint, flake, gloss clear), brushed (Silver as machined
+aluminium: anisotropic). The turntable studio is a dark surround with softboxes, the shadow-catcher
+floor hidden from reflections, AgX base contrast at −0.9 EV: chrome and black need dark areas to
+reflect, satin needs broad soft highlights. Comparison: `rim-template/finishes-blender.jpg`.
+
 ### The rim detail page: photoreal 360° spin (done)
 The close-up of each rim is not live 3D any more: `scripts/rim3d/turntable.py` renders the rim in
 Blender, standing on its tread, 36 frames round, in every finish (recipes ported from

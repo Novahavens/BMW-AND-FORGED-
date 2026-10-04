@@ -9,35 +9,39 @@
  },
  "bronze": {
   "id": "bronze",
-  "name": "Bronze Matte",
-  "hex": "#8f6738",
+  "name": "Satin Bronze",
+  "hex": "#7a5533",
   "metalness": 0.8,
-  "roughness": 0.55,
-  "clearcoat": 0.1
+  "roughness": 0.4,
+  "clearcoat": 0.4,
+  "kind": "satin"
  },
  "black": {
   "id": "black",
   "name": "Black Gloss",
-  "hex": "#141618",
+  "hex": "#050607",
   "metalness": 0.7,
   "roughness": 0.15,
-  "clearcoat": 0.95
+  "clearcoat": 0.95,
+  "kind": "gloss-paint"
  },
  "silver": {
   "id": "silver",
   "name": "Silver",
-  "hex": "#c3c8cd",
+  "hex": "#a9afb4",
   "metalness": 0.9,
-  "roughness": 0.28,
-  "clearcoat": 0.7
+  "roughness": 0.25,
+  "clearcoat": 0.85,
+  "kind": "metallic"
  },
  "satin_gold": {
   "id": "satin_gold",
   "name": "Satin Gold",
-  "hex": "#C5A059",
-  "metalness": 0.9,
-  "roughness": 0.3,
-  "clearcoat": 0.85
+  "hex": "#b08530",
+  "metalness": 0.85,
+  "roughness": 0.38,
+  "clearcoat": 0.4,
+  "kind": "satin"
  },
  "gunmetal": {
   "id": "gunmetal",
@@ -46,5 +50,14 @@
   "metalness": 0.85,
   "roughness": 0.5,
   "clearcoat": 0.2
+ },
+ "silver_brushed": {
+  "id": "silver_brushed",
+  "name": "Silver (brushed aluminium)",
+  "hex": "#b9bec3",
+  "metalness": 1.0,
+  "roughness": 0.34,
+  "clearcoat": 0.3,
+  "kind": "brushed"
  }
 }
