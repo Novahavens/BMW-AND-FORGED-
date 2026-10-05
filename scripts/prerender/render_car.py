@@ -21,18 +21,23 @@ ap.add_argument('--car', default='', help='car id for the per-car fixes below (d
 ap.add_argument('--hide', default=None, help='regex of mesh names to drop (overrides the per-car default)')
 a = ap.parse_args()
 
-# Multi-variant source models stack alternative parts (tuner kits, CS/Competition panels) on the
-# same surface. Coincident painted copies z-fight into a crumpled, mottled panel once subdivided,
-# so drop all but one variant.
-HIDE = {
+# Per-car fixes, keyed by car id (--car, or the output folder name as render-all.sh passes it).
+#  hide: multi-variant source models stack alternative parts (tuner kits, CS/Competition panels)
+#        on the same surface; coincident painted copies z-fight into a crumpled, mottled panel
+#        once subdivided, so drop all but one variant.
+#  thin_glass: glazing modelled as open or doubled sheets refracts the cabin into dark blotches;
+#        render it as a thin sheet (IOR 1, reflections from the coat layer) instead.
+CAR_FIXES = {
     # four front-fender variants (stock, Competition, CS, Keyvany): keep the Competition one
-    'm8_f92': r'^(PAINT_)?(m8f92_fender_[LR](_cs)?(00\d)?_m8f92_|keyvany_fender_[LR])',
+    'm8_f92': {'hide': r'^(PAINT_)?(m8f92_fender_[LR](_cs)?(00\d)?_m8f92_|keyvany_fender_[LR])'},
+    'm3_g80': {'thin_glass': True, 'no_subdiv': True},  # subdivided, it runs out of memory (12.7 GB)
 }
+fix = CAR_FIXES.get(a.car or os.path.basename(os.path.normpath(a.out)), {})
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=a.glb)
 sc = bpy.context.scene
-hide = a.hide if a.hide is not None else HIDE.get(a.car or os.path.basename(os.path.normpath(a.out)))
+hide = a.hide if a.hide is not None else fix.get('hide')
 if hide:
     for o in [o for o in sc.objects if o.type == 'MESH' and re.search(hide, o.name)]:
         bpy.data.objects.remove(o, do_unlink=True)
@@ -57,7 +62,7 @@ for o in meshes:
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
         bm.to_mesh(o.data); bm.free()
         for p in o.data.polygons: p.use_smooth = True
-        if not a.no_subdiv and len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
+        if not (a.no_subdiv or fix.get('no_subdiv')) and len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
             sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
             sd.boundary_smooth = 'PRESERVE_CORNERS'
         o.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
@@ -78,6 +83,10 @@ for o in meshes:
                     b.inputs['Roughness'].default_value = 0.02
                     b.inputs['Base Color'].default_value = (0.05, 0.06, 0.07, 1)
                     b.inputs['Alpha'].default_value = 1.0
+                    if fix.get('thin_glass'):
+                        b.inputs['IOR'].default_value = 1.0
+                        b.inputs['Coat Weight'].default_value = 1.0
+                        b.inputs['Coat Roughness'].default_value = 0.02
 
 # Car extents (Blender is Z-up after import).
 xs = [(o.matrix_world @ v.co) for o in meshes for i, v in enumerate(o.data.vertices) if i % 50 == 0]
