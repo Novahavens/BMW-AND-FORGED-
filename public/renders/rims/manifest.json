@@ -69,6 +69,16 @@
    "satin_gold"
   ]
  },
+ "forged_fsa_08": {
+  "frames": 36,
+  "finishes": [
+   "liquid_metal",
+   "bronze",
+   "black",
+   "silver",
+   "satin_gold"
+  ]
+ },
  "forged_fsa_12": {
   "frames": 36,
   "finishes": [
