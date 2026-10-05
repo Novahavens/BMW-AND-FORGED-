@@ -1,4 +1,14 @@
 {
+ "forged_fsa_01": {
+  "frames": 36,
+  "finishes": [
+   "liquid_metal",
+   "bronze",
+   "black",
+   "silver",
+   "satin_gold"
+  ]
+ },
  "forged_fsa_03": {
   "frames": 36,
   "finishes": [
