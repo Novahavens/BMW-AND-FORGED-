@@ -5,6 +5,7 @@ background with a soft contact shadow, as WebP.
   python3 scripts/rim3d/turntable.py <full.glb> <outDir> [--frames 36] [--size 1000x750]
          [--samples 16] [--finishes scripts/rim3d/finishes.json] [--only liquid_metal,black]
          [--resmooth]   (face normals by angle: for large flat traced faces that reflect in streaks)
+         [--weighted]   (with --resmooth: face-area weighted normals, no streaks from long fill triangles)
 
 Writes <outDir>/<finishId>/f00.webp … and <outDir>/spin.json (frames, finishes, size). The finish
 recipes follow services/wheelFinish.ts (polished / gloss paint / satin metallic / metallic paint).
@@ -23,6 +24,10 @@ ap.add_argument('--lens', type=float, default=70)
 ap.add_argument('--resmooth', action='store_true', help='rebuild the face mesh normals by angle (30 deg) instead of '
                 'the GLB custom normals: cures streaky, wavy reflections on large flat traced faces made of long '
                 'thin triangles (e.g. the solid step flange of FSA-09)')
+ap.add_argument('--weighted', action='store_true', help='with --resmooth: face-area weighted normals on the face '
+                'mesh, so a big flat face keeps flat normals up to its bevels (smoothing by angle alone tilts the '
+                'normals of every outline vertex toward its first bevel step, and long fill triangles smear that '
+                'tilt across the face as vertical streaks, worst in Gloss Black)')
 a = ap.parse_args()
 finishes = json.load(open(a.finishes))
 if a.only: finishes = {k: v for k, v in finishes.items() if k in a.only.split(',')}
@@ -47,6 +52,8 @@ if a.resmooth:
         bpy.context.view_layer.objects.active = o; o.select_set(True)
         bpy.ops.mesh.customdata_custom_splitnormals_clear()
         bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30)); o.select_set(False)
+        if a.weighted:
+            wn = o.modifiers.new('wn', 'WEIGHTED_NORMAL'); wn.mode = 'FACE_AREA'; wn.keep_sharp = True
 # stand the wheel up: axle horizontal along world Y, tread on the floor (z = 0), diameter 2
 rotmap = {0: (0, 0, math.radians(-90)), 1: (0, 0, 0), 2: (math.radians(90), 0, 0)}
 root.rotation_euler = rotmap[axle]; root.scale = [2 / diam] * 3
