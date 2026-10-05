@@ -1,6 +1,6 @@
 # Checkpoint: photoreal cars and rims
 
-**Last updated:** 2026-10-04 · **Branch:** `ccr-a49729da-y3hwoq` · **PR:** #9 (draft) · **To continue:** the
+**Last updated:** 2026-10-05 · **Branch:** `ccr-a49729da-y3hwoq` · **PR:** #9 (draft) · **To continue:** the
 `forgedsa-resume` skill (`.claude/skills/forgedsa-resume/SKILL.md`) restores the tools, and this file says what is next.
 
 ## Goal of this phase (owner's words, condensed)
@@ -26,26 +26,44 @@ here for later.
 | FSA-03 Kyalami 15 | done | done | ✓ complete; brighter chrome, flat barrel |
 | FSA-14 Turbine 25 | done after fold fix | done after fold fix | ✓ complete; brighter chrome, flat barrel |
 
-On-car check sheets: `docs/rim-template/oncar/m4_g82.jpg`, `m5_g90.jpg` (made with `scripts/render/oncar.cjs`).
+**Live since 2026-10-05:** FSA-12/13/14 are active in Supabase (migration `20261004180000_wheels_fsa_12_13_14_live.sql`)
+with PLACEHOLDER names/sizes/prices from FSA-05. **Every active wheel (12) has a rim page spin**; FSA-01, 02, 04,
+05, 06, 07, 08, 09 were added on 2026-10-05 (FSA-07 built from `public/rim-faces/forged_fsa_07.png`; FSA-09 rendered
+with `turntable.py --resmooth`). Weakest matches: FSA-07 Dezzi Star, then FSA-04 Scribante 3P.
+
+On-car check sheets for all five active cars: `docs/rim-template/oncar/{m4_g82,m3_g80,m3_touring_g81,m5_g90,m8_f92}.jpg`
+(made with `scripts/render/oncar.cjs`; `PORT=` picks the dev server). Car body fixes in `scripts/prerender/render_car.py`
+`CAR_FIXES`: M8 keeps only the Competition fender (four stacked variants z-fought), M3 has thin windscreen glass and
+renders without subdivision (it needs >12.7 GB subdivided). Both re-rendered and live.
+
+Responsive: `scripts/render/responsive.cjs` passes 180/180 (12 pages × 15 devices incl. iPad 834×1194 and 1366×1024).
+Headless Chromium needs the proxy CA in `$HOME/.pki/nssdb` (`apt install libnss3-tools`, then `certutil -d sql:$HOME/.pki/nssdb
+-A -t C,, -n agent-proxy -i /root/.ccr/agent-proxy-ca.crt`); without it Supabase fails and the app silently uses the
+bundled catalogue.
+
+**Owner review page:** https://claude.ai/artifact/XfokPgUT8rYWeJJKBy1UkT. Verdicts and notes land in its database,
+collection `feedback` (doc ids `car_<carId>`, `rim_<wheelId>`, `details_<wheelId>`, `decision_star6`,
+`decision_m3t_headlights`); read them with ArtifactData `list`.
 
 ## Queue (do the top unchecked item; tick it when committed)
 - [x] Spins for FSA-12, FSA-13, FSA-03, FSA-14 (all five finishes).
 - [x] Re-render Liquid Metal + Silver for those four (brighter chrome surround, plain barrel; review fixes).
       All four wheels completed with improved chrome reflections and consistent brushed barrel texture.
-- [ ] **Owner review** of the four completed spins (Liquid Metal and Silver) on the rim detail page at each device size
-- [ ] Re-shoot the on-car sheets for Black (the two old grey shots: M4 front ¾, M5 wheel close-up) — or skip if owner approves spins without it
-- [ ] Owner decision on Star 6: keep bar version, or provide front-on photo to trace it properly
-- [ ] **Owner approval → Supabase insert** of FSA-12/13/14 (names, sizes, prices are PLACEHOLDERS from FSA-05) via `/admin` or migration
-- [ ] Rim page screenshots (phone + desktop) for the four wheels, two finishes each (wait for owner approval first)
+- [x] Owner approved the four spins; FSA-12/13/14 inserted into Supabase and live (placeholders).
+- [x] Re-shot the on-car sheets (Black now reads black) and extended them to all five active cars.
+- [x] Rim page screenshots: 4 wheels × 2 finishes × phone / iPad portrait / iPad landscape / desktop.
+- [x] M8 fender and M3 windscreen fixed and re-rendered; tablet/phone responsive pass; spins for all 12 wheels.
+- [ ] **Read the owner's answers** on the review page and work through every "Needs work" note.
+- [ ] Real names, sizes and prices for FSA-12/13/14 (from the review page) → `/admin` or a migration, and mirror in `data/configuratorData.ts`.
+- [ ] Owner decisions: Star 6 (keep, or front-on photo), M3 Touring black headlights (fix or leave), Aldo Fork 15 spoke count (photo 12 vs name 15).
+- [ ] Optional: re-render all spins with `turntable.py --resmooth` for cleaner hub reflections.
 
 ## Later (parked)
-- Spins for the other catalogue wheels: FSA-01, 02, 06 have 3D rims ready to rebuild with `convert.sh` from their
-  catalogue cut-outs; FSA-04, 05, 07, 08, 09 not built yet.
 - **Photo 7** (champagne, forked spokes) may be a different design from the catalogue's 12-spoke Aldo Fork 15: ask.
 - Cars: M4 Convertible and M5 Touring have no real 3D model (placeholder body); X3 M50's model has filled
   wheel arches. Paid models need the owner's OK.
 - Summary page and PDF stills still come from the live WebGL car, not the Blender renders.
-- Spin frames are in git (~12 MB per wheel). Before the full catalogue, move them to Supabase storage
+- Spin frames are in git (~12 MB per wheel, 137 MB for 12). Before the full catalogue, move them to Supabase storage
   (and consider 720×540 or lazy preloading in `RimSpinView`).
 - Not modelled on 3D rims: lip engraving, logos, milled channels on traced faces.
 
