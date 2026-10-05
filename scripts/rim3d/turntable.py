@@ -4,6 +4,7 @@ background with a soft contact shadow, as WebP.
 
   python3 scripts/rim3d/turntable.py <full.glb> <outDir> [--frames 36] [--size 1000x750]
          [--samples 16] [--finishes scripts/rim3d/finishes.json] [--only liquid_metal,black]
+         [--resmooth]   (face normals by angle: for large flat traced faces that reflect in streaks)
 
 Writes <outDir>/<finishId>/f00.webp … and <outDir>/spin.json (frames, finishes, size). The finish
 recipes follow services/wheelFinish.ts (polished / gloss paint / satin metallic / metallic paint).
@@ -19,6 +20,9 @@ ap.add_argument('--samples', type=int, default=16)
 ap.add_argument('--finishes', default=os.path.join(os.path.dirname(__file__), 'finishes.json'))
 ap.add_argument('--only', default='')
 ap.add_argument('--lens', type=float, default=70)
+ap.add_argument('--resmooth', action='store_true', help='rebuild the face mesh normals by angle (30 deg) instead of '
+                'the GLB custom normals: cures streaky, wavy reflections on large flat traced faces made of long '
+                'thin triangles (e.g. the solid step flange of FSA-09)')
 a = ap.parse_args()
 finishes = json.load(open(a.finishes))
 if a.only: finishes = {k: v for k, v in finishes.items() if k in a.only.split(',')}
@@ -37,6 +41,12 @@ lo = Vector([min(p[k] for p in pts) for k in range(3)]); hi = Vector([max(p[k] f
 size = hi - lo; axle = min(range(3), key=lambda k: size[k]); diam = max(size[k] for k in range(3) if k != axle)
 for o in objs:
     for p in o.data.polygons: p.use_smooth = True
+if a.resmooth:
+    for o in bpy.context.selected_objects: o.select_set(False)  # the importer leaves every mesh selected
+    for o in [o for o in objs if o.name.startswith('face')]:
+        bpy.context.view_layer.objects.active = o; o.select_set(True)
+        bpy.ops.mesh.customdata_custom_splitnormals_clear()
+        bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30)); o.select_set(False)
 # stand the wheel up: axle horizontal along world Y, tread on the floor (z = 0), diameter 2
 rotmap = {0: (0, 0, math.radians(-90)), 1: (0, 0, 0), 2: (math.radians(90), 0, 0)}
 root.rotation_euler = rotmap[axle]; root.scale = [2 / diam] * 3
