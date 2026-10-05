@@ -19,3 +19,7 @@ Shots take about a minute each on SwiftShader. Judge colour and gloss on a real 
 draws the processed mask with the traced outlines over it, once per settings variant (see its
 header). Use it to compare settings before rendering wheel close-ups. `blank.html` is the empty
 page it runs in.
+
+`swap-perf.cjs` measures wheel swaps in the real configurator: it taps every wheel twice (and
+changes the size twice) at desktop and phone sizes, and writes each tap's long tasks and the time
+until the new spokes are in the scene to a JSON file (see its header; `cold` and `preload` modes).

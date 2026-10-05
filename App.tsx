@@ -6,7 +6,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CarConfiguratorEngine } from './services/CarConfiguratorEngine';
 import { Catalog, STATIC_CATALOG, fetchCatalog, paintsForCar, pickPaintForCar } from './services/catalogService';
-import { nearestRimSize, rimPrice } from './services/pricing';
+import { nearestRimSize, rimPrice, rimSizes } from './services/pricing';
 import { CarModel, PaintColor, WheelDesign, WheelFinish, CameraViewPreset } from './types';
 import { BRAND, DEFAULT_REGION, Region } from './config/brand';
 import { DELIVERY, TERMS } from './config/pages';
@@ -262,6 +262,17 @@ export const App: React.FC = () => {
     engine?.preloadCar(cars[(carIndex + 1) % cars.length]);
     engine?.preloadCar(cars[(carIndex - 1 + cars.length) % cars.length]);
   }, [booted, cars, carIndex]);
+
+  // Picking a wheel should only swap meshes: once the customer reaches the wheels step, every
+  // wheel's 3D spokes (nearest in the list first) and the tyres for the other sizes are prepared
+  // in the background, in idle time (not on the welcome page, and never ahead of a pick)
+  useEffect(() => {
+    if (route.name !== 'configure' || step !== 'wheels' || !catalogLoaded) return;
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.preloadWheels(catalog.wheels, selectedWheel.id);
+    engine.preloadRimSizes([...new Set(catalog.wheels.flatMap(rimSizes))]);
+  }, [route.name, step, catalogLoaded, catalog.wheels]);
 
   // Pre-rendered mode: a fixed-aspect stage, centred in the space the controls leave. Where it doesn't
   // reach the edges of that space (4:3 and portrait tablets), its studio backdrop stopped in a hard line

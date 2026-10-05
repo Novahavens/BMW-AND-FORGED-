@@ -339,34 +339,38 @@ const WheelStep: React.FC<ConfiguratorProps & { onInfo: (w: WheelDesign) => void
     </div>
 
     <ul className="mt-5">
-      {p.wheels.map((w) => {
-        const active = w.id === p.wheel.id;
-        return (
-          <li key={w.id}>
-            <button
-              onClick={() => p.onWheel(w)}
-              className={cx(
-                'group flex w-full items-center gap-4 rounded-2xl px-3 py-3 text-left transition-all duration-300 ease-lux',
-                active ? 'bg-ink/[0.045]' : 'hover:bg-ink/[0.03]'
-              )}
-            >
-              <RimThumb wheel={w} finish={p.finishes[w.defaultVariant] ?? p.finish} size={54} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13.5px] font-semibold">{w.name}</span>
-                <span className="block truncate text-[11.5px] text-mute">
-                  {w.style} · from {formatMoney(rimFromPrice(w), p.region)}
-                </span>
-              </span>
-              <span className={cx('flex h-6 w-6 items-center justify-center rounded-full transition', active ? 'bg-gold text-carbon' : 'ring-1 ring-line text-transparent')}>
-                <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
-              </span>
-            </button>
-          </li>
-        );
-      })}
+      {p.wheels.map((w) => (
+        <WheelRow key={w.id} wheel={w} active={w.id === p.wheel.id} finish={p.finishes[w.defaultVariant] ?? p.finish} region={p.region} onWheel={p.onWheel} />
+      ))}
     </ul>
     <NextLink label="Wheel size" onClick={() => p.onStep('size')} />
   </div>
+);
+
+/** One wheel in the list; memoised, so a pick re-renders only the two rows whose tick changes. */
+const WheelRow = React.memo<{ wheel: WheelDesign; active: boolean; finish: WheelFinish; region: Region; onWheel: (wheel: WheelDesign) => void }>(
+  ({ wheel: w, active, finish, region, onWheel }) => (
+    <li>
+      <button
+        onClick={() => onWheel(w)}
+        className={cx(
+          'group flex w-full items-center gap-4 rounded-2xl px-3 py-3 text-left transition-all duration-300 ease-lux',
+          active ? 'bg-ink/[0.045]' : 'hover:bg-ink/[0.03]'
+        )}
+      >
+        <RimThumb wheel={w} finish={finish} size={54} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13.5px] font-semibold">{w.name}</span>
+          <span className="block truncate text-[11.5px] text-mute">
+            {w.style} · from {formatMoney(rimFromPrice(w), region)}
+          </span>
+        </span>
+        <span className={cx('flex h-6 w-6 items-center justify-center rounded-full transition', active ? 'bg-gold text-carbon' : 'ring-1 ring-line text-transparent')}>
+          <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+        </span>
+      </button>
+    </li>
+  )
 );
 
 const SizeStep: React.FC<ConfiguratorProps> = (p) => {

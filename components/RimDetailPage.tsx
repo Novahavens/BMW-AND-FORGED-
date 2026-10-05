@@ -92,7 +92,8 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
     engine.applyWheelDesign(wheel);
     if (finish) engine.applyWheelFinish(finish);
     engine.setRimSize(size);
-  }, [wheel, finish, size]);
+    // liveEngine: the engine is made when a spin fails, after the wheel was chosen
+  }, [wheel, finish, size, liveEngine]);
 
   if (!wheel) {
     return (

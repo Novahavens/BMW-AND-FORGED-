@@ -102,13 +102,19 @@ function arcPts(cr: number, cx: number, rad: number, a0: number, a1: number, n: 
 
 function heightToNormal(h: Float32Array, w: number, hh: number, strength: number, wrapX = true): Uint8ClampedArray {
   const out = new Uint8ClampedArray(w * hh * 4);
+  heightToNormalRows(h, w, hh, strength, wrapX, out, 0, hh);
+  return out;
+}
+
+/** heightToNormal for rows y0..y1 into `out` (so big maps can be made a slice at a time). */
+function heightToNormalRows(h: Float32Array, w: number, hh: number, strength: number, wrapX: boolean, out: Uint8ClampedArray, y0: number, y1: number) {
   const at = (x: number, y: number) => {
     if (wrapX) x = (x + w) % w;
     else x = Math.min(w - 1, Math.max(0, x));
     y = Math.min(hh - 1, Math.max(0, y));
     return h[y * w + x];
   };
-  for (let y = 0; y < hh; y++) {
+  for (let y = y0; y < y1; y++) {
     for (let x = 0; x < w; x++) {
       const dx = (at(x + 1, y) - at(x - 1, y)) * strength;
       const dy = (at(x, y + 1) - at(x, y - 1)) * strength;
@@ -123,7 +129,6 @@ function heightToNormal(h: Float32Array, w: number, hh: number, strength: number
       out[i + 3] = 255;
     }
   }
-  return out;
 }
 
 function blur(h: Float32Array, w: number, hh: number, passes = 1, wrapX = true) {
@@ -207,6 +212,35 @@ const sidewallCache = new Map<string, { normal: THREE.Texture; rough: THREE.Text
 export function sidewallMaps(sizeLabel: string): { normal: THREE.Texture; rough: THREE.Texture } {
   const cached = sidewallCache.get(sizeLabel);
   if (cached) return cached;
+  const steps = sidewallSteps(sizeLabel);
+  let r = steps.next();
+  while (!r.done) r = steps.next();
+  sidewallCache.set(sizeLabel, r.value);
+  return r.value;
+}
+
+/**
+ * sidewallMaps ahead of time, a slice per idle moment, so
+ * the first tyre of a new size doesn't hold the page. Same result, same cache.
+ */
+export async function prepareSidewallMaps(sizeLabel: string, urgent: () => boolean = () => false): Promise<void> {
+  if (sidewallCache.has(sizeLabel)) return;
+  const steps = sidewallSteps(sizeLabel);
+  let r: IteratorResult<void, { normal: THREE.Texture; rough: THREE.Texture }> = { done: false, value: undefined };
+  while (!r.done) {
+    const deadline = await new Promise<IdleDeadline | null>((resolve) =>
+      typeof requestIdleCallback === 'function' ? requestIdleCallback(resolve, { timeout: urgent() ? 50 : 2000 }) : setTimeout(() => resolve(null), 16)
+    );
+    // as many slices as fit in this idle moment (at least one)
+    do {
+      if (sidewallCache.has(sizeLabel)) return; // built meanwhile (the tyre was needed)
+      r = steps.next();
+    } while (!r.done && deadline && deadline.timeRemaining() > 12);
+  }
+  sidewallCache.set(sizeLabel, r.value);
+}
+
+function* sidewallSteps(sizeLabel: string): Generator<void, { normal: THREE.Texture; rough: THREE.Texture }, void> {
   const W = 4096, H = 256;
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -249,13 +283,27 @@ export function sidewallMaps(sizeLabel: string): { normal: THREE.Texture; rough:
     ctx.fill();
   }
   const img = ctx.getImageData(0, 0, W, H).data;
+  yield;
   const letters = new Float32Array(W * H);
   for (let i = 0; i < W * H; i++) letters[i] = img[i * 4] / 255;
+  yield;
+  // blur(height, W, H, 1), a band of rows at a time: across the rows, then down the columns
   const height = new Float32Array(letters);
-  blur(height, W, H, 1);
+  const tmp = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    if (y > 0 && y % 32 === 0) yield;
+    for (let x = 0; x < W; x++) tmp[y * W + x] = (height[y * W + ((x - 1 + W) % W)] + 2 * height[y * W + x] + height[y * W + ((x + 1) % W)]) / 4;
+  }
+  for (let y = 0; y < H; y++) {
+    if (y % 32 === 0) yield;
+    const yu = Math.max(0, y - 1), yd = Math.min(H - 1, y + 1);
+    for (let x = 0; x < W; x++) height[y * W + x] = (tmp[yu * W + x] + 2 * tmp[y * W + x] + tmp[yd * W + x]) / 4;
+  }
+  yield;
   // matte velvet band behind the lettering: v 0.3..0.78, with soft edges
   const rough = new Uint8ClampedArray(W * H * 4);
   for (let y = 0; y < H; y++) {
+    if (y > 0 && y % 32 === 0) yield;
     const v = y / (H - 1);
     const band = smoothstep(0.26, 0.32, v) * (1 - smoothstep(0.76, 0.82, v));
     for (let x = 0; x < W; x++) {
@@ -268,12 +316,15 @@ export function sidewallMaps(sizeLabel: string): { normal: THREE.Texture; rough:
       rough[o + 3] = 255;
     }
   }
-  const res = {
-    normal: dataTexture(heightToNormal(height, W, H, 3.5), W, H),
+  const normal = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y += 32) {
+    yield;
+    heightToNormalRows(height, W, H, 3.5, true, normal, y, Math.min(H, y + 32));
+  }
+  return {
+    normal: dataTexture(normal, W, H),
     rough: dataTexture(rough, W, H)
   };
-  sidewallCache.set(sizeLabel, res);
-  return res;
 }
 
 function smoothstep(a: number, b: number, x: number) {

@@ -14,13 +14,11 @@ import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS, ROOM_WHITE } fro
 import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial } from './carMaterials';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
-import { traceRimShapes, traceMaskShapes, buildRimFaceGeometry } from './rimExtrusion';
+import { traceRimShapes, buildRimFaceGeometry } from './rimExtrusion';
 import {
-  FACE_FRACTION,
   barrelAoMap,
   installWheelShading,
   wheelShadingUniforms,
-  SPOKE_BEVEL,
   LipStyle,
   WheelDims,
   RimPhotoOptions,
@@ -29,14 +27,14 @@ import {
   buildDisc,
   buildHub,
   buildRimShell,
-  buildSpokeFace,
   buildTyre,
   createWheelKitMaterials,
   lipStyleFor,
-  processRimPhoto,
-  rimLayout
+  prepareSidewallMaps,
+  rimLayout,
+  tyreSizeLabel
 } from './wheelKit';
-import { processRimPhotoAsync } from './rimFaceAsync';
+import { buildRimFacesAsync, promoteRimFace, RimFacePriority } from './rimFaceAsync';
 import { finishLook, installFinishLayers, applyFinishLook } from './wheelFinish';
 import { RIM_FACE_MASKS, RIM_FACE_OPTIONS } from './rimFaces';
 import { proceduralRimShapes } from './proceduralRims';
@@ -92,6 +90,24 @@ export class CarConfiguratorEngine {
   private lipStyle: LipStyle = 'mono';
   private wheelMode: 'model' | 'image' | 'procedural' = 'procedural';
   private rimFaceCache = new Map<string, Promise<{ front: THREE.BufferGeometry; rear: THREE.BufferGeometry } | null>>();
+  /**
+   * Tyres and rim shells, kept per size (and lip style) instead of being rebuilt: a size or lip
+   * change swaps groups. Disposing a tyre's materials also freed their shader programs, so every
+   * rebuild compiled them again (seconds on a phone GPU). Templates own the GPU resources; the
+   * other side of the axle shares them through a clone. Keys: `front|scale` / `lip|front|scale`
+   * for templates, `assembly group id|…` for what each wheel shows.
+   */
+  private tyreTemplates = new Map<string, THREE.Group>();
+  private shellTemplates = new Map<string, THREE.Group>();
+  private wheelPartCache = new Map<string, THREE.Group>();
+  private sizesPreloaded = new Set<number>();
+  /** Rim sizes whose tyres are built and whose textures are on the GPU. */
+  private readyScales = new Set<number>();
+  private sizeJobs = new Map<number, { urgent: boolean; promise: Promise<void> }>();
+  /** The wheel design whose spokes are still being prepared (its lip and size wait with it). */
+  private pendingWheelToken: number | null = null;
+  /** Replaced GLB / flat-image face materials, disposed once their successors have drawn. */
+  private retiredMaterials: THREE.Material[] = [];
 
   // Materials Cache
   private carBodyMaterial!: THREE.MeshPhysicalMaterial;
@@ -202,6 +218,8 @@ export class CarConfiguratorEngine {
     vBlur: THREE.ShaderMaterial;
   } | null = null;
   private shadowFrames = 0;
+  /** The contact shadow missed changes while hidden (pre-rendered body mode). */
+  private shadowStale = false;
   // Car GLBs by URL, least recently used first. Resolved scenes are also kept in modelScenes so they
   // can be disposed when evicted; mountedModelUrl is the car on screen and is never evicted.
   private modelCache = new Map<string, Promise<THREE.Object3D>>();
@@ -452,6 +470,12 @@ export class CarConfiguratorEngine {
 
   /** Re-render the contact shadow for the next few frames (async wheel/model loads settle in that time). */
   private markShadowDirty(frames = 45) {
+    if (this.renderedBody) {
+      // the pre-rendered body hides the contact shadow: draw the change, redo the shadow when it shows
+      this.shadowStale = true;
+      this.requestRender();
+      return;
+    }
     this.shadowFrames = Math.max(this.shadowFrames, frames);
     this.requestRender();
   }
@@ -1365,8 +1389,7 @@ export class CarConfiguratorEngine {
   // HIGH-DETAIL FORGED WHEEL ASSEMBLIES
   // ----------------------------------------------------
   private buildWheels() {
-    // Clear existing
-    this.wheelAssemblies.forEach((a) => this.disposeWheelShell(a));
+    // Clear existing (tyres and rim shells stay in their caches)
     while (this.wheelsGroup.children.length > 0) {
       this.wheelsGroup.remove(this.wheelsGroup.children[0]);
     }
@@ -1419,60 +1442,198 @@ export class CarConfiguratorEngine {
       });
     });
 
-    this.applyRimScale();
+    this.syncWheelShells();
+    this.readyScales.add(this.rimScale); // built here; its textures go up with the first frame
   }
 
-  /** Tyre and rim shell follow the rim size and the design's lip style, so they are rebuilt on either change. */
-  private rebuildWheelShells() {
+  /** A tyre per rim size; the two wheels of an axle share one (a clone of the same meshes). */
+  private tyreFor(a: (typeof this.wheelAssemblies)[number], s: number): THREE.Group {
+    const key = `${a.group.id}|${s}`;
+    let g = this.wheelPartCache.get(`tyre|${key}`);
+    if (!g) {
+      const tk = `${a.isFront}|${s}`;
+      const template = this.tyreTemplates.get(tk);
+      if (template) g = template.clone();
+      else {
+        g = buildTyre({ ...a.dims, rimScale: s }, this.kit);
+        this.tyreTemplates.set(tk, g);
+      }
+      this.wheelPartCache.set(`tyre|${key}`, g);
+    }
+    return g;
+  }
+
+  /** Lip + barrel (+ lip bolts) per lip style and rim size; shared across an axle like the tyre. */
+  private rimShellFor(a: (typeof this.wheelAssemblies)[number], lip: LipStyle, s: number): THREE.Group {
+    const key = `${a.group.id}|${lip}|${s}`;
+    let g = this.wheelPartCache.get(`rim|${key}`);
+    if (!g) {
+      const tk = `${lip}|${a.isFront}|${s}`;
+      const template = this.shellTemplates.get(tk);
+      if (template) g = template.clone();
+      else {
+        const shell = buildRimShell({ ...a.dims, rimScale: s }, lip, this.wheelMaterial, this.barrelMaterial, this.kit);
+        g = new THREE.Group();
+        g.name = 'rim_shell';
+        g.add(shell.lipMesh, shell.barrelMesh);
+        if (shell.bolts) g.add(shell.bolts);
+        this.shellTemplates.set(tk, g);
+      }
+      this.wheelPartCache.set(`rim|${key}`, g);
+    }
+    return g;
+  }
+
+  /**
+   * Shows the tyre and rim shell for the current rim size and lip style (cached: a change swaps
+   * groups, nothing is rebuilt once seen) and scales the spoke faces to the rim.
+   */
+  private syncWheelShells() {
+    const s = this.rimScale;
     this.wheelAssemblies.forEach((a) => {
-      this.disposeWheelShell(a);
-      a.dims = { ...a.dims, rimScale: this.rimScale };
-      a.tyre = buildTyre(a.dims, this.kit);
-      a.spinGroup.add(a.tyre);
-      const shell = buildRimShell(a.dims, this.lipStyle, this.wheelMaterial, this.barrelMaterial, this.kit);
-      const rim = new THREE.Group();
-      rim.name = 'rim_shell';
-      rim.add(shell.lipMesh, shell.barrelMesh);
-      if (shell.bolts) rim.add(shell.bolts);
+      a.dims = { ...a.dims, rimScale: s };
+      const tyre = this.tyreFor(a, s);
+      if (a.tyre !== tyre) {
+        if (a.tyre) a.spinGroup.remove(a.tyre);
+        a.tyre = tyre;
+        a.spinGroup.add(tyre);
+      }
+      const rim = this.rimShellFor(a, this.lipStyle, s);
+      if (a.rim !== rim) {
+        if (a.rim) a.spinGroup.remove(a.rim);
+        a.rim = rim;
+        a.spinGroup.add(rim);
+      }
       rim.visible = this.wheelMode !== 'model';
-      a.rim = rim;
-      a.spinGroup.add(rim);
+      // Spoke faces are built for 20"; they scale across the face, not in depth
+      a.spokeMeshGroup.scale.set(1, s, s);
     });
   }
 
-  private disposeWheelShell(a: (typeof this.wheelAssemblies)[number]) {
-    if (a.tyre) {
-      a.spinGroup.remove(a.tyre);
-      (a.tyre.userData.dispose as (() => void) | undefined)?.();
-      a.tyre = null;
-    }
-    if (a.rim) {
-      a.spinGroup.remove(a.rim);
-      a.rim.traverse((o) => {
+  /** Frees every cached tyre and rim shell (engine cleanup). */
+  private disposeWheelShells() {
+    this.wheelAssemblies.forEach((a) => {
+      if (a.tyre) a.spinGroup.remove(a.tyre);
+      if (a.rim) a.spinGroup.remove(a.rim);
+      a.tyre = a.rim = null;
+    });
+    this.tyreTemplates.forEach((t) => (t.userData.dispose as (() => void) | undefined)?.());
+    this.shellTemplates.forEach((g) =>
+      g.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) m.geometry.dispose();
-        if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
-      });
-      a.rim = null;
-    }
+      })
+    );
+    // instanced bolts: each clone has its own instance matrix on the GPU
+    this.wheelPartCache.forEach((g) => g.traverse((o) => (o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).dispose()));
+    this.shellTemplates.forEach((g) => g.traverse((o) => (o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).dispose()));
+    this.tyreTemplates.clear();
+    this.shellTemplates.clear();
+    this.wheelPartCache.clear();
   }
 
   /** Resizes the rim inside a fixed tyre, e.g. '21"'. Bigger rim = thinner sidewall, like a real upgrade. */
   public setRimSize(size: string) {
-    const inches = parseFloat(size);
-    const scale = THREE.MathUtils.clamp(Number.isFinite(inches) ? inches / 20 : 1, 0.8, 1.2);
-    // Called on every wheel choice; only a real size change is worth rebuilding four tyres and rims
+    const scale = CarConfiguratorEngine.rimScaleFor(size);
     if (Math.abs(scale - this.rimScale) < 1e-6 && this.wheelAssemblies.every((a) => a.tyre)) return;
     this.rimScale = scale;
-    this.applyRimScale();
-    this.markShadowDirty(10);
+    // A wheel picked with a new size changes size when its spokes arrive, all in one frame
+    if (this.pendingWheelToken !== null) return;
+    // A size seen (or prepared) before swaps meshes now; a new one is prepared a slice at a time
+    // first, with the current size staying on screen until it is ready
+    const apply = () => {
+      if (this.isDisposed || this.pendingWheelToken !== null || scale !== this.rimScale) return;
+      this.syncWheelShells();
+      this.markShadowDirty(3);
+    };
+    if (this.readyScales.has(scale)) apply();
+    else this.prepareRimSize(scale, true).then(apply);
   }
 
-  private applyRimScale() {
-    const s = this.rimScale;
-    this.rebuildWheelShells();
-    // Spoke faces are built for 20"; they scale across the face, not in depth
-    this.wheelAssemblies.forEach((a) => a.spokeMeshGroup.scale.set(1, s, s));
+  private static rimScaleFor(size: string) {
+    const inches = parseFloat(size);
+    return THREE.MathUtils.clamp(Number.isFinite(inches) ? inches / 20 : 1, 0.8, 1.2);
+  }
+
+  /**
+   * Gets a rim size ready to show without a long task: the sidewall lettering a slice per idle
+   * moment, then each tyre, then each new texture sent to the GPU on its own (the first frame of
+   * a new size used to upload four 4096 x 256 maps at once). `urgent` (the customer picked it)
+   * shortens the idle waits; a background preparation already running is hurried along.
+   */
+  private prepareRimSize(s: number, urgent: boolean): Promise<void> {
+    if (this.readyScales.has(s)) return Promise.resolve();
+    const running = this.sizeJobs.get(s);
+    if (running) {
+      if (urgent) running.urgent = true;
+      return running.promise;
+    }
+    const job = { urgent, promise: Promise.resolve() };
+    const idle = () => new Promise<IdleDeadline | undefined>((resolve) => CarConfiguratorEngine.whenIdle(resolve, job.urgent ? 50 : 3000));
+    job.promise = (async () => {
+      const assemblies = this.wheelAssemblies;
+      for (const a of assemblies.filter((x) => x.isRight)) {
+        await prepareSidewallMaps(tyreSizeLabel({ ...a.dims, rimScale: s }), () => job.urgent);
+      }
+      // the tyres themselves (lathes; the lettering is ready): as many per idle moment as fit
+      const todo = assemblies.slice();
+      while (todo.length) {
+        const deadline = await idle();
+        if (this.isDisposed) return;
+        do this.tyreFor(todo.shift()!, s);
+        while (todo.length && deadline && deadline.timeRemaining() > 12);
+      }
+      const textures = new Set<THREE.Texture>();
+      assemblies.forEach((a) =>
+        this.tyreFor(a, s).traverse((o) => {
+          const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+          if (mat && !Array.isArray(mat)) [mat.map, mat.normalMap, mat.roughnessMap].forEach((t) => t && textures.add(t));
+        })
+      );
+      for (const t of textures) {
+        await idle();
+        if (this.isDisposed) return;
+        this.renderer.initTexture(t);
+      }
+      this.readyScales.add(s);
+    })();
+    job.promise = job.promise.catch((err) => {
+      // shown anyway: the tyres are then built when the size is shown, as they used to be
+      console.warn('Could not prepare the rim size ahead; building it when shown.', err);
+      this.readyScales.add(s);
+    });
+    job.promise.finally(() => this.sizeJobs.delete(s));
+    this.sizeJobs.set(s, job);
+    return job.promise;
+  }
+
+  /**
+   * Prepares the tyres and rim shells for these sizes ahead of time, in idle time and the sizes
+   * next to the current one first, so a size change only swaps meshes.
+   */
+  public preloadRimSizes(sizes: string[]) {
+    if (this.isDisposed) return;
+    const scales = [...new Set([this.rimScale, ...sizes.map((s) => CarConfiguratorEngine.rimScaleFor(s))])].filter((s) => !this.sizesPreloaded.has(s));
+    scales.forEach((s) => this.sizesPreloaded.add(s));
+    scales.sort((x, y) => Math.abs(x - this.rimScale) - Math.abs(y - this.rimScale));
+    (async () => {
+      for (const s of scales) {
+        await this.prepareRimSize(s, false);
+        // the rim shells of every lip style (a pick can change lip and size together)
+        const shells = (['mono', 'two', 'three'] as LipStyle[]).flatMap((lip) => this.wheelAssemblies.map((a) => () => this.rimShellFor(a, lip, s)));
+        while (shells.length) {
+          const deadline = await new Promise<IdleDeadline | undefined>((resolve) => CarConfiguratorEngine.whenIdle(resolve));
+          if (this.isDisposed) return;
+          do shells.shift()!();
+          while (shells.length && deadline && deadline.timeRemaining() > 12);
+        }
+      }
+    })();
+  }
+
+  private static whenIdle(fn: (deadline?: IdleDeadline) => void, timeout = 3000) {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback((d) => fn(d), { timeout });
+    else setTimeout(() => fn(), Math.min(timeout, 200));
   }
 
   // ----------------------------------------------------
@@ -1480,8 +1641,6 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   public applyWheelDesign(wheel: WheelDesign, custom2DConfig?: Custom2DWheelConfig) {
     const token = ++this.wheelDesignToken;
-    this.markShadowDirty(90);
-    this.customFaceMaterials = [];
 
     // A 2D guide image wins; otherwise an uploaded rim PNG replaces the procedural spokes.
     const imageConfig: Custom2DWheelConfig | null = custom2DConfig?.imageUrl
@@ -1491,31 +1650,36 @@ export class CarConfiguratorEngine {
         : null;
     const modelUrl = custom2DConfig?.imageUrl ? null : wheel.modelUrl;
     const mode = modelUrl ? 'model' : imageConfig ? 'image' : 'procedural';
-    this.wheelMode = mode;
-
     // Two- and three-piece designs get a polished, bolted lip
     const lip = lipStyleFor(wheel.style, wheel.name);
-    if (lip !== this.lipStyle) {
-      this.lipStyle = lip;
-      this.rebuildWheelShells();
-    }
 
-    this.wheelAssemblies.forEach((assembly) => {
-      while (assembly.spokeMeshGroup.children.length > 0) {
-        assembly.spokeMeshGroup.remove(assembly.spokeMeshGroup.children[0]);
+    // The wheel on screen stays as it is until the new one is ready; then spokes, lip, size and
+    // the hub change together, in one frame. A newer pick (token) makes an older result stale.
+    this.pendingWheelToken = token;
+    const commit = (mount: () => void) => {
+      if (token !== this.wheelDesignToken || this.isDisposed) return;
+      if (!this.readyScales.has(this.rimScale)) {
+        // picked together with a size not prepared yet: both arrive together
+        this.prepareRimSize(this.rimScale, true).then(() => commit(mount));
+        return;
       }
-      // A GLB rim brings its own barrel, lip and centre
-      if (assembly.rim) assembly.rim.visible = mode !== 'model';
-      assembly.hub.visible = mode !== 'model';
-    });
+      this.pendingWheelToken = null;
+      this.wheelMode = mode;
+      this.lipStyle = lip;
+      this.clearSpokes();
+      this.syncWheelShells();
+      this.wheelAssemblies.forEach((a) => {
+        // A GLB rim brings its own barrel, lip and centre
+        if (a.rim) a.rim.visible = mode !== 'model';
+        a.hub.visible = mode !== 'model';
+      });
+      mount();
+      this.markShadowDirty(3);
+    };
 
     if (modelUrl) {
       this.loadRimModel(modelUrl).then(
-        (template) => {
-          if (token !== this.wheelDesignToken) return;
-          this.wheelAssemblies.forEach((a) => this.mountRimModel(a.spokeMeshGroup, template, !!wheel.modelFlip));
-          this.markShadowDirty(30);
-        },
+        (template) => commit(() => this.wheelAssemblies.forEach((a) => this.mountRimModel(a.spokeMeshGroup, template, !!wheel.modelFlip))),
         (err) => {
           console.warn(`Failed to load 3D rim for ${wheel.name}; falling back.`, err);
           if (token === this.wheelDesignToken) this.applyWheelDesign({ ...wheel, modelUrl: null });
@@ -1526,79 +1690,95 @@ export class CarConfiguratorEngine {
 
     if (imageConfig && imageConfig.extrude !== false) {
       // Photo -> cleaned, symmetric spoke mask -> bevelled concave 3D face in the wheel's finish
+      // (built in a worker; cached per image, and usually prepared ahead by preloadWheels)
       this.loadRimFace(imageConfig.imageUrl, RIM_FACE_MASKS[wheel.id], RIM_FACE_OPTIONS[wheel.id]).then(
-        (faces) => {
-          if (token !== this.wheelDesignToken) return;
-          if (!faces) {
-            this.wheelAssemblies.forEach((a) => this.applyCustom2DSpokeTexture(a.spokeMeshGroup, { ...imageConfig, extrude: false }, a.isFront, token));
-            return;
-          }
-          this.wheelAssemblies.forEach((a) => {
-            const face = new THREE.Mesh(a.isFront ? faces.front : faces.rear, this.wheelMaterial);
-            face.name = 'rim_spokes';
-            a.spokeMeshGroup.add(face);
-          });
-          this.markShadowDirty(30);
-        },
-        (err) => console.warn('Failed to build the rim face from its image:', err)
+        (faces) =>
+          commit(() => {
+            if (!faces) {
+              this.wheelAssemblies.forEach((a) => this.applyCustom2DSpokeTexture(a.spokeMeshGroup, { ...imageConfig, extrude: false }, a.isFront, token));
+              return;
+            }
+            this.wheelAssemblies.forEach((a) => {
+              const face = new THREE.Mesh(a.isFront ? faces.front : faces.rear, this.wheelMaterial);
+              face.name = 'rim_spokes';
+              a.spokeMeshGroup.add(face);
+            });
+          }),
+        (err) => {
+          console.warn('Failed to build the rim face from its image:', err);
+          commit(() => {});
+        }
       );
       return;
     }
 
-    this.wheelAssemblies.forEach((assembly) => {
-      if (imageConfig) {
-        this.applyCustom2DSpokeTexture(assembly.spokeMeshGroup, imageConfig, assembly.isFront, token);
-        return;
+    commit(() =>
+      this.wheelAssemblies.forEach((assembly) => {
+        if (imageConfig) {
+          this.applyCustom2DSpokeTexture(assembly.spokeMeshGroup, imageConfig, assembly.isFront, token);
+          return;
+        }
+        const concavity = rimLayout(assembly.dims).dish;
+        const mirror = !assembly.isRight && (wheel.spokeType === 'directional' || wheel.spokeType === 'aerodisc');
+        const face = new THREE.Mesh(this.getProceduralFaceGeometry(wheel, mirror, concavity), this.wheelMaterial);
+        assembly.spokeMeshGroup.add(face);
+        if (wheel.spokeType === 'clubsport') this.addLipBolts(assembly.spokeMeshGroup);
+      })
+    );
+  }
+
+  /**
+   * Takes the current spokes off. Geometry made for one mount (flat image discs, lip bolts) is
+   * freed; cached geometry is kept. GLB / flat-image face materials are disposed after the next
+   * frame, so a successor with the same shader takes the program over instead of recompiling it.
+   */
+  private clearSpokes() {
+    this.wheelAssemblies.forEach((a) => {
+      for (const child of a.spokeMeshGroup.children.slice()) {
+        a.spokeMeshGroup.remove(child);
+        child.traverse((o) => {
+          if (o.userData.ownGeometry) (o as THREE.Mesh).geometry.dispose();
+        });
       }
-      const concavity = rimLayout(assembly.dims).dish;
-      const mirror = !assembly.isRight && (wheel.spokeType === 'directional' || wheel.spokeType === 'aerodisc');
-      const face = new THREE.Mesh(this.getProceduralFaceGeometry(wheel, mirror, concavity), this.wheelMaterial);
-      assembly.spokeMeshGroup.add(face);
-      if (wheel.spokeType === 'clubsport') this.addLipBolts(assembly.spokeMeshGroup);
     });
+    this.retiredMaterials.push(...this.customFaceMaterials);
+    this.customFaceMaterials = [];
+  }
+
+  /**
+   * Prepares the 3D spokes of every photo wheel in the background, nearest to the current one in
+   * the list first, one at a time in idle time (rimFaceAsync's queue), so picking one later only
+   * swaps meshes. A pick jumps the queue.
+   */
+  public preloadWheels(wheels: WheelDesign[], currentId?: string) {
+    if (this.isDisposed || this.isShowcase) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    const list = wheels.filter((w) => w.imageUrl && w.imageExtrude !== false && !w.modelUrl);
+    const at = Math.max(0, list.findIndex((w) => w.id === currentId));
+    const order: WheelDesign[] = [];
+    for (let d = 1; order.length < list.length - 1 && d < list.length; d++) {
+      for (const i of [at + d, at - d]) {
+        const w = list[((i % list.length) + list.length) % list.length];
+        if (w && w.id !== list[at]?.id && !order.includes(w)) order.push(w);
+      }
+    }
+    order.forEach((w) => this.loadRimFace(w.imageUrl!, RIM_FACE_MASKS[w.id], RIM_FACE_OPTIONS[w.id], 'low').catch(() => {}));
   }
 
   /** 3D spoke faces (front and rear dish) from a rim photo; cached per image. */
-  private loadRimFace(photoUrl: string, faceMaskUrl?: string, options: RimPhotoOptions = {}) {
+  private loadRimFace(photoUrl: string, faceMaskUrl?: string, options: RimPhotoOptions = {}, priority: RimFacePriority = 'high') {
     // a prepared face mask (rimFaces.ts) replaces the photo for the 3D spokes
     const url = faceMaskUrl ?? photoUrl;
     const opts: RimPhotoOptions = { ...options, cleanFace: !!faceMaskUrl };
     const key = `${url}|${JSON.stringify(opts)}`;
     let p = this.rimFaceCache.get(key);
     if (!p) {
-      p = this.loadWheelTexture(url).then(async (texture) => {
-        let mask: ReturnType<typeof processRimPhoto> = null;
-        try {
-          // about a second of work: off the main thread, so the page keeps responding
-          mask = await processRimPhotoAsync(texture.image as HTMLImageElement, 1024, opts);
-        } catch (err) {
-          console.warn('Could not read rim image pixels (CORS?); showing it flat.', err);
-        }
-        if (!mask) return null;
-        // outlines smoothed along their length (6 px) with the corners kept, then simplified to
-        // 2 px: straight spoke edges come out as straight lines
-        const raw = traceMaskShapes(mask.data, mask.size, mask.size, 0.5, 2.0, 6);
-        if (!raw) return null;
-        // traced radius 1 = mask edge; rescale so 1 = the spoke ends
-        const k = 1 / FACE_FRACTION;
-        const shapes = raw.map((sh) => {
-          const out = new THREE.Shape(sh.getPoints().map((pt) => pt.multiplyScalar(k)));
-          // Specks in the cut-out (about 35 mm²) would show as pin-holes in the spokes; the
-          // smallest real window is about 25 times larger.
-          out.holes = sh.holes
-            .map((h) => h.getPoints().map((pt) => pt.multiplyScalar(k)))
-            .filter((pts) => Math.abs(THREE.ShapeUtils.area(pts)) > 0.003)
-            .map((pts) => new THREE.Path(pts));
-          return out;
-        });
-        const build = (isFront: boolean) => {
-          const L = rimLayout({ tyreRadius: 0.35, tyreWidth: isFront ? 0.265 : 0.295, rimScale: 1, isFront });
-          return buildSpokeFace(shapes, { radius: L.faceRadius, depth: L.spokeDepth, dish: L.dish, bevel: SPOKE_BEVEL });
-        };
-        return { front: build(true), rear: build(false) };
-      });
+      // fetch, decode, mask, trace and extrude, all in the rim face worker
+      p = buildRimFacesAsync(url, opts, priority);
       p.catch(() => this.rimFaceCache.delete(key));
       this.rimFaceCache.set(key, p);
+    } else if (priority === 'high') {
+      promoteRimFace(url, opts); // queued for the background: now it is wanted
     }
     return p;
   }
@@ -1630,6 +1810,7 @@ export class CarConfiguratorEngine {
     for (let b = 0; b < 24; b++) {
       const a = (b * Math.PI * 2) / 24;
       const bolt = new THREE.Mesh(boltGeo, this.chromeMaterial);
+      bolt.userData.ownGeometry = true; // made for this mount: freed when the spokes change
       bolt.position.set(0.003, Math.cos(a) * 0.245 * 0.93, Math.sin(a) * 0.245 * 0.93);
       parent.add(bolt);
     }
@@ -1763,6 +1944,7 @@ export class CarConfiguratorEngine {
           face.castShadow = true;
           face.receiveShadow = true;
           parent.add(face);
+          this.markShadowDirty(3);
           return;
         }
 
@@ -1787,6 +1969,7 @@ export class CarConfiguratorEngine {
 
         this.customFaceMaterials.push(customMat);
         const faceMesh = new THREE.Mesh(faceGeo, customMat);
+        faceMesh.userData.ownGeometry = true;
         faceMesh.position.x = -concavity * 0.5;
         parent.add(faceMesh);
 
@@ -1795,9 +1978,11 @@ export class CarConfiguratorEngine {
           new THREE.TorusGeometry(outerR * 0.95, 0.01, 16, 48),
           this.wheelMaterial
         );
+        supportRing.userData.ownGeometry = true;
         supportRing.position.x = -concavity * 0.6;
         supportRing.rotation.y = Math.PI / 2;
         parent.add(supportRing);
+        this.markShadowDirty(3);
       },
       (err) => {
         console.warn('Failed to load custom 2D wheel texture:', err);
@@ -2023,6 +2208,10 @@ export class CarConfiguratorEngine {
     this.syncRenderedBody();
     this.applyRenderedEnvironment(on);
     if (on) this.isAutoRotate = false;
+    if (!on && this.shadowStale) {
+      this.shadowStale = false;
+      this.markShadowDirty();
+    }
     this.requestRender();
   }
   private applyRenderedEnvironment(on: boolean) {
@@ -2143,7 +2332,10 @@ export class CarConfiguratorEngine {
     this.renderer.setSize(outW, outH, false); // the canvas on screen keeps its CSS size
     this.camera.aspect = outW / outH;
     this.camera.updateProjectionMatrix();
-    if (this.shadowFrames > 0) this.renderContactShadow();
+    if (this.shadowFrames > 0 || (wasRendered && this.shadowStale)) {
+      this.renderContactShadow();
+      if (wasRendered) this.shadowStale = false;
+    }
 
     const src = this.renderer.domElement;
     const shots = views.map((view) => {
@@ -2323,7 +2515,8 @@ export class CarConfiguratorEngine {
     this.stepDrive(Math.min(delta, 0.1));
     if (this.shadowFrames > 0) {
       this.shadowFrames--;
-      this.renderContactShadow();
+      if (this.renderedBody) this.shadowStale = true; // hidden: not worth a pass now
+      else this.renderContactShadow();
     }
 
     // Wheel spin animation
@@ -2340,6 +2533,12 @@ export class CarConfiguratorEngine {
     wheelShadingUniforms.uFloorY.value = this.isShowcase ? -10 : 0;
 
     this.renderer.render(this.scene, this.camera);
+
+    // replaced face materials: their successors have drawn and hold the shader programs now
+    if (this.retiredMaterials.length) {
+      this.retiredMaterials.forEach((m) => m.dispose());
+      this.retiredMaterials = [];
+    }
   }
 
   // ----------------------------------------------------
@@ -2394,7 +2593,9 @@ export class CarConfiguratorEngine {
     // rim shells, the kit's materials and the paint copies
     this.rimFaceCache.forEach((p) => p.then((f) => { f?.front.dispose(); f?.rear.dispose(); }).catch(() => {}));
     this.rimFaceCache.clear();
-    this.wheelAssemblies.forEach((a) => this.disposeWheelShell(a));
+    this.disposeWheelShells();
+    this.retiredMaterials.forEach((m) => m.dispose());
+    this.customFaceMaterials.forEach((m) => m.dispose());
     for (const m of Object.values(this.kit ?? {})) (m as THREE.Material | undefined)?.dispose?.();
     this.barrelMaterial?.dispose();
     this.wheelMaterial?.dispose();

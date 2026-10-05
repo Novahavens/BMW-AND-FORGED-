@@ -49,6 +49,19 @@ function pixels(url: string): Promise<ImageData> {
   return p;
 }
 
+/**
+ * Recoloured frames by car, view, paint and base, most recently used last: going back to a view
+ * already seen (e.g. out of the wheel close-up) redraws it instead of recolouring 1.3 M pixels
+ * again. About 5 MB each at 1440 x 900, so only the last few are kept.
+ */
+const RECOLOURED_MAX = 10;
+const recoloured = new Map<string, ImageData>();
+function rememberRecoloured(key: string, img: ImageData) {
+  recoloured.delete(key);
+  recoloured.set(key, img);
+  while (recoloured.size > RECOLOURED_MAX) recoloured.delete(recoloured.keys().next().value!);
+}
+
 const hexLin = (hex: string) => {
   const h = hex.replace('#', '');
   return [0, 2, 4].map((i) => toLin[parseInt(h.slice(i, i + 2), 16) || 0]);
@@ -62,26 +75,40 @@ export default function RenderedCarView({ carId, view, paint, className }: { car
     let cancelled = false;
     const kind = paint.type === 'Frozen' ? 'matte' : 'gloss';
     const base = `/renders/${carId}/${view}/${kind}`;
-    Promise.all([pixels(`${base}_w.webp`), pixels(`${base}_b.webp`)])
-      .then(([w, b]) => {
-        if (cancelled || !canvasRef.current) return;
-        const c = canvasRef.current;
-        c.width = w.width;
-        c.height = w.height;
-        const out = new ImageData(w.width, w.height);
-        const [r, g, bl] = hexLin(paint.hex);
-        const W = w.data, B = b.data, O = out.data;
-        for (let i = 0; i < W.length; i += 4) {
-          const br = toLin[B[i]], bg = toLin[B[i + 1]], bb = toLin[B[i + 2]];
-          O[i] = toSrgb[Math.min(4095, ((br + (toLin[W[i]] - br) * r) * 4095) | 0)];
-          O[i + 1] = toSrgb[Math.min(4095, ((bg + (toLin[W[i + 1]] - bg) * g) * 4095) | 0)];
-          O[i + 2] = toSrgb[Math.min(4095, ((bb + (toLin[W[i + 2]] - bb) * bl) * 4095) | 0)];
-          O[i + 3] = W[i + 3];
-        }
-        c.getContext('2d')!.putImageData(out, 0, 0);
-        setShown(true);
-      })
-      .catch(() => setShown(false));
+    const key = `${base}|${paint.hex}`;
+    const show = (img: ImageData) => {
+      const c = canvasRef.current!;
+      c.width = img.width;
+      c.height = img.height;
+      c.getContext('2d')!.putImageData(img, 0, 0);
+      setShown(true);
+    };
+    const seen = recoloured.get(key);
+    if (seen) {
+      rememberRecoloured(key, seen);
+      show(seen);
+    } else {
+      recolour();
+    }
+    function recolour() {
+      Promise.all([pixels(`${base}_w.webp`), pixels(`${base}_b.webp`)])
+        .then(([w, b]) => {
+          if (cancelled || !canvasRef.current) return;
+          const out = new ImageData(w.width, w.height);
+          const [r, g, bl] = hexLin(paint.hex);
+          const W = w.data, B = b.data, O = out.data;
+          for (let i = 0; i < W.length; i += 4) {
+            const br = toLin[B[i]], bg = toLin[B[i + 1]], bb = toLin[B[i + 2]];
+            O[i] = toSrgb[Math.min(4095, ((br + (toLin[W[i]] - br) * r) * 4095) | 0)];
+            O[i + 1] = toSrgb[Math.min(4095, ((bg + (toLin[W[i + 1]] - bg) * g) * 4095) | 0)];
+            O[i + 2] = toSrgb[Math.min(4095, ((bb + (toLin[W[i + 2]] - bb) * bl) * 4095) | 0)];
+            O[i + 3] = W[i + 3];
+          }
+          rememberRecoloured(key, out);
+          show(out);
+        })
+        .catch(() => setShown(false));
+    }
     // warm the other views so switching is instant
     RENDER_VIEWS.forEach((v) => ['_w', '_b'].forEach((s) => pixels(`/renders/${carId}/${v}/${kind}${s}.webp`).catch(() => {})));
     return () => {
