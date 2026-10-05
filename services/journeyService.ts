@@ -76,7 +76,9 @@ export function saveConfiguration(config: SavedConfiguration): SavedCode {
         const { error } = await withTimeout(supabase.from('saved_configurations').insert({ code, payload: config }), 8000);
         if (!error) return true;
         console.warn(`Saving configuration ${code} failed (attempt ${attempt + 1}):`, error.message);
-        if (error.code === '23505') return false; // the code exists already (1 in 10^15): keep the local copy only
+        // The code exists already: on a retry, an earlier attempt that timed out here landed after all;
+        // on the first try it is a clash (1 in 10^15): keep the local copy only
+        if (error.code === '23505') return attempt > 0;
       } catch (err) {
         console.warn(`Saving configuration ${code} failed (attempt ${attempt + 1}):`, err);
       }

@@ -1613,9 +1613,14 @@ export class CarConfiguratorEngine {
    */
   public preloadRimSizes(sizes: string[]) {
     if (this.isDisposed) return;
-    const scales = [...new Set([this.rimScale, ...sizes.map((s) => CarConfiguratorEngine.rimScaleFor(s))])].filter((s) => !this.sizesPreloaded.has(s));
+    // Only the current size and its two nearest: each size's sidewall lettering costs ~8 MB of page
+    // memory and ~10 MB on the GPU, too much to hold for every size on older phones. Further sizes
+    // are still prepared in idle slices when picked.
+    const scales = [...new Set([this.rimScale, ...sizes.map((s) => CarConfiguratorEngine.rimScaleFor(s))])]
+      .sort((x, y) => Math.abs(x - this.rimScale) - Math.abs(y - this.rimScale))
+      .slice(0, 3)
+      .filter((s) => !this.sizesPreloaded.has(s));
     scales.forEach((s) => this.sizesPreloaded.add(s));
-    scales.sort((x, y) => Math.abs(x - this.rimScale) - Math.abs(y - this.rimScale));
     (async () => {
       for (const s of scales) {
         await this.prepareRimSize(s, false);
@@ -1756,10 +1761,11 @@ export class CarConfiguratorEngine {
     const list = wheels.filter((w) => w.imageUrl && w.imageExtrude !== false && !w.modelUrl);
     const at = Math.max(0, list.findIndex((w) => w.id === currentId));
     const order: WheelDesign[] = [];
-    for (let d = 1; order.length < list.length - 1 && d < list.length; d++) {
+    // from d = 0: when the current wheel isn't a photo wheel, list[at] still needs preparing
+    for (let d = 0; d < list.length; d++) {
       for (const i of [at + d, at - d]) {
         const w = list[((i % list.length) + list.length) % list.length];
-        if (w && w.id !== list[at]?.id && !order.includes(w)) order.push(w);
+        if (w && w.id !== currentId && !order.includes(w)) order.push(w);
       }
     }
     order.forEach((w) => this.loadRimFace(w.imageUrl!, RIM_FACE_MASKS[w.id], RIM_FACE_OPTIONS[w.id], 'low').catch(() => {}));
@@ -2081,6 +2087,7 @@ export class CarConfiguratorEngine {
 
     // GLB and flat image rim faces take the finish too (without flake: their units vary)
     this.customFaceMaterials.forEach((m) => applyFinishLook(m, look));
+    this.requestRender(); // a still camera would otherwise show it on the next heartbeat (up to 1 s)
   }
 
   public applyCaliperColor(caliper: CaliperColor) {
@@ -2166,6 +2173,8 @@ export class CarConfiguratorEngine {
       this.spherical = { ...this.targetSpherical };
       this.currentLookAt.copy(this.targetLookAt);
       this.updateCameraTransform();
+      // already settled, so nothing else asks for a frame (rendered mode: the body changes view at once)
+      this.requestRender();
     }
   }
 
@@ -2581,6 +2590,8 @@ export class CarConfiguratorEngine {
         this.container.removeChild(this.renderer.domElement);
       }
       this.renderer.dispose();
+      // iOS keeps a disposed context's GPU memory until garbage collection; release it now
+      this.renderer.forceContextLoss();
     }
     this.modelScenes.forEach((scene) => CarConfiguratorEngine.disposeScene(scene));
     this.modelScenes.clear();

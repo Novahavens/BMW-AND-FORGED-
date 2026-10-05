@@ -27,10 +27,18 @@ const toSrgb = new Uint8ClampedArray(4096).map((_, i) => {
   return 255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
 });
 
+/**
+ * Decoded base frames, most recently used last. About 5 MB each, so only one car and paint kind's
+ * worth (every view, white and black base) is kept: they used to pile up for every car visited.
+ */
+const IMAGES_MAX = RENDER_VIEWS.length * 2;
 const images = new Map<string, Promise<ImageData>>();
 function pixels(url: string): Promise<ImageData> {
   let p = images.get(url);
-  if (!p) {
+  if (p) {
+    images.delete(url);
+    images.set(url, p);
+  } else {
     p = new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -44,7 +52,11 @@ function pixels(url: string): Promise<ImageData> {
       img.onerror = reject;
       img.src = url;
     });
-    images.set(url, p);
+    const pending = p;
+    // a failed load (e.g. a dropped connection) is tried again next time, not remembered
+    pending.catch(() => images.get(url) === pending && images.delete(url));
+    images.set(url, pending);
+    while (images.size > IMAGES_MAX) images.delete(images.keys().next().value!);
   }
   return p;
 }
@@ -54,7 +66,8 @@ function pixels(url: string): Promise<ImageData> {
  * already seen (e.g. out of the wheel close-up) redraws it instead of recolouring 1.3 M pixels
  * again. About 5 MB each at 1440 x 900, so only the last few are kept.
  */
-const RECOLOURED_MAX = 10;
+// ~5 MB each; phones and tablets keep fewer (switching to the wheel close-up and back needs 2-3)
+const RECOLOURED_MAX = typeof window !== 'undefined' && window.matchMedia('(max-width: 899px), (pointer: coarse)').matches ? 4 : 10;
 const recoloured = new Map<string, ImageData>();
 function rememberRecoloured(key: string, img: ImageData) {
   recoloured.delete(key);

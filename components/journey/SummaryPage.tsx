@@ -229,7 +229,7 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
         <div className="mt-5 rounded-2xl bg-ink/[0.04] py-6 text-center">
           <Eyebrow>Configuration code</Eyebrow>
           <div className="mt-2 font-mono text-[26px] font-semibold tracking-[0.22em]">{p.code ?? '··········'}</div>
-          {p.code && p.codeShared === undefined && <p className="mt-2 text-[11px] text-mute">Saving to your account…</p>}
+          {p.code && p.codeShared === undefined && <p className="mt-2 text-[11px] text-mute">Saving your build…</p>}
           {p.codeShared === false && (
             <p className="mx-6 mt-2 text-[11px] leading-relaxed text-mute">
               Saved on this device only: the connection didn't allow a shared copy, so the link may not open elsewhere yet.
