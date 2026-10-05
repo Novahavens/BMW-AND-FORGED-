@@ -9,7 +9,7 @@ Background is transparent; the floor is a shadow catcher.
   python3 scripts/prerender/render_car.py scene.glb public/renders/<carId> [--samples 32] [--width 1440]
 """
 import argparse, math, os, re, sys
-import bpy, bmesh
+import bpy, bmesh, mathutils
 
 ap = argparse.ArgumentParser()
 ap.add_argument('glb'); ap.add_argument('out')
@@ -27,10 +27,28 @@ a = ap.parse_args()
 #        once subdivided, so drop all but one variant.
 #  thin_glass: glazing modelled as open or doubled sheets refracts the cabin into dark blotches;
 #        render it as a thin sheet (IOR 1, reflections from the coat layer) instead.
+#  lamps: regex of headlight meshes. The mirrored lamp (…_R001) leaves the exporter with reversed
+#        winding but outward custom normals, so Cycles shades it from behind (black); its chrome
+#        reflector is also an 'other' material (made satin black) and the lens a 30% white alpha
+#        sheet. Re-wind those meshes, then give the lamp parts the materials in LAMP_MATS.
 CAR_FIXES = {
     # four front-fender variants (stock, Competition, CS, Keyvany): keep the Competition one
     'm8_f92': {'hide': r'^(PAINT_)?(m8f92_fender_[LR](_cs)?(00\d)?_m8f92_|keyvany_fender_[LR])'},
     'm3_g80': {'thin_glass': True, 'no_subdiv': True},  # subdivided, it runs out of memory (12.7 GB)
+    'm3_touring_g81': {'lamps': r'headlight'},
+}
+LAMP_MATS = {  # source part name in the mesh name: Principled inputs
+    'Lights_Common': {'Base Color': (0.7, 0.7, 0.71, 1), 'Metallic': 1.0, 'Roughness': 0.15},  # reflectors
+    'Chrome_ext': {'Base Color': (0.8, 0.8, 0.81, 1), 'Metallic': 1.0, 'Roughness': 0.12},
+    'Coloured_matte': {'Base Color': (0.12, 0.12, 0.125, 1), 'Metallic': 0.1, 'Roughness': 0.3},  # housing
+    'Coloured_gloss': {'Base Color': (0.06, 0.06, 0.065, 1), 'Metallic': 0.1, 'Roughness': 0.22},
+    'Glass_Saphir': {'Base Color': (0.8, 0.8, 0.8, 1), 'Metallic': 0.05, 'Roughness': 0.4},
+    'signal': {'Base Color': (0.5, 0.5, 0.5, 1), 'Metallic': 0.05, 'Roughness': 0.5},
+    'headlight_high': {'Base Color': (0.0, 0.08, 0.8, 1), 'Metallic': 0.2, 'Roughness': 0.2},
+    'headlight_low': {'Base Color': (0.0, 0.08, 0.8, 1), 'Metallic': 0.2, 'Roughness': 0.2},
+    'running_front': {'Base Color': (0.9, 0.9, 0.9, 1), 'Metallic': 0.0, 'Roughness': 0.35},  # DRL light guides
+    'Glass_Clear': {'Base Color': (0.9, 0.91, 0.92, 1), 'Alpha': 1.0, 'Transmission Weight': 0.92, 'IOR': 1.0,
+                    'Roughness': 0.0, 'Coat Weight': 1.0, 'Coat Roughness': 0.02},  # thin, slightly hazy lens
 }
 fix = CAR_FIXES.get(a.car or os.path.basename(os.path.normpath(a.out)), {})
 
@@ -87,6 +105,26 @@ for o in meshes:
                         b.inputs['IOR'].default_value = 1.0
                         b.inputs['Coat Weight'].default_value = 1.0
                         b.inputs['Coat Roughness'].default_value = 0.02
+
+def rewind(o):
+    """Reverse faces whose winding disagrees with their custom normals, keeping those normals."""
+    me = o.data
+    cn = [c.vector.copy() for c in me.corner_normals]
+    bad = sum(1 for p in me.polygons if sum((cn[i] for i in p.loop_indices), mathutils.Vector()).dot(p.normal) < 0)
+    if bad * 2 < len(me.polygons): return
+    keep = [{me.loops[i].vertex_index: cn[i] for i in p.loop_indices} for p in me.polygons]
+    bm = bmesh.new(); bm.from_mesh(me); bmesh.ops.reverse_faces(bm, faces=bm.faces); bm.to_mesh(me); bm.free()
+    me.normals_split_custom_set([keep[p.index][me.loops[i].vertex_index] for p in me.polygons for i in p.loop_indices])
+
+if fix.get('lamps'):
+    for o in [o for o in meshes if re.search(fix['lamps'], o.name)]:
+        rewind(o)
+        part = next((k for k in LAMP_MATS if k in o.name), None)
+        for s in o.material_slots:
+            b = part and s.material and s.material.node_tree.nodes.get('Principled BSDF')
+            if not b: continue
+            for k, v in LAMP_MATS[part].items(): b.inputs[k].default_value = v
+            if part == 'Glass_Clear': s.material.surface_render_method = 'DITHERED'
 
 # Car extents (Blender is Z-up after import).
 xs = [(o.matrix_world @ v.co) for o in meshes for i, v in enumerate(o.data.vertices) if i % 50 == 0]
