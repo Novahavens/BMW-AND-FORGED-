@@ -36,5 +36,6 @@
  "bolts": 5,
  "pcd": 0.19,
  "bolt_r": 0.032,
- "bore": 0.11
+ "bore": 0.11,
+ "join": "round"
 }

@@ -15,6 +15,8 @@ Extra optional keys used here only:
   "face_thick": 0.10   spoke plate thickness
   "dish": 0.10         how far the hub sits behind the spoke tips (concave face)
   "bolts": 5, "pcd": 0.20, "bolt_r": 0.035, "bore": 0.10
+  "face_scale": 1.0       traced faces only: scale the outline about the centre (see below)
+  "join": "round"         bar faces only: bars that share an end meet in a round knuckle, not overshooting ends
   "bevel": 0.012          edge rounding; "channel": 0.45  milled channel along each bar (fraction
   of its width, bars only), "channel_depth": 0.025
 Output: axle along X, face toward +X (what CarConfiguratorEngine.mountRimModel expects with no
@@ -84,6 +86,10 @@ face = None
 if a.shapes:
     traced = json.load(open(a.shapes))
     SC = 0.975  # traced radius 1 = the photo's rim circle; the engine puts it at 0.24/0.94 of lipOuter 0.262
+    # "face_scale" (opt-in, default 1): grows the traced face about the centre, for photos whose
+    # windows end well inside a wide step lip (FSA-09): the face then fills the lip instead of
+    # leaving a wide flat flange; anything past the face disc is clipped as usual
+    SC *= spec.get('face_scale', 1.0)
     cu = bpy.data.curves.new('face', 'CURVE'); cu.dimensions = '2D'; cu.fill_mode = 'BOTH'
     cu.extrude = FT / 2
     for sh in traced['shapes']:
@@ -108,17 +114,27 @@ else:
         if spec.get('mirror', True) and abs(b['from'][1]) + abs(b['to'][1]) > 0:
             bars.append({**b, 'from': [b['from'][0], -b['from'][1]], 'to': [b['to'][0], -b['to'][1]]})
     channels = []
+    # "join": "round" (opt-in): where one bar ends exactly where another starts (a bent blade drawn
+    # as two bars), neither is extended past that point and a round knuckle fills the joint, so the
+    # blade bends cleanly instead of showing the overshooting ends as a step
+    JOIN = spec.get('join') == 'round'
+    ends = [tuple(b['from']) for b in bars] + [tuple(b['to']) for b in bars]
+    shared = lambda p: JOIN and ends.count(tuple(p)) > 1
     for k in range(fold):
         base = rot + k * 360 / fold
         for b in bars:
             p0 = Vector(yz(b['from'][0], b['from'][1] + base)); p1 = Vector(yz(b['to'][0], b['to'][1] + base))
             u = (p1 - p0).normalized(); nrm = Vector((-u.y, u.x))
-            pa, pb = p0 - u * 0.25, p1 + u * 0.12
+            pa = p0 if shared(b['from']) else p0 - u * 0.25
+            pb = p1 if shared(b['to']) else p1 + u * 0.12
             w0, w1 = b['w'] / 2, b.get('w_tip', b['w']) / 2
             quad = [pa + nrm * w0, pb + nrm * w1, pb - nrm * w1, pa - nrm * w0]
             ob = new_obj('bar', prism([(p.x, p.y) for p in quad], x_back, x_front))
             if face is None: face = ob
             else: boolean(face, ob, 'UNION')
+            if shared(b['to']):
+                ring = [(p1.x + w1 * math.cos(2 * math.pi * i / 48), p1.y + w1 * math.sin(2 * math.pi * i / 48)) for i in range(48)]
+                boolean(face, new_obj('knuckle', prism(ring, x_back, x_front)), 'UNION')
             if CHANNEL > 0:  # the milled channel: a narrower bar, cut into the front face, hub to lip
                 c0, c1 = p0 + u * 0.02, p1 - u * 0.04
                 cw0, cw1 = w0 * CHANNEL, w1 * CHANNEL
