@@ -7,8 +7,9 @@
  *   device name, exact page names; e.g. `phone-390,tablet-portrait` `configure,wheels`)
  *
  * Devices: small / normal / large phones, phones in landscape, small / large tablets (portrait and
- * landscape), laptop, desktop, full HD, 4K. Pages: welcome, showroom, configurator (overview, wheels,
- * size, finish), summary, the wheels gallery, a rim page, terms, delivery.
+ * landscape, incl. iPad 11" 834x1194 and iPad 13" 1366x1024), laptop, desktop, full HD, 4K. Pages:
+ * welcome, showroom, configurator (overview, paint, wheels, size, finish), summary, the wheels
+ * gallery, a rim page with a 360° spin (forged_fsa_12), terms, delivery.
  *
  * Checks per page and device (all must be empty):
  * - overflow:  the page scrolls sideways, or an element pokes out of the viewport
@@ -19,6 +20,8 @@
  * - covered:   the primary action ("Build", "View your ...", "Enter") is not fully visible and
  *              unobstructed
  * - text:      body text below 11 px
+ * - empty:     the page shows no text (still on its loading screen: every other check would pass)
+ * - network:   a request failed TLS (ERR_CERT_*): the app fell back to its bundled catalogue
  * Writes <outDir>/responsive.json, one PNG per device/page, and prints a PASS/FAIL table.
  */
 const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright');
@@ -35,13 +38,15 @@ const DEVICES = {
   'tablet-portrait-768x1024': { width: 768, height: 1024, touch: true },
   'tablet-landscape-1024x768': { width: 1024, height: 768, touch: true },
   'tablet-large-1024x1366': { width: 1024, height: 1366, touch: true },
+  'ipad11-portrait-834x1194': { width: 834, height: 1194, touch: true },
+  'ipad13-landscape-1366x1024': { width: 1366, height: 1024, touch: true },
   'laptop-1280x720': { width: 1280, height: 720 },
   'desktop-1440x900': { width: 1440, height: 900 },
   'fullhd-1920x1080': { width: 1920, height: 1080 },
   'uhd-2560x1440': { width: 2560, height: 1440 }
 };
 
-const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', 'summary', 'forged', 'rim', 'terms', 'delivery'];
+const PAGES = ['welcome', 'showroom', 'configure', 'paint', 'wheels', 'size', 'finish', 'summary', 'forged', 'rim', 'terms', 'delivery'];
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -53,6 +58,10 @@ const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', '
     const p = await ctx.newPage();
     const errors = [];
     p.on('pageerror', (e) => errors.push(e.message));
+    // a TLS failure on Supabase silently swaps in the bundled fallback catalogue: that run tests the
+    // wrong data, so it fails. Fix: trust the proxy CA in $HOME/.pki/nssdb (certutil), never ignore errors
+    const tlsFails = [];
+    p.on('requestfailed', (r) => { if (/ERR_CERT/.test(r.failure()?.errorText || '')) tlsFails.push(new URL(r.url()).host); });
     await p.route(/supabase\.co\/storage\//, (r) => {
       const f = path.join(RIMS, path.basename(r.request().url()));
       if (fs.existsSync(f)) r.fulfill({ body: fs.readFileSync(f), contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } });
@@ -78,9 +87,12 @@ const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', '
         const interactive = tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button';
         // inside a scroller (the panel's list, a modal) only horizontal escape counts
         if (interactive && (r.left < -1 || r.right > vw + 1)) issues.overflow.push(`${tag} "${label(el)}" x ${Math.round(r.left)}..${Math.round(r.right)} of ${vw}`);
-        if (interactive && touch && (r.width < 40 || r.height < 40) && !el.closest('[data-allow-small]')) {
+        // the layout size (offsetWidth/Height), not the box on screen: an entrance animation's 0.985
+        // scale-in made 40 px buttons measure 39.4 when SwiftShader stalled the animation at its start
+        const tw = el.offsetWidth ?? r.width, th = el.offsetHeight ?? r.height;
+        if (interactive && touch && (tw < 40 || th < 40) && !el.closest('[data-allow-small]')) {
           // only report when actually on screen
-          if (r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw) issues.tap.push(`${tag} "${label(el)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
+          if (r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw) issues.tap.push(`${tag} "${label(el)}" ${tw}x${th}`);
         }
         if (/^(h1|h2|h3|button|a|span|p|div)$/.test(tag) && el.children.length === 0 && el.textContent.trim() && el.clientWidth > 2) {
           const cs = getComputedStyle(el);
@@ -107,13 +119,24 @@ const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', '
       try {
         await setup();
         await p.waitForTimeout(1800);
+        // entrance animations (a 0.985 scale-in, a 14 px rise) must have ended, or a 40 px button
+        // measures 39.4 and a row is caught mid-slide; a busy sandbox can still be running them here
+        await p.evaluate(() => Promise.race([
+          Promise.all(document.getAnimations().filter((a) => a.effect && a.effect.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
+          new Promise((r) => setTimeout(r, 15000))
+        ]));
         issues = await audit(page);
+        // a page still on its blank loading screen would pass every check
+        if ((await p.evaluate(() => document.body.innerText.trim().length)) < 20) issues.empty = ['page has no text: not rendered'];
+        if (tlsFails.length) issues.network = [`TLS failed: ${[...new Set(tlsFails.splice(0))].join(', ')}`];
       } catch (e) {
         issues = { error: [String(e.message).split('\n')[0]] };
       }
       try { await p.screenshot({ path: path.join(OUT, `${dev}__${page}.png`), timeout: 120000 }); } catch {}
       const n = Object.values(issues).reduce((s, v) => s + v.length, 0);
       results.push({ device: dev, page, pass: n === 0, issues });
+      // written as it goes, so a run cut short still leaves its results
+      fs.writeFileSync(path.join(OUT, 'responsive.json'), JSON.stringify(results, null, 2));
       console.log(`${dev.padEnd(26)} ${page.padEnd(10)} ${n === 0 ? 'PASS' : 'FAIL ' + n}  ${Object.entries(issues).filter(([, v]) => v.length).map(([k, v]) => `${k}: ${v.slice(0, 2).join('; ')}`).join(' | ').slice(0, 220)}`);
     };
 
@@ -126,17 +149,31 @@ const PAGES = ['welcome', 'showroom', 'configure', 'wheels', 'size', 'finish', '
     await record('welcome', async () => { await go('/'); await ready(/^enter/i); });
     await record('showroom', async () => { await go('/models'); await ready(/^build$/i); });
     await record('configure', async () => { await go('/configure'); await ready(/^front$/i); });
-    await record('wheels', async () => { await p.getByRole('button', { name: /step 2: wheels/i }).first().click(); });
-    await record('size', async () => { await p.getByRole('button', { name: /step 3: size/i }).first().click(); });
-    await record('finish', async () => { await p.getByRole('button', { name: /step 4: finish/i }).first().click(); });
+    // each configurator page also works on its own (a page filter skips the ones before it); a busy
+    // SwiftShader main thread can hold a step click past Playwright's default 30 s
+    const inConfigurator = async () => { if (!p.url().endsWith('/configure')) { await go('/configure'); await ready(/^front$/i); } };
+    const step = async (re) => { await inConfigurator(); await p.getByRole('button', { name: re }).first().click({ timeout: 120000 }); };
+    await record('paint', () => step(/step 1: paint/i));
+    await record('wheels', () => step(/step 2: wheels/i));
+    await record('size', () => step(/step 3: size/i));
+    await record('finish', () => step(/step 4: finish/i));
     await record('summary', async () => {
-      await p.getByRole('button', { name: /^summary$/i }).first().click().catch(() => p.locator('button:has-text("View your")').first().click());
-      await p.getByRole('button', { name: /^pdf$|download pdf/i }).first().waitFor({ timeout: 120000 });
+      await inConfigurator();
+      // the summary renders its stills on the main thread, which on SwiftShader can hold the click past 30 s
+      const icon = p.getByRole('button', { name: /^summary$/i }).first();
+      await ((await icon.count()) ? icon : p.locator('button:has-text("View your")').first()).click({ timeout: 180000 });
+      await p.getByRole('button', { name: /^pdf$|download pdf/i }).first().waitFor({ timeout: 240000 });
     });
-    await record('forged', async () => { await go('/forged'); await p.waitForSelector('text=/FSA-0/', { timeout: 120000 }).catch(() => {}); });
-    await record('rim', async () => { await go('/rims/forged_fsa_01'); await p.waitForTimeout(6000); });
-    await record('terms', async () => { await go('/terms'); });
-    await record('delivery', async () => { await go('/delivery'); });
+    await record('forged', async () => { await go('/forged'); await p.waitForSelector('text=/FSA-0/', { timeout: 240000 }); });
+    await record('rim', async () => {
+      await go('/rims/forged_fsa_12');
+      await p.waitForFunction(() => { const l = document.querySelector('[aria-label="Loading"]'); return !l || getComputedStyle(l).opacity === '0'; }, null, { timeout: 240000 });
+      // the pre-rendered spin, every frame loaded (its progress bar gone): not the live-engine fallback
+      await p.waitForFunction(() => { const i = document.querySelector('img[src*="/renders/rims/forged_fsa_12/"]'); return i && i.complete && i.naturalWidth > 0 && !document.querySelector('.transition-\\[width\\]'); }, null, { timeout: 240000 });
+    });
+    // lazy routes show a blank studio until their chunk has loaded (slow on a busy sandbox)
+    await record('terms', async () => { await go('/terms'); await p.locator('h1').first().waitFor({ timeout: 240000 }); });
+    await record('delivery', async () => { await go('/delivery'); await p.locator('h1').first().waitFor({ timeout: 240000 }); });
     if (errors.length) console.log(`${dev}: page errors: ${[...new Set(errors)].slice(0, 3).join(' | ')}`);
     await ctx.close();
   }

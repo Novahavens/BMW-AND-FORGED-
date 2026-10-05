@@ -127,15 +127,15 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
           </div>
         )}
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_360px]">
+        <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div>
-            <div className="flex gap-8 border-b border-line">
+            <div className="flex gap-6 sm:gap-8 border-b border-line">
               {(['selected', 'standard'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={cx(
-                    'relative pb-4 text-[11px] font-semibold uppercase tracking-[0.2em] transition',
+                    'relative pt-2 pb-4 text-left text-[11px] font-semibold uppercase tracking-[0.14em] sm:tracking-[0.2em] transition',
                     tab === t ? 'text-ink' : 'text-mute hover:text-ink'
                   )}
                 >

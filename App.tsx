@@ -91,6 +91,14 @@ const showroomCars = (cars: CarModel[]) => {
 const DEFAULT_PAINT_ID = 'isle_of_man_green';
 
 
+/** Fades the pre-rendered stage's edges that stop short of the space around it (8 % of its size). */
+const stageEdgeFade = (st: { left: number; top: number }): React.CSSProperties => {
+  const v = st.top > 0.5 ? 'linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent)' : 'linear-gradient(#000, #000)';
+  const h = st.left > 0.5 ? 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)' : 'linear-gradient(#000, #000)';
+  const mask = `${v}, ${h}`;
+  return { maskImage: mask, WebkitMaskImage: mask, maskComposite: 'intersect', WebkitMaskComposite: 'source-in' };
+};
+
 export const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<CarConfiguratorEngine | null>(null);
@@ -255,7 +263,9 @@ export const App: React.FC = () => {
     engine?.preloadCar(cars[(carIndex - 1 + cars.length) % cars.length]);
   }, [booted, cars, carIndex]);
 
-  // Pre-rendered mode: a fixed-aspect stage, centred in the space the controls leave
+  // Pre-rendered mode: a fixed-aspect stage, centred in the space the controls leave. Where it doesn't
+  // reach the edges of that space (4:3 and portrait tablets), its studio backdrop stopped in a hard line
+  // above and below the car: those edges fade into the page instead (stageEdgeFade)
   const rendered = route.name === 'configure' && (renderedCars[selectedCar.id]?.includes(cameraView) ?? false);
   const renderedRef = useRef(rendered);
   renderedRef.current = rendered;
@@ -553,7 +563,7 @@ export const App: React.FC = () => {
       <ShowroomBackdrop car={selectedCar} visible={booted && route.name === 'showroom'} />
 
       {rendered && stage && (
-        <div className="absolute z-[5] pointer-events-none" style={stage}>
+        <div className="absolute z-[5] pointer-events-none" style={{ ...stage, ...stageEdgeFade(stage) }}>
           <RenderedCarView carId={selectedCar.id} view={cameraView} paint={selectedPaint} />
         </div>
       )}

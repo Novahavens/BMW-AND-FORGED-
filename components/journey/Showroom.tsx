@@ -154,15 +154,20 @@ export const Showroom: React.FC<{
         {n > 1 && (
           <div className="mt-7 short:mt-2 flex items-center gap-4">
             <span className="font-mono text-[11px] text-mute tabular-nums">{String(index + 1).padStart(2, '0')}</span>
-            <div className="flex items-center gap-2">
+            {/* A position indicator you can also tap: each dot is 40 px tall to hit, but ten 40 px-wide
+                targets don't fit a phone, so they stay narrow (data-allow-small); the arrows are the
+                full-size controls. */}
+            <div className="-my-[18px] flex items-center" data-allow-small>
               {cars.map((c, i) => (
                 <button
                   key={c.id}
                   aria-label={c.name}
                   onClick={() => i !== index && onJump(i)}
                   disabled={busy}
-                  className={cx('h-[3px] rounded-full transition-all duration-500 ease-lux', i === index ? 'w-8 bg-gold' : 'w-3 bg-ink/15 hover:bg-ink/35')}
-                />
+                  className="group flex h-10 items-center px-1"
+                >
+                  <span className={cx('block h-[3px] rounded-full transition-all duration-500 ease-lux', i === index ? 'w-8 bg-gold' : 'w-3 bg-ink/15 group-hover:bg-ink/35')} />
+                </button>
               ))}
             </div>
             <span className="font-mono text-[11px] text-mute tabular-nums">{String(n).padStart(2, '0')}</span>

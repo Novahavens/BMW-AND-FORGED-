@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 
 /**
  * Photoreal 360° spin of a rim from pre-rendered Blender frames (scripts/rim3d/turntable.py):
@@ -10,6 +10,10 @@ export const loadRimSpinManifest = () =>
   (manifest ??= fetch('/renders/rims/manifest.json')
     .then((r) => (r.ok ? r.json() : {}))
     .catch(() => ({})));
+
+const EDGE_MASK =
+  'linear-gradient(to right, transparent, #000 10%, #000 90%, transparent), linear-gradient(to bottom, transparent, #000 3%, #000 95%, transparent)';
+const EDGE_FADE: CSSProperties = { maskImage: EDGE_MASK, WebkitMaskImage: EDGE_MASK, maskComposite: 'intersect', WebkitMaskComposite: 'source-in' };
 
 const frameUrl = (wheelId: string, finishId: string, i: number) => `/renders/rims/${wheelId}/${finishId}/f${String(i).padStart(2, '0')}.webp`;
 
@@ -62,7 +66,10 @@ export default function RimSpinView({ wheelId, finishId, frames, autoRotate, cla
 
   return (
     <div className={`relative h-full w-full touch-none cursor-grab active:cursor-grabbing select-none ${className ?? ''}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
-      <img src={frameUrl(wheelId, finishId, index)} alt="" draggable={false} className="absolute inset-0 h-full w-full object-contain" />
+      {/* The frames' soft floor shadow tints the whole frame and stops at its edges, which showed as a
+          faint box round the wheel; the box is the image itself (centred, at most its own size) so the
+          mask can fade exactly those edges. The wheel sits within x 15-85 %, y 4-95 % of a frame. */}
+      <img src={frameUrl(wheelId, finishId, index)} alt="" draggable={false} className="absolute inset-0 m-auto max-h-full max-w-full" style={EDGE_FADE} />
       {loaded < frames && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 h-0.5 w-24 rounded bg-ink/10 overflow-hidden">
           <div className="h-full bg-gold transition-[width]" style={{ width: `${(100 * loaded) / frames}%` }} />

@@ -110,9 +110,13 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   return (
     <div className="absolute inset-0 overflow-hidden bg-studio text-ink flex flex-col lg:flex-row short:flex-row select-none">
       {/* 360° turntable */}
-      <div className="relative h-[46dvh] shrink-0 lg:h-auto lg:flex-1 lg:min-h-0 short:h-auto short:flex-1 short:min-h-0">
+      {/* at least 320 px: on a 568 px-tall phone 46% left the wheel ~150 px wide once the overlaid controls are cleared */}
+      <div className="relative h-[max(46dvh,320px)] shrink-0 lg:h-auto lg:flex-1 lg:min-h-0 short:h-auto short:flex-1 short:min-h-0">
         {spin ? (
-          <div className="absolute inset-0 p-4 sm:p-8">
+          // the padding keeps the wheel clear of the overlaid controls: the back button over its top on a
+          // phone (and on a phone on its side, where the column is narrow), and the rotate pill + hint
+          // (88 px, 100 px on sm+) over its bottom
+          <div className="absolute inset-0 px-4 pt-14 pb-[88px] sm:p-8 sm:pb-[100px] short:pt-16">
             <RimSpinView wheelId={wheel.id} finishId={finish!.id} frames={spin.frames} autoRotate={autoRotate} onError={onSpinError} />
           </div>
         ) : (

@@ -91,7 +91,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
               key={v.id}
               onClick={() => p.onCamera(v.id)}
               className={cx(
-                'h-10 shrink-0 rounded-full px-3 sm:px-4 text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em] transition-all duration-300 ease-lux',
+                'h-10 min-w-10 shrink-0 rounded-full px-3 tracking-[0.1em] [@media(max-width:374px)]:px-2 [@media(max-width:374px)]:tracking-[0.04em] sm:px-4 text-[10px] sm:text-[10.5px] font-semibold uppercase sm:tracking-[0.14em] transition-all duration-300 ease-lux',
                 p.cameraView === v.id ? 'bg-gold text-carbon' : 'text-mute hover:text-ink'
               )}
             >
@@ -109,7 +109,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
       <aside
         className="absolute z-40 bg-surface/[0.97] backdrop-blur-xl shadow-panel flex flex-col animate-slide-in
           right-0 top-0 bottom-0 w-[var(--panel-w)] border-l border-line
-          sheet:inset-x-0 sheet:top-auto sheet:right-auto sheet:w-auto sheet:h-[var(--sheet-h)] sheet:rounded-t-[26px] sheet:border-l-0"
+          sheet:inset-x-0 sheet:top-auto sheet:w-auto sheet:h-[var(--sheet-h)] sheet:rounded-t-[26px] sheet:border-l-0"
       >
         <div className="hidden sheet:block mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-ink/15" />
         <div className="flex items-start justify-between gap-3 px-7 pt-7 short:pt-3 sheet:px-6 sheet:pt-3">
@@ -183,7 +183,8 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
             </div>
             <div className="shrink-0 font-display text-[20px] short:text-[17px] font-extrabold tabular-nums">{formatMoney(price, p.region)}</div>
           </div>
-          <Button className="mt-4 short:mt-2 sheet:mt-0 w-full sheet:flex-1 short:h-11 sheet:h-12" size="lg" onClick={p.onSummary} icon={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}>
+          {/* On a narrow phone the price leaves ~130-170 px: less padding and no arrow keep the label to one or two lines */}
+          <Button className="mt-4 short:mt-2 sheet:mt-0 w-full sheet:flex-1 short:h-11 sheet:h-12 sheet:px-4" size="lg" onClick={p.onSummary} icon={<ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 [@media(max-width:374px)]:hidden" />}>
             View your {shortModelName(p.car)}
           </Button>
         </div>
@@ -200,7 +201,7 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
 
 const StepHeader: React.FC<{ title: string; onBack: () => void; hint?: string }> = ({ title, onBack, hint }) => (
   <div className="mb-5">
-    <button onClick={onBack} className="-ml-1 inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.2em] text-mute hover:text-ink transition">
+    <button onClick={onBack} className="-ml-1 -my-3 inline-flex h-10 items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.2em] text-mute hover:text-ink transition">
       <ChevronLeft className="h-3.5 w-3.5" /> Exterior
     </button>
     <h3 className="mt-2 font-display text-[22px] font-extrabold tracking-[-0.015em]">{title}</h3>
@@ -291,7 +292,7 @@ const PaintStep: React.FC<ConfiguratorProps> = (p) => {
                   >
                     <PaintChip paint={paint} size={46} />
                   </span>
-                  <span className={cx('mt-2 text-[10.5px] leading-tight', active ? 'text-ink font-semibold' : 'text-mute')}>{paint.name}</span>
+                  <span className={cx('mt-2 text-[11px] leading-tight', active ? 'text-ink font-semibold' : 'text-mute')}>{paint.name}</span>
                 </button>
               );
             })}
