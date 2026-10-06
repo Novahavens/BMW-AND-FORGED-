@@ -12,6 +12,7 @@ import { BRAND, DEFAULT_REGION, Region } from './config/brand';
 import { DELIVERY, TERMS } from './config/pages';
 import { SavedConfiguration, configKey, loadConfiguration, saveConfiguration, submitEnquiry } from './services/journeyService';
 import { downloadBrochurePdf } from './services/brochurePdf';
+import { IN_APP_STATE, cameFromApp } from './services/nav';
 import { controlsInset, layoutMode } from './services/layout';
 import { BootLoader } from './components/journey/BootLoader';
 import { WelcomeGate } from './components/journey/WelcomeGate';
@@ -162,7 +163,22 @@ export const App: React.FC = () => {
   // Routing
   // ----------------------------------------------------
   useEffect(() => {
-    const onPop = () => setRoute(routeFromLocation());
+    // /summary opens the configurator (its stills are captured on the way in): the address bar says so
+    const fixSummaryUrl = () => {
+      if (window.location.pathname.toLowerCase().replace(/\/+$/, '') !== '/summary') return;
+      try {
+        window.history.replaceState(window.history.state, '', '/configure' + window.location.search + window.location.hash);
+      } catch {
+        /* the configurator shows either way */
+      }
+    };
+    fixSummaryUrl();
+    const onPop = () => {
+      // Back to the summary (e.g. from the terms linked in its footer) shows it again, with fresh stills
+      if (window.location.pathname.toLowerCase().replace(/\/+$/, '') === '/summary' && reenterSummaryRef.current()) return setRoute({ name: 'summary' });
+      fixSummaryUrl();
+      setRoute(routeFromLocation());
+    };
     window.addEventListener('popstate', onPop);
     window.addEventListener('hashchange', onPop);
     return () => {
@@ -175,12 +191,26 @@ export const App: React.FC = () => {
     setRoute(next);
     const path = routePath(next);
     try {
-      if (replace) window.history.replaceState({}, '', path);
-      else window.history.pushState({}, '', path);
+      if (replace) window.history.replaceState(window.history.state, '', path);
+      else window.history.pushState(IN_APP_STATE, '', path);
     } catch {
       window.location.hash = `#${path}`;
     }
   }, []);
+
+  /** Back on a page reached from anywhere: the previous page when it is part of the app, else the welcome page. */
+  const goBack = useCallback(() => (cameFromApp() ? window.history.back() : navigateTo({ name: 'welcome' })), [navigateTo]);
+
+  // The rim page returns to the page that opened it (the configurator or the collection), not to the
+  // rim before it when the visitor stepped through the designs; a direct link returns to the configurator
+  const lastRouteRef = useRef<Route | null>(null);
+  const rimReturnRef = useRef<Route>({ name: 'configure' });
+  // (during render, so the rim page's first render already knows where Back goes; repeat renders are no-ops)
+  if (lastRouteRef.current !== route) {
+    const prev = lastRouteRef.current;
+    if (route.name === 'rim' && prev && prev.name !== 'rim') rimReturnRef.current = prev;
+    lastRouteRef.current = route;
+  }
 
   // ----------------------------------------------------
   // Engine
@@ -532,8 +562,8 @@ export const App: React.FC = () => {
     if (code) loadCode(code);
   }, [booted, catalogLoaded, loadCode]);
 
-  const openSummary = useCallback(() => {
-    navigateTo({ name: 'summary' });
+  /** The summary's stills and configuration code, taken whenever the summary opens. */
+  const enterSummary = useCallback(() => {
     // The three stills are a few hundred ms of rendering and JPEG encoding on a phone: taken on the
     // next frame, after the summary page has painted, so the tap responds at once and the images
     // drop in (the page shows their frames meanwhile)
@@ -551,7 +581,19 @@ export const App: React.FC = () => {
         if (token === saveToken.current) setConfigCode((c) => (c && c.code === saved.code ? { ...c, shared } : c));
       });
     }
-  }, [navigateTo, configCode, selectedCar, selectedPaint, selectedWheel, selectedFinish, selectedSize, region]);
+  }, [configCode, selectedCar, selectedPaint, selectedWheel, selectedFinish, selectedSize, region]);
+  // (popstate: only once the studio is up, else the configurator opens as on a direct visit)
+  const reenterSummaryRef = useRef<() => boolean>(() => false);
+  reenterSummaryRef.current = () => {
+    if (!booted || !engineRef.current) return false;
+    enterSummary();
+    return true;
+  };
+
+  const openSummary = useCallback(() => {
+    navigateTo({ name: 'summary' });
+    enterSummary();
+  }, [navigateTo, enterSummary]);
 
   const price = rimPrice(selectedWheel, selectedSize);
   const carPaints = useMemo(() => paintsForCar(catalog.paints, selectedCar), [catalog.paints, selectedCar]);
@@ -738,7 +780,7 @@ export const App: React.FC = () => {
             wheels={catalog.wheels}
             finishes={catalog.finishes}
             region={region}
-            onBack={() => window.history.length > 1 ? window.history.back() : navigateTo({ name: 'welcome' })}
+            onBack={goBack}
             onOpenRim={(rimId) => navigateTo({ name: 'rim', rimId })}
             onConfigure={(wheel) => {
               applyRim(wheel);
@@ -757,10 +799,12 @@ export const App: React.FC = () => {
             wheels={catalog.wheels}
             finishes={catalog.finishes}
             wheelId={route.rimId}
+            loading={!catalogLoaded}
             initialFinishId={selectedFinish.id}
             initialSize={selectedSize}
             region={region}
-            onBack={() => navigateTo({ name: 'configure' })}
+            backLabel={rimReturnRef.current.name === 'configure' ? 'Back to your build' : 'Back'}
+            onBack={() => navigateTo(rimReturnRef.current)}
             onOpenRim={(rimId) => navigateTo({ name: 'rim', rimId })}
             onConfigure={(wheel, finish, size) => {
               applyRim(wheel, finish, size);
@@ -777,7 +821,7 @@ export const App: React.FC = () => {
           <InfoPage
             key={route.name}
             content={route.name === 'terms' ? TERMS : DELIVERY}
-            onBack={() => (window.history.length > 1 ? window.history.back() : navigateTo({ name: 'welcome' }))}
+            onBack={goBack}
             onEnquire={() => setEnquiryOpen(true)}
           />
         </div>

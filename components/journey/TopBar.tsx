@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import { BRAND } from '../../config/brand';
 import { Logo, cx } from './ui';
@@ -22,6 +22,13 @@ export const TopBar: React.FC<{
   className?: string;
 }> = ({ links, onLogo, actions, className }) => {
   const [open, setOpen] = useState(false);
+  // Escape closes the menu, like every modal
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   return (
     <>
       <header className={cx('stage-light absolute top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 short:h-14', className)}>

@@ -16,9 +16,13 @@ interface RimDetailPageProps {
   wheels: WheelDesign[];
   finishes: Record<string, WheelFinish>;
   wheelId: string;
+  /** The live catalogue is still loading: a wheel missing from the bundled one may yet arrive. */
+  loading?: boolean;
   initialFinishId?: string;
   initialSize?: string;
   region: Region;
+  /** The Back button's label (where it returns to). */
+  backLabel?: string;
   onBack: () => void;
   onOpenRim: (wheelId: string) => void;
   /** Puts this rim, finish and size on the car in the studio. */
@@ -29,9 +33,11 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   wheels,
   finishes,
   wheelId,
+  loading = false,
   initialFinishId,
   initialSize,
   region,
+  backLabel = 'Back to your build',
   onBack,
   onOpenRim,
   onConfigure
@@ -41,8 +47,10 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   const [ready, setReady] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
 
-  const index = Math.max(0, wheels.findIndex((w) => w.id === wheelId));
-  const wheel = wheels[index];
+  // an unknown id is "not found", not the first wheel under the wrong address
+  const found = wheels.findIndex((w) => w.id === wheelId);
+  const index = Math.max(0, found);
+  const wheel = found >= 0 ? wheels[found] : undefined;
   const availableFinishes = wheel ? wheel.availableVariants.map((id) => finishes[id]).filter(Boolean) : [];
   const defaultFinish =
     availableFinishes.find((f) => f.id === initialFinishId) ??
@@ -96,6 +104,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   }, [wheel, finish, size, liveEngine]);
 
   if (!wheel) {
+    if (loading) return <div className="absolute inset-0 bg-studio" />;
     return (
       <div className="absolute inset-0 bg-studio flex items-center justify-center gap-4 text-mute text-sm">
         Wheel not found.
@@ -130,7 +139,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
         )}
         <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
           <Button variant="light" size="sm" onClick={onBack} className="pl-3">
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.8} /> Back to your build
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.8} /> {backLabel}
           </Button>
         </div>
         <div className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 hidden xl:block">
