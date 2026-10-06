@@ -1,6 +1,6 @@
 # Checkpoint: photoreal cars and rims
 
-**Last updated:** 2026-10-05 · **Branch:** `ccr-a49729da-y3hwoq` · **PR:** #9 (draft) · **To continue:** the
+**Last updated:** 2026-10-06 · **Branch:** `ccr-a49729da-y3hwoq` · **PR:** #9 (draft) · **To continue:** the
 `forgedsa-resume` skill (`.claude/skills/forgedsa-resume/SKILL.md`) restores the tools, and this file says what is next.
 
 ## Goal of this phase (owner's words, condensed)
@@ -53,10 +53,25 @@ collection `feedback` (doc ids `car_<carId>`, `rim_<wheelId>`, `details_<wheelId
 - [x] Re-shot the on-car sheets (Black now reads black) and extended them to all five active cars.
 - [x] Rim page screenshots: 4 wheels × 2 finishes × phone / iPad portrait / iPad landscape / desktop.
 - [x] M8 fender and M3 windscreen fixed and re-rendered; tablet/phone responsive pass; spins for all 12 wheels.
-- [ ] **Read the owner's answers** on the review page and work through every "Needs work" note.
-- [ ] Real names, sizes and prices for FSA-12/13/14 (from the review page) → `/admin` or a migration, and mirror in `data/configuratorData.ts`.
-- [ ] Owner decisions: Star 6 (keep, or front-on photo), M3 Touring black headlights (fix or leave), Aldo Fork 15 spoke count (photo 12 vs name 15).
-- [ ] Optional: re-render all spins with `turntable.py --resmooth` for cleaner hub reflections.
+- [x] Round 1 answers worked through (PR #9, merged, live): FSA-14 straight blade edges (built from `fsa_14-spec.json`),
+      FSA-09 mesh fills the face, FSA-02 spokes in one piece, FSA-04 arms bend (`docs/rim-template/fsa_0{2,4,9}-shapes.json`,
+      `turntable.py --resmooth --weighted`); M3 Touring headlights (`CAR_FIXES['m3_touring_g81']` lamps); wheel swaps no
+      longer freeze (spokes built in `services/rimFaceBuild.ts` in the worker, tyre/shell cache, `scripts/render/swap-perf.cjs`);
+      code-review fixes (bounded image caches, phone memory, no GEMINI define).
+- [x] Navigation dead ends fixed (PR #11): rim Back returns to its opener, Back never leaves the site, /summary → /configure,
+      menu Escape, unknown rim id → not found. `scripts/render/e2e.cjs` clicks every control (lead/saved-config writes faked);
+      desktop journey checks pass so far; a full run takes hours on SwiftShader, so run it section by section
+      (`node scripts/render/e2e.cjs <out> desktop journey|forged|rims|info|deeplinks`).
+- [ ] **Owner round 2**: re-check FSA-14, 09, 02, 04 and the M3 Touring lamps on the review page (answers in `rim2_<id>`
+      and `recheck_m3t_headlights`); cars and the other spins still unmarked.
+- [ ] **Broken social links** (config/brand.ts): YouTube @ForgedSA 404, TikTok @forgedsa not found, www.forgedsa.com
+      doesn't connect, Instagram unverifiable (login wall). Need the real handles from the owner.
+- [ ] Real names, sizes and prices for FSA-12/13/14 → `/admin` or a migration, mirrored in `data/configuratorData.ts`
+      (owner: keep placeholders for now). Contact phone/email stay placeholders (owner's choice).
+- [ ] Owner decisions: Star 6 (keep, or front-on photo), Aldo Fork 15 spoke count (photo 12 vs name 15).
+- [ ] Stale draft PRs #6 (2D wheel stage), #8 (old phone fixes), #10 (live-WebGL paint/lighting recalibration): all
+      conflict with main and predate the Blender bodies; owner to decide close vs salvage (#10's verified paint codes).
+- [ ] Optional: re-render the other eight spins with `--resmooth --weighted` for cleaner hub reflections.
 
 ## Later (parked)
 - **Photo 7** (champagne, forked spokes) may be a different design from the catalogue's 12-spoke Aldo Fork 15: ask.
