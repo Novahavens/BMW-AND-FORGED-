@@ -9,6 +9,63 @@
 - **Finish** values come from BMW's category (UNI/MET) and the paint name ("Frozen" = matte, "Uni" = solid). Where BMW's label does not say, the finish is marked **unverified** rather than guessed.
 - **Render URLs** are in the appendix: one BMW swatch URL per paint, plus a BMW car render (the "in <paint>" colour-switch image) where bmw.co.za or bmwusa.com shows one for that paint.
 
+## Update 2026-10-04: verified codes, finishes and recalibration
+
+> **Status on main (2026-10-06):** this research came from draft PR #10, which was closed without merging. It
+> targeted the old live-WebGL car, and the site now shows Blender-rendered bodies. Only this document was carried
+> over. **Not applied yet:** the palette and code corrections below (M4 CS palette and 19/20" fitment, M2 P9E,
+> M8 C57 replacing X15), the corrected finish types (the new `Pearl` type needs code support), the factory tyres
+> per car, and the M3 hood paint mesh. Each needs a Supabase migration, plus code where noted. The recalibrated
+> hex values under "Renderer calibration" were tuned for that live renderer and must not be applied to the
+> Blender bodies as they are. PR #10's branch `ccr-e5c12292-3hef09` keeps the full implementation.
+
+The open questions in this document were checked against BMW's own sources. The most useful was the **BMW Individual Visualizer for South Africa** (https://individual.bmw-m.com/en-ZA/colors), which lists each Individual colour's code, BMW's name and the cars it is offered on (links such as `/en-ZA/G82-21HK-P92`). The palettes below and in `data/configuratorData.ts` now include these corrections.
+
+**Palette changes**
+
+| Car | Change | Source |
+|---|---|---|
+| M4 CS (G82, 2025) | Its own 4-colour palette, not the M4 Competition's 21: P5C Riviera Blue (solid, Individual), P92 Frozen Isle of Man Green Metallic (Individual), C4P M Brooklyn Grey, 475 Black Sapphire | BMW SA press kit https://www.press.bmwgroup.com/south-africa/article/detail/T0441833EN/the-all-new-bmw-m4-cs ; BMW UK press ("Riviera Blue solid") https://www.press.bmwgroup.com/united-kingdom/article/detail/T0441761EN_GB/the-all-new-bmw-m4-cs ; Visualizer `G82-21HK-P92`, `G82-21HK-P5C` |
+| M2 (G87) | Adds P9E Borusan Turkish Blue (solid, Individual, new for MY27). Voodoo Blue P7L is now active (BMW chip colour found) | Visualizer: the G87 Individual list is exactly P6M, P7L, P7V, P9E |
+| M8 (F92) | X15 Aventurin Red replaced by **C57** (the facelifted M8's code); X15 kept inactive so saved builds still open | BMW NA order guides MY2023 and MY2024 (C57 "Aventurin Red Metallic"); MY2022 used X1C |
+
+**Codes and names resolved**
+
+- **Fire Orange III is P7E.** U94 is the older Fire Orange II (about 2011); the SA M3 configurator's U94 node is a leftover. Visualizer lists P7E for the M3 and M5.
+- **US names that are the same paints:** Vegas Red Metallic = **C68** (Fire Red / "Dragon Fire Red"); Dark Graphite Metallic = **A90** (Sophisto Grey Brilliant Effect). Cape York Green Metallic is **C5Y** (US M235 only, not offered in SA).
+- **266 is "Laguna Green Metallic"** (BMW's name; the SA configurator says "Lagoon").
+- **M8 Tanzanite Blue II C3Z** is confirmed by the MY2023-24 order guides.
+
+**Finish types corrected** (`paints.type`). A new type, **Pearl**, covers pearl and xirallic effect paints.
+
+| Code | Paint | Now | Evidence |
+|---|---|---|---|
+| P5C | Riviera Blue | Uni (solid) | BMW UK press "Riviera Blue solid" |
+| W97 | Mint Green | Uni | BMW Individual name "Mint Green Uni" |
+| P7L | Voodoo Blue | Uni | BMW USA M2 press lists it without "metallic"; Porsche's Voodoo Blue (Z12) is solid |
+| P6K, U96, T42, 375, P9L | Nardo Grey, Speed Yellow, Brewster Green, Fire Red II, Ruby Star | Uni | carpaints.co (third party; BMW does not state these) |
+| P6M | Grigio Telesto | Pearl | BMW "Pearl Effect" |
+| P28 | Twilight Purple | Pearl | BMW "Twilight Purple Pearl effect" |
+| C3E | Bernina Grey Amber Effect | Pearl | BMW "Amber effect" |
+| A90 | Sophisto Grey Brilliant Effect | Pearl | BMW "Brilliant Effect" (xirallic) |
+| A96 | Mineral White | Pearl | tri-coat pearl (paint suppliers) |
+| P7V, B51, P85, 266, B03 | Java Green, San Marino Blue, Malachite Green II, Laguna Green, Damast Red | Metallic (confirmed) | BMW USA press / BMW Individual names; B03 from carpaints.co |
+
+**BMW Individual programme (not in the palettes).** Beyond the configurator's colours, the Visualizer offers about 140 BMW Individual special-order colours on most M cars (G80/G81/G82/G83: 138-140, G90/G99: 142, F74: 130, F92: 132), only 4 on the M2 and 14 on the X3 M50 (the X5 M F95 is not listed). The palettes here keep to what the SA configurator offers; the full Individual list could be added as a separate collection.
+
+**Still unverified:** the VR46 Edition's Frozen Tanzanite Blue code (X1G or P96); Thundernight C56 on the M2; C3Z on the SA M235; BMW's own finish word for P9L, U96, T42, B03, P6K and 375.
+
+**Material values per finish** (`services/paintShader.ts` `PAINT_LAYERS`, per-paint numbers in `paints`). From the Khronos car-paint samples (ClearCoatCarPaint, CarConcept), the glTF clearcoat spec, Autodesk Arnold/VRED car paint, physicallybased.info and BMW's finish descriptions:
+
+| Finish | Metalness | Roughness | Clear coat / roughness | Specular | Flake / flop | Extra |
+|---|---|---|---|---|---|---|
+| Uni | 0 | 0.40 | 1 / 0.03 | 0.2 (the base sits under lacquer of nearly the same index) | 0 / 1.0 (no face/flop travel) | |
+| Metallic | 0.60 | 0.38 | 1 / 0.03 | 0.5 | 0.10 / 0.65 | 0.3 mm flake cells, faded below a pixel |
+| Pearl | 0.45 | 0.40 | 1 / 0.03 | 0.5 | 0.14 / 0.70 | iridescence 0.2, IOR 1.9, 250-450 nm |
+| Frozen | 0.60 | 0.58 | 1 / 0.45 (a real satin coat, not none) | 0.5 | 0.02 / 0.78 | white sheen 0.25 |
+
+Single-paint looks: A96 Mineral White (metalness 0.15, faint pearl), C3E Amber effect (thicker film, gold towards the light), X16 Frozen Brilliant White (metalness 0.2, roughness 0.6; a light metallic base would read as chrome).
+
 ## Status of the 11 requested cars
 
 | # | Requested | Exists? | Current name (SA) | Chassis | Body | Notes |
@@ -402,7 +459,87 @@ One row per BMW paint code. "Cars" shows each model that offers the paint and ho
 
 These are not in the master list, and their codes were not researched: **Vegas Red Metallic** (US M2, M235, M5, M5 Touring, X3 M50), **Dark Graphite Metallic** (US M5, M5 Touring, X3 M50) and **Cape York Green Metallic** (US M235). The US overview pages also show Thundernight Metallic (C56) on the M3 and M4 Convertible, and Arctic Race Blue (C4F) on the M4 Convertible. The US sites appear to be moving from Fire Red (C68) to Vegas Red on MY2027 cars.
 
-## Renderer calibration (2026-09-27)
+## Recalibration (2026-10-04)
+
+The 2026-09-27 hexes were solved for a different paint model (metalness 0.45 / roughness 0.32, no flakes) and lighting, and the app has since changed both, so every base colour was re-solved. Method (`scripts/render/paint-calibrate.cjs`, `scripts/render/paint-door.html`):
+
+1. **Targets.** The old calibration matched our M4's front door (side view) to BMW's door in BMW's own renders, to ΔE00 ≈ 1-2. Those door colours were re-measured on the calibration commit (84e8206, the HDRI studio, the old paint values), so the BMW ground truth carries over unchanged.
+2. **Swatch-only paints** (no BMW render; predicted from the swatch with a +6° hue shift): the hue shift is removed. Independent chips (AutomotiveTouchup) and BMW's own chips agree that it had pushed the reds and oranges (Toronto Red aside, which is render-verified) towards yellow.
+3. **New paints** (P92, P9E, P7L): the target is the nearest render-checked or calibrated sibling scaled by the ratio of BMW's chips (P92 from C4G; P9E and P7L from P5C). Chips sampled from BMW's Individual Visualizer: P92 #115B43, P9E #60BCDC, P7L #3892D4.
+4. **Solve.** With the new finish classes, under the same neutral HDRI studio the targets were measured in (the base colour is a property of the paint; the app's white softbox studio then lights it), the base colour is iterated per channel in linear light until the door matches.
+
+Result: median ΔE00 0.32, mean 0.70; 62 of 66 within 2. Out of reach (the satin coat puts a floor under very deep, saturated frozen colours): P92 (7.5), X1G (5.1), X1E (4.1), P9C (3.9).
+
+| Code | Paint | Target from | Old hex | New hex | ΔE00 |
+|---|---|---|---|---|---|
+| 300 | alpine_white | BMW render | #c8c8c9 | #c2c2c3 | 0.09 |
+| P9R | anglesey_green | swatch, hue −6° | #024b3a | #2d5641 | 1.42 |
+| C4F | arctic_race_blue | BMW render | #30495b | #3b5568 | 0.18 |
+| X15 | aventurin_red | swatch, hue −6° | #530202 | #601125 | 0.17 |
+| C57 | aventurine_red_iii | BMW render | #630f1c | #711d28 | 0.09 |
+| C38 | barcelona_blue | swatch, hue −6° | #636f78 | #717f89 | 0.69 |
+| C3E | bernina_grey_amber_effect | swatch, hue −6° | #575852 | #575751 | 0.22 |
+| 475 | black_sapphire | BMW render | #151617 | #222223 | 0.14 |
+| P9E | borusan_turkish_blue | sibling chip | — | #016686 | 0.67 |
+| T42 | brewster_green | swatch, hue −6° | #1a2c26 | #18231e | 0.33 |
+| C4P | brooklyn_grey | BMW render | #889296 | #9da8ac | 0.37 |
+| 416 | carbon_black | BMW render | #0e1b2b | #1b2736 | 0.30 |
+| B03 | damast_red | swatch, hue −6° | #45231f | #502e2f | 0.32 |
+| C36 | dravit_grey | BMW render | #3c4041 | #474c4c | 0.98 |
+| C7A | dune_grey | BMW render | #adada6 | #cacac2 | 0.22 |
+| P7E | fire_orange_iii | swatch, hue −6° | #975305 | #995122 | 0.37 |
+| C68 | fire_red | BMW render | #8c2226 | #9f2832 | 0.85 |
+| 375 | fire_red_ii | swatch, hue −6° | #742002 | #581816 | 0.50 |
+| U91 | frozen_black | swatch, hue −6° | #18191b | #010203 | 0.97 |
+| X16 | frozen_brilliant_white | swatch, hue −6° | #cbcec4 | #b2b4a9 | 0.48 |
+| P79 | frozen_dark_grey_ii | swatch, hue −6° | #2a3235 | #1f2d30 | 0.23 |
+| P80 | frozen_deep_green | swatch, hue −6° | #3f4d3c | #425139 | 0.09 |
+| P7X | frozen_deep_grey | swatch, hue −6° | #25292f | #141e28 | 0.17 |
+| C64 | frozen_deep_grey_c64 | swatch, hue −6° | #242628 | #13181c | 0.12 |
+| P92 | frozen_isle_of_man_green | sibling chip | — | #013004 | 7.52 |
+| X1E | frozen_portimao_blue | swatch, hue −6° | #0e2357 | #011760 | 4.10 |
+| C6R | frozen_portimao_blue_c6r | BMW render | #0e2357 | #01115d | 1.66 |
+| P9C | frozen_preciosa_red | swatch, hue −6° | #510202 | #550101 | 3.95 |
+| C5A | frozen_pure_grey | BMW render | #44494c | #464d50 | 0.48 |
+| X1F | frozen_pure_grey_ii | swatch, hue −6° | #717e82 | #7d8e92 | 0.27 |
+| X1G | frozen_tanzanite_blue | swatch, hue −6° | #02023f | #010140 | 5.08 |
+| P6M | grigio_telesto | BMW render | #555858 | #545857 | 1.08 |
+| 405 | imola_red | swatch, hue −6° | #6e1b0d | #6e2123 | 0.21 |
+| C4G | isle_of_man_green | BMW render | #0f5444 | #0f614f | 0.50 |
+| P7V | java_green | swatch, hue −6° | #638954 | #7a9b5e | 0.10 |
+| 266 | lagoon_green | swatch, hue −6° | #135861 | #13656c | 0.18 |
+| 381 | le_mans_blue | swatch, hue −6° | #1c5185 | #1c629a | 0.12 |
+| P85 | malachite_green_ii | swatch, hue −6° | #31433a | #3d4e44 | 0.26 |
+| C1K | marina_bay_blue | BMW render | #1c4085 | #264e98 | 0.30 |
+| A96 | mineral_white | BMW render | #ebeae9 | #adabaa | 0.25 |
+| W97 | mint_green | swatch, hue −6° | #409084 | #34695d | 0.61 |
+| P6K | nardo_grey | swatch, hue −6° | #666869 | #4c4f4f | 1.29 |
+| 430 | oxford_green_ii | swatch, hue −6° | #1b3330 | #283e39 | 0.43 |
+| C31 | portimao_blue | BMW render | #1e3066 | #2a3c74 | 0.21 |
+| P5C | riviera_blue | swatch, hue −6° | #028fc1 | #016685 | 0.83 |
+| X03 | ruby_black | swatch, hue −6° | #24181c | #2e2427 | 0.43 |
+| P9L | ruby_star | swatch, hue −6° | #75084c | #550d3d | 0.59 |
+| B51 | san_marino_blue | swatch, hue −6° | #092455 | #093363 | 0.19 |
+| C4H | sao_paulo_yellow | BMW render | #88a11c | #859d25 | 0.09 |
+| A32 | sepang_bronze | swatch, hue −6° | #636054 | #726d62 | 0.68 |
+| S0N | sepia_iii | swatch, hue −6° | #4b494b | #565557 | 0.39 |
+| C4W | skyscraper_grey | BMW render | #555a5d | #62676b | 0.54 |
+| A90 | sophisto_grey_brilliant_effect | BMW render | #2b2c2b | #2c2c2b | 0.39 |
+| U96 | speed_yellow | swatch, hue −6° | #b09918 | #866b14 | 0.14 |
+| C3N | storm_bay | BMW render | #5f686e | #6d777e | 0.22 |
+| C3Z | tanzanite_blue_ii | BMW render | #151f32 | #222a3d | 0.30 |
+| P6L | thunder | swatch, hue −6° | #373f43 | #424b4e | 0.46 |
+| C56 | thundernight | swatch, hue −6° | #3a1f3d | #422b4a | 0.28 |
+| C3G | toronto_red | BMW render | #9d3307 | #b5411a | 0.10 |
+| P28 | twilight_purple | swatch, hue −6° | #5a2c4d | #552e50 | 0.44 |
+| P9P | urban_green_ii | swatch, hue −6° | #485037 | #4c5039 | 0.09 |
+| 379 | velvet_blue | swatch, hue −6° | #342f58 | #353d67 | 0.25 |
+| L74 | velvet_orchid_ii | swatch, hue −6° | #806c72 | #907c84 | 0.21 |
+| P7L | voodoo_blue | sibling chip | #888888 | #025482 | 0.45 |
+| T09 | wildberry | swatch, hue −6° | #5a2834 | #663343 | 0.12 |
+| C6E | zandvoort_blue | BMW render | #547bad | #5478a8 | 0.36 |
+
+## Renderer calibration (2026-09-27, superseded by the recalibration above)
 
 The swatch hex values above are lit 140×140 chips, so they are not usable as renderer base colours (dark and metallic paints come out far too light). `paints.hex` in the database and `data/configuratorData.ts` therefore hold **calibrated base colours** for the studio renderer (`services/CarConfiguratorEngine.ts`: studio HDRI, ACES tone mapping), found like this:
 
