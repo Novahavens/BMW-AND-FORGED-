@@ -24,8 +24,12 @@ ap.add_argument('--studio', choices=['default', 'dark'], default='default',
                      "linear headroom so the white pass never clips (see DARK below)")
 ap.add_argument('--dark-set', default='', help='override DARK values, e.g. top_rad=3,strip_rad=14 (for tuning)')
 ap.add_argument('--passes', default='', help='comma list of passes to render (default: all four)')
+ap.add_argument('--two-render', action='store_true',
+                help='render white AND black base colour separately (4 renders per view). Default for --studio dark: ONE render per '
+                     'material set with Diffuse passes, black base derived as  B = W - DiffColor*(DiffDirect+DiffIndirect)*paintmask')
 ap.add_argument('--threads', type=int, default=0, help='CPU threads for Cycles (0 = all)')
 a = ap.parse_args()
+DERIVE = a.studio == 'dark' and not a.two_render
 
 # Per-car fixes, keyed by car id (--car, or the output folder name as render-all.sh passes it).
 #  hide: multi-variant source models stack alternative parts (tuner kits, CS/Competition panels)
@@ -81,7 +85,9 @@ DARK = dict(
     cabin_rad=0.8,           # dim diffuse light inside the cabin so the interior reads through the glass
     far_strips=0,            # 1 also puts the high/low strips on the far side (they reflect strongly in the windscreen)
     strips_reflect_only=1,   # strips/rims are invisible to diffuse rays: they draw crisp reflections but do not light (wash out) the white pass or the floor
-    glass_tint=0.22, glass_opaque=0,   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
+    glass_tint=0.22, glass_opaque=0, glass_rough=0.02, glass_ior=1.45,   # glass_rough / glass_ior: a little roughness and a lower IOR turn the strip reflections into soft dim ones
+    coat_rough=0.02,         # paint clear-coat roughness: ~0.05 softens the bumpy source mesh's mirror reflections
+    smooth_body=0,           # Corrective Smooth passes on the paint meshes before subdivision (0 = off)   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
     floor_albedo=0.08,       # the (invisible) floor still shows in reflections
 )
 for kv in filter(None, a.dark_set.split(',')):
@@ -104,7 +110,9 @@ def principled(name):
     return m, m.node_tree.nodes['Principled BSDF']
 
 paint, pb = principled('PAINT')
-pb.inputs['Coat Roughness'].default_value = 0.02
+pb.inputs['Coat Roughness'].default_value = DARK['coat_rough'] if a.studio == 'dark' else 0.02
+if DERIVE:   # marks the paint's pixels (filtered like colour, so anti-aliased edges get a fractional mask)
+    aovn = paint.node_tree.nodes.new('ShaderNodeOutputAOV'); aovn.aov_name = 'paintmask'; aovn.inputs['Value'].default_value = 1.0
 
 for o in meshes:
     is_paint = any(s.material and s.material.name.startswith('PAINT') for s in o.material_slots)
@@ -116,6 +124,9 @@ for o in meshes:
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
         bm.to_mesh(o.data); bm.free()
         for p in o.data.polygons: p.use_smooth = True
+        if a.studio == 'dark' and DARK['smooth_body'] > 0:   # irons out the bumpy source mesh before it is mirrored in the coat
+            cs_ = o.modifiers.new('csmooth', 'CORRECTIVE_SMOOTH'); cs_.factor = 0.5; cs_.iterations = int(DARK['smooth_body'])
+            cs_.smooth_type = 'SIMPLE'; cs_.rest_source = 'ORCO'
         if not (a.no_subdiv or fix.get('no_subdiv')) and len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
             sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
             sd.boundary_smooth = 'PRESERVE_CORNERS'
@@ -140,6 +151,7 @@ for o in meshes:
                     if a.studio == 'dark':
                         # dark-tinted, reflective glass with the cabin visible behind it (tint = share of light that gets through)
                         t = DARK['glass_tint']
+                        b.inputs['Roughness'].default_value = DARK['glass_rough']; b.inputs['IOR'].default_value = DARK['glass_ior']
                         b.inputs['Base Color'].default_value = (t, t * 1.06, t * 1.14, 1)
                         if DARK['glass_opaque']:   # fallback: no cabin, flat dark glass
                             b.inputs['Transmission Weight'].default_value = 0.0
@@ -321,10 +333,51 @@ PASSES = {  # name: (base value, metallic, roughness, coat)
     'gloss_w': (1.0, 0.0, 0.30, 1.0), 'gloss_b': (0.0, 0.0, 0.30, 1.0),
     'matte_w': (1.0, 0.0, 0.55, 0.0), 'matte_b': (0.0, 0.0, 0.55, 0.0),
 }
+
+def setup_derive():
+    """One render gives W; the compositor derives B = W - DiffColor * (DiffDirect + DiffIndirect) * paintmask and writes both.
+    Only the paint's diffuse depends on base colour (metallic 0; the coat and the dielectric specular layer do not), and the
+    mask keeps every other material's diffuse in B. Inter-reflection between paint panels is the only (tiny) approximation."""
+    vl = sc.view_layers[0]
+    vl.use_pass_diffuse_direct = vl.use_pass_diffuse_indirect = vl.use_pass_diffuse_color = True
+    aov = vl.aovs.add(); aov.name = 'paintmask'; aov.type = 'VALUE'
+    ng = bpy.data.node_groups.new('derive', 'CompositorNodeTree'); sc.compositing_node_group = ng
+    rl = ng.nodes.new('CompositorNodeRLayers'); rl.layer = vl.name
+    def mix(op, x, y):
+        m = ng.nodes.new('ShaderNodeMix'); m.data_type = 'RGBA'; m.blend_type = op; m.clamp_result = False
+        m.inputs[0].default_value = 1.0   # Factor
+        ia = [i for i in m.inputs if i.name == 'A' and i.type == 'RGBA'][0]; ib = [i for i in m.inputs if i.name == 'B' and i.type == 'RGBA'][0]
+        ng.links.new(x, ia); ng.links.new(y, ib); return [o for o in m.outputs if o.type == 'RGBA'][0]
+    light = mix('ADD', rl.outputs['Diffuse Direct'], rl.outputs['Diffuse Indirect'])
+    diff = mix('MULTIPLY', mix('MULTIPLY', light, rl.outputs['Diffuse Color']), rl.outputs['paintmask'])
+    sub = mix('SUBTRACT', rl.outputs['Image'], diff)
+    sa = ng.nodes.new('CompositorNodeSetAlpha'); sa.inputs['Type'].default_value = 'Replace Alpha'
+    ng.links.new(sub, sa.inputs['Image']); ng.links.new(rl.outputs['Alpha'], sa.inputs['Alpha'])
+    fo = ng.nodes.new('CompositorNodeOutputFile')
+    fo.format.media_type = 'IMAGE'; fo.format.file_format = 'PNG'; fo.format.color_mode = 'RGBA'; fo.format.color_depth = '8'
+    fo.format.color_management = 'FOLLOW_SCENE'
+    fo.file_output_items.clear()
+    fo.file_output_items.new('RGBA', 'W'); fo.file_output_items.new('RGBA', 'B')
+    ng.links.new(rl.outputs['Image'], fo.inputs[0]); ng.links.new(sa.outputs['Image'], fo.inputs[1])
+    return fo
+
+if DERIVE:
+    SETS = {'gloss': (0.30, 1.0), 'matte': (0.55, 0.0)}
+    fo = setup_derive()
 views = a.views.split(',') if a.views else list(cams)
 for v in views:
     sc.camera = cams[v]
     os.makedirs(os.path.join(a.out, v), exist_ok=True)
+    if DERIVE:
+        for sname, (rough, coat) in SETS.items():
+            if a.passes and not any(x.startswith(sname) for x in a.passes.split(',')): continue
+            pb.inputs['Base Color'].default_value = (1, 1, 1, 1); pb.inputs['Metallic'].default_value = 0.0
+            pb.inputs['Roughness'].default_value = rough; pb.inputs['Coat Weight'].default_value = coat
+            fo.directory = os.path.join(a.out, v); fo.file_name = ''
+            for it, nm in zip(fo.file_output_items, ('W', 'B')): it.name = f'{sname}_{nm.lower()}'
+            bpy.ops.render.render(write_still=False)
+            print('rendered', os.path.join(a.out, v, sname + '_[wb].png'), flush=True)
+        continue
     for name, (base, met, rough, coat) in PASSES.items():
         if a.passes and name not in a.passes.split(','): continue
         pb.inputs['Base Color'].default_value = (base, base, base, 1)
