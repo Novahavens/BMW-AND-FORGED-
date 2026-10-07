@@ -62,6 +62,13 @@ collection `feedback` (doc ids `car_<carId>`, `rim_<wheelId>`, `details_<wheelId
       menu Escape, unknown rim id → not found. `scripts/render/e2e.cjs` clicks every control (lead/saved-config writes faked);
       desktop journey checks pass so far; a full run takes hours on SwiftShader, so run it section by section
       (`node scripts/render/e2e.cjs <out> desktop journey|forged|rims|info|deeplinks`).
+- [x] Owner round 3 (rim page review of 2026-10-06): FSA-06 FORGED on the centre cap (car: `RIM_CAP_TEXT` in `services/rimFaces.ts`,
+      spin: `"cap": {"text": "FORGED"}`) and car = spin; FSA-08 (hub streaks, polished three-piece lip with 40 bolts, spoke count 15);
+      FSA-12 spokes as thick as the reference photo (~0.11 R mid-length, was 0.06-0.075); FSA-13 jagged spokes gone (smooth curved blades,
+      `scripts/render/make-curve-face.py`). All four spins are rebuilt to the engine's hub kit: dished face (`dish_curve: parabola`),
+      spoke ends 10 mm behind the lip, five lug nuts, black cap with gold ring and lettering, polished bolted lip for two/three-piece
+      (specs: `docs/rim-template/fsa_{06,08,12,13}-rim.json`; face sources `fsa_12-curve.json`, `fsa_13-curve.json`). The other eight
+      spins still have the older plain hub and flat face: re-render them from the same spec keys when convenient.
 - [ ] **Owner round 2**: re-check FSA-14, 09, 02, 04 and the M3 Touring lamps on the review page (answers in `rim2_<id>`
       and `recheck_m3t_headlights`); cars and the other spins still unmarked.
 - [ ] **Broken social links** (config/brand.ts): YouTube @ForgedSA 404, TikTok @forgedsa not found, www.forgedsa.com

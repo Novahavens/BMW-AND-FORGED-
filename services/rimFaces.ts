@@ -27,5 +27,15 @@ export const RIM_FACE_MASKS: Record<string, string> = {
  * defaults don't suit, e.g. { straightArms: false } for curved arms.
  */
 export const RIM_FACE_OPTIONS: Record<string, RimPhotoOptions> = {
+  forged_fsa_12: { fold: 5 }, // five pairs of two different spokes: the face repeats every 72 degrees (the spokes sit 35 / 37 degrees apart, which reads as 10-fold)
   forged_fsa_14: { fold: 25 } // 25 spokes: symmetry detection stops at 24
+};
+
+/**
+ * Lettering on a wheel's centre cap, for designs whose real cap carries a word instead of the FSA
+ * monogram (the cap is black with a gold ring and gold lettering). The Blender spin of the same
+ * wheel (scripts/rim3d, "cap": {"text": ...} in its spec) shows the same word.
+ */
+export const RIM_CAP_TEXT: Record<string, string> = {
+  forged_fsa_06: 'FORGED'
 };

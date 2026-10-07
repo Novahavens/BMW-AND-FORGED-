@@ -401,10 +401,15 @@ export function barrelAoMap(): THREE.Texture {
   return barrelAoCache;
 }
 
-let capCache: THREE.Texture | null = null;
-/** Centre cap face: black with a gold FSA monogram in a thin ring (brand gold #CF9F52). */
-export function capTexture(): THREE.Texture {
-  if (capCache) return capCache;
+const capCache = new Map<string, THREE.Texture>();
+/**
+ * Centre cap face: black with a gold lettering in a thin ring (brand gold #CF9F52). The default
+ * lettering is the FSA monogram; a design can ask for its own word (RIM_CAP_TEXT in rimFaces.ts),
+ * which is set to fill the ring.
+ */
+export function capTexture(text = 'FSA'): THREE.Texture {
+  const cached = capCache.get(text);
+  if (cached) return cached;
   const N = 256;
   const c = document.createElement('canvas');
   c.width = c.height = N;
@@ -422,14 +427,20 @@ export function capTexture(): THREE.Texture {
   g.arc(N / 2, N / 2, N * 0.42, 0, Math.PI * 2);
   g.stroke();
   g.fillStyle = '#CF9F52';
-  g.font = '800 70px "Arial Narrow", Arial, Helvetica, sans-serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText('FSA', N / 2, N / 2 + 3);
-  capCache = new THREE.CanvasTexture(c);
-  capCache.colorSpace = THREE.SRGBColorSpace;
-  capCache.anisotropy = 4;
-  return capCache;
+  // 70 px for the monogram; a longer word shrinks until it fits inside the ring
+  let size = 70;
+  for (; size > 16; size -= 2) {
+    g.font = `800 ${size}px "Arial Narrow", Arial, Helvetica, sans-serif`;
+    if (g.measureText(text).width <= N * 0.62) break;
+  }
+  g.fillText(text, N / 2, N / 2 + size * 0.04);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  capCache.set(text, tex);
+  return tex;
 }
 
 // ---------------------------------------------------------------------------
