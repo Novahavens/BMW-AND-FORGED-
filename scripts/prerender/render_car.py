@@ -59,7 +59,9 @@ CAR_FIXES = {
     # no_subdiv: subdivided, it runs out of memory (12.7 GB). glass_unlink: no ragged strip reflections in the bumpy glazing.
     # view_gain: from above the roof's shoulder highlights clipped (p99 1.0), so that one strip is 25% dimmer in the top view.
     'm3_g80': {'thin_glass': True, 'no_subdiv': True, 'glass_unlink': True, 'view_gain': {'top': {'shoulder': 0.75}}},
-    'm3_touring_g81': {'lamps': r'headlight'},
+    # suspension, hubs and anti-roll bars sit inside the arches and show through the wheel gaps (arch liners 'tubs' stay)
+    'm3_touring_g81': {'lamps': r'headlight',
+                       'hide': r'(lowerarm|upperarm|spring|shock|hub|strut|swaybar(_links)?|halfshaft|tierod)_[FR]'},
 }
 LAMP_MATS = {  # source part name in the mesh name: Principled inputs
     'Lights_Common': {'Base Color': (0.7, 0.7, 0.71, 1), 'Metallic': 1.0, 'Roughness': 0.15},  # reflectors
