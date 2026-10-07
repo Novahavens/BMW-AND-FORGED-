@@ -32,7 +32,7 @@ const toSrgb = new Uint8ClampedArray(4096).map((_, i) => {
 });
 
 /** The studio's exposure, applied to the linear colour before NeutralToneMapping (the bodies were rendered flat for it). */
-export const BODY_EXPOSURE = 1.6;
+export const BODY_EXPOSURE = 1.25; // was 1.6 with the brighter, hazier studio: deeper paint now the reflections are dark
 /** toLin with the exposure folded in (the mix is linear, so scaling both bases scales the result). */
 const toLinExposed = toLin.map((v) => v * BODY_EXPOSURE);
 /** toSrgb padded to 8192 entries (the tone-mapped value can reach 1.0 and a bit over, so no clamp is needed per channel). */

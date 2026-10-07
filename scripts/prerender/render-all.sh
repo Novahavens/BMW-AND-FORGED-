@@ -19,6 +19,7 @@ import sys, os, glob
 from PIL import Image
 src, dst = sys.argv[1:]
 for f in glob.glob(f'{src}/*/*.png'):
+    if os.path.basename(f) == 'flake_b.png': continue   # only flake_w is used
     v = os.path.basename(os.path.dirname(f)); os.makedirs(f'{dst}/{v}', exist_ok=True)
     Image.open(f).save(f'{dst}/{v}/' + os.path.basename(f)[:-4] + '.webp', quality=88, method=6)
 PY
