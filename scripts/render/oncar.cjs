@@ -5,6 +5,7 @@
  *
  *   bunx vite --host 127.0.0.1 --port 5173      # dev server, in another shell
  *   node scripts/render/oncar.cjs <outDir> '<json list of shots>' [rimCacheDir]
+ *   PASSES=<dir> (env) composites body passes from <dir>/<view>/ instead of public/renders/<carId>/ (judge passes before they are live)
  *   shot: {"car": 0, "carId": "m4_g82", "wheel": 9, "paint": 16, "finish": "silver", "view": "frontWheel", "size": "20\""}
  * car / wheel / paint are bundled-catalogue indexes (scripts/render/engine.html). Writes <name>.png.
  */
@@ -30,7 +31,7 @@ const shots = JSON.parse(shotsArg);
     await p.waitForTimeout(9000); // rim face worker, HDR, shadows
     await p.screenshot({ path: path.join(OUT, name + '-wheels.png'), omitBackground: true, timeout: 120000 });
     await p.close();
-    cp.execFileSync('python3', [path.join(__dirname, 'oncar.py'), path.join(OUT, name + '-wheels.png'), s.carId, s.view, String(s.paintHex), s.paintType || 'Metallic', path.join(OUT, name + '.png')]);
+    cp.execFileSync('python3', [path.join(__dirname, 'oncar.py'), path.join(OUT, name + '-wheels.png'), s.carId, s.view, String(s.paintHex), s.paintType || 'Metallic', path.join(OUT, name + '.png')].concat(process.env.PASSES ? [process.env.PASSES] : []));
     console.log(name);
   }
   await b.close();

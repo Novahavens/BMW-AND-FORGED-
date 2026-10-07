@@ -31,13 +31,15 @@ const SIZES = { phone: { width: 390, height: 844, isMobile: true, hasTouch: true
       window.__long = [];
       try { new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__long.push([Math.round(e.startTime), Math.round(e.duration)]); }).observe({ type: 'longtask', buffered: true }); } catch {}
     });
+    // a test run must never write to the live database (saved configurations, leads): answer its writes here
+    await p.route(/supabase\.co\/(rest|functions)\//, (r) => (r.request().method() === 'GET' || r.request().method() === 'HEAD' ? r.continue() : r.fulfill({ status: 201, contentType: 'application/json', body: '[]' })));
     await p.route(/supabase\.co\/storage\//, (r) => {
       const f = path.join(RIMS, path.basename(r.request().url()));
       if (fs.existsSync(f)) r.fulfill({ body: fs.readFileSync(f), contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } });
       else r.continue();
     });
     const t0 = performance.now();
-    const shot = async (tag) => { await p.screenshot({ path: path.join(OUT, `${name}-${tag}.png`) }); };
+    const shot = async (tag) => { await p.screenshot({ path: path.join(OUT, `${name}-${tag}.png`), timeout: 120000 }); };
     const longs = async (tag) => {
       const L = await p.evaluate(() => { const l = window.__long; window.__long = []; return l; });
       const big = L.filter(([, d]) => d >= 100);

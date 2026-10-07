@@ -23,6 +23,7 @@ import { SummaryPage } from './components/journey/SummaryPage';
 import { EnquiryModal } from './components/journey/EnquiryModal';
 import { Button } from './components/journey/ui';
 import RenderedCarView, { RENDER_ASPECT, loadRenderManifest } from './components/journey/RenderedCarView';
+import { backdropCss, hasBodies, renderedStills } from './services/renderedBody';
 
 // Pages off the main journey load on demand
 const ForgedPage = lazy(() => import('./components/ForgedPage').then((m) => ({ default: m.ForgedPage })));
@@ -90,7 +91,6 @@ const showroomCars = (cars: CarModel[]) => {
 
 /** First-visit paint when the car offers it (otherwise the car's first factory paint). */
 const DEFAULT_PAINT_ID = 'isle_of_man_green';
-
 
 /** Fades the pre-rendered stage's edges that stop short of the space around it (8 % of its size). */
 const stageEdgeFade = (st: { left: number; top: number }): React.CSSProperties => {
@@ -304,9 +304,10 @@ export const App: React.FC = () => {
     engine.preloadRimSizes([...new Set(catalog.wheels.flatMap(rimSizes))]);
   }, [route.name, step, catalogLoaded, catalog.wheels]);
 
-  // Pre-rendered mode: a fixed-aspect stage, centred in the space the controls leave. Where it doesn't
-  // reach the edges of that space (4:3 and portrait tablets), its studio backdrop stopped in a hard line
-  // above and below the car: those edges fade into the page instead (stageEdgeFade)
+  // Pre-rendered mode: a fixed-aspect stage, centred in the space the controls leave. The dark studio
+  // backdrop is painted over the whole screen, sized to the stage, so it carries on past the stage's edges
+  // (4:3 and portrait tablets) instead of stopping in a line above and below the car (backdropCss); the car
+  // itself (the wheel close-up fills its frame) fades out at the edges that stop short (stageEdgeFade)
   const rendered = route.name === 'configure' && (renderedCars[selectedCar.id]?.includes(cameraView) ?? false);
   const renderedRef = useRef(rendered);
   renderedRef.current = rendered;
@@ -318,6 +319,11 @@ export const App: React.FC = () => {
     const height = width / RENDER_ASPECT;
     return { left: (aw - width) / 2, top: Math.max(0, (ah - height) / 2), width, height };
   }, []);
+  // the backdrop keeps the last stage's size while it fades out
+  const [backdropFrame, setBackdropFrame] = useState<typeof stage>(null);
+  useEffect(() => {
+    if (stage) setBackdropFrame(stage);
+  }, [stage]);
   useEffect(() => {
     if (!rendered) return setStage(null);
     const update = () => setStage(computeStage());
@@ -563,12 +569,25 @@ export const App: React.FC = () => {
   }, [booted, catalogLoaded, loadCode]);
 
   /** The summary's stills and configuration code, taken whenever the summary opens. */
+  const stillsToken = useRef(0); // the latest request wins when stills finish out of order
   const enterSummary = useCallback(() => {
     // The three stills are a few hundred ms of rendering and JPEG encoding on a phone: taken on the
     // next frame, after the summary page has painted, so the tap responds at once and the images
     // drop in (the page shows their frames meanwhile)
     const engine = engineRef.current;
-    if (engine) requestAnimationFrame(() => setSummaryImages(engine.captureViews(['frontThreeQuarter', 'side', 'frontWheel'])));
+    if (engine) {
+      const views: CameraViewPreset[] = ['frontThreeQuarter', 'side', 'frontWheel'];
+      const token = ++stillsToken.current;
+      const live = () => token === stillsToken.current && setSummaryImages(engine.captureViews(views));
+      requestAnimationFrame(() => {
+        // Cars with pre-rendered bodies get stills made the way the configurator draws them (same body, tone curve and
+        // backdrop, live wheels on top); the others, or if that fails, the live 3D car
+        if (!hasBodies(renderedCars, selectedCar.id, views)) return live();
+        renderedStills(engine, selectedCar.id, selectedPaint, views)
+          .then((imgs) => (imgs.length === views.length ? token === stillsToken.current && setSummaryImages(imgs) : live()))
+          .catch(live);
+      });
+    }
     const cfg = currentConfig();
     const key = configKey(cfg);
     if (configCode?.key !== key) {
@@ -581,7 +600,7 @@ export const App: React.FC = () => {
         if (token === saveToken.current) setConfigCode((c) => (c && c.code === saved.code ? { ...c, shared } : c));
       });
     }
-  }, [configCode, selectedCar, selectedPaint, selectedWheel, selectedFinish, selectedSize, region]);
+  }, [configCode, renderedCars, selectedCar, selectedPaint, selectedWheel, selectedFinish, selectedSize, region]);
   // (popstate: only once the studio is up, else the configurator opens as on a direct visit)
   const reenterSummaryRef = useRef<() => boolean>(() => false);
   reenterSummaryRef.current = () => {
@@ -614,6 +633,13 @@ export const App: React.FC = () => {
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden bg-stage select-none">
       <ShowroomBackdrop car={selectedCar} visible={booted && route.name === 'showroom'} />
+
+      {/* The dark studio behind the pre-rendered car: charcoal, with the floor's pool of light under the car */}
+      <div
+        aria-hidden
+        className="absolute inset-0 z-[4] pointer-events-none transition-opacity duration-500"
+        style={{ background: backdropFrame ? backdropCss(backdropFrame, cameraView) : undefined, opacity: rendered && stage ? 1 : 0 }}
+      />
 
       {rendered && stage && (
         <div className="absolute z-[5] pointer-events-none" style={{ ...stage, ...stageEdgeFade(stage) }}>

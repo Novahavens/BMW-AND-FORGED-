@@ -2204,12 +2204,15 @@ export class CarConfiguratorEngine {
   static RENDER_ENV_URL = '/env/forgedsa_studio.hdr';
   static RENDER_ENV_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]renvi=([0-9.]+)/.exec(window.location.search) : null;
-    return m ? +m[1] : 0.33; // the bodies were rendered at -1.6 EV (scripts/prerender/render_car.py)
+    // The dark-studio bodies (scripts/prerender/render_car.py --studio dark) are toned in the browser at exposure 1.6; the
+    // wheels are drawn by this engine's own tone mapping, so they get less light than the old 0.33: at 0.18 the tyres read
+    // as dark rubber and the spokes keep their contrast on a dark body (matched by eye in the test rounds, ?renvi= tunes)
+    return m ? +m[1] : 0.18;
   })();
   private static DEPTH_ONLY = new THREE.MeshBasicMaterial({ colorWrite: false });
   private renderedBody = false;
   private renderEnvTarget: THREE.WebGLRenderTarget | null = null;
-  private renderEnvLoading = false;
+  private renderEnvLoading: Promise<THREE.WebGLRenderTarget | null> | null = null;
   private liveEnv: { env: THREE.Texture | null; intensity: number; rotation: THREE.Euler } | null = null;
   public setRenderedBody(on: boolean) {
     if (on === this.renderedBody) return;
@@ -2234,29 +2237,34 @@ export class CarConfiguratorEngine {
       return;
     }
     if (!this.liveEnv) this.liveEnv = { env: this.scene.environment, intensity: this.scene.environmentIntensity, rotation: this.scene.environmentRotation.clone() };
-    const use = (target: THREE.WebGLRenderTarget) => {
-      if (!this.renderedBody) return;
-      this.scene.environment = target.texture;
-      this.scene.environmentIntensity = CarConfiguratorEngine.RENDER_ENV_INTENSITY;
-      // Blender's car ran along X with the side strips at +/-Y; here the car runs along Z
-      this.scene.environmentRotation.set(0, Math.PI / 2, 0);
-      this.requestRender();
-    };
-    if (this.renderEnvTarget) return use(this.renderEnvTarget);
-    if (this.renderEnvLoading) return;
-    this.renderEnvLoading = true;
-    new HDRLoader()
+    if (this.renderEnvTarget) return this.useRenderEnv(this.renderEnvTarget);
+    this.loadRenderEnv().then((target) => target && this.renderedBody && this.useRenderEnv(target));
+  }
+  private useRenderEnv(target: THREE.WebGLRenderTarget) {
+    this.scene.environment = target.texture;
+    this.scene.environmentIntensity = CarConfiguratorEngine.RENDER_ENV_INTENSITY;
+    // Blender's car ran along X with the side strips at +/-Y; here the car runs along Z
+    this.scene.environmentRotation.set(0, Math.PI / 2, 0);
+    this.requestRender();
+  }
+  /** The Blender studio as a prefiltered environment (loaded once); null if it is unavailable. */
+  private loadRenderEnv(): Promise<THREE.WebGLRenderTarget | null> {
+    if (this.renderEnvTarget) return Promise.resolve(this.renderEnvTarget);
+    return (this.renderEnvLoading ??= new HDRLoader()
       .loadAsync(CarConfiguratorEngine.RENDER_ENV_URL)
       .then((hdr) => {
-        if (this.isDisposed) return;
+        if (this.isDisposed) return null;
         const pmrem = new THREE.PMREMGenerator(this.renderer);
         this.renderEnvTarget = pmrem.fromEquirectangular(hdr);
         hdr.dispose();
         pmrem.dispose();
-        use(this.renderEnvTarget);
+        return this.renderEnvTarget;
       })
-      .catch((err) => console.warn('Rendered-body studio HDR unavailable; wheels keep the live studio.', err))
-      .finally(() => (this.renderEnvLoading = false));
+      .catch((err) => {
+        console.warn('Rendered-body studio HDR unavailable; wheels keep the live studio.', err);
+        return null;
+      })
+      .finally(() => (this.renderEnvLoading = null)));
   }
   private syncRenderedBody() {
     const on = this.renderedBody;
@@ -2383,6 +2391,73 @@ export class CarConfiguratorEngine {
     this.updateCameraTransform();
     this.requestRender();
     return shots;
+  }
+
+  /**
+   * The live wheels (and calipers) alone, from the pre-rendered body's camera, as transparent canvases of the render's
+   * size: the summary stills and the PDF lay them over the recoloured Blender body (services/renderedBody.ts), exactly
+   * as the configurator does. Needs the studio HDR the wheels are lit with, so it waits for it; the live view is
+   * restored afterwards. Resolves to [] if the studio is unavailable (callers then use captureViews).
+   */
+  public async captureWheelLayers(views: CameraViewPreset[], width = 1440): Promise<HTMLCanvasElement[]> {
+    const target = await this.loadRenderEnv();
+    if (!target || this.isDisposed) return [];
+    const outW = width, outH = Math.round(width / CarConfiguratorEngine.RENDER_ASPECT);
+    const wasRendered = this.renderedBody;
+    const saved = {
+      spherical: { ...this.spherical },
+      target: { ...this.targetSpherical },
+      look: this.currentLookAt.clone(),
+      targetLook: this.targetLookAt.clone(),
+      targetPos: this.targetCameraPos.clone(),
+      damping: this.cameraDamping,
+      zoom: { ...this.zoomRange },
+      size: this.renderer.getSize(new THREE.Vector2()),
+      pixelRatio: this.renderer.getPixelRatio(),
+      aspect: this.camera.aspect
+    };
+    const savedInset = { ...this.viewInset };
+    if (!wasRendered) {
+      this.renderedBody = true;
+      this.syncRenderedBody();
+      this.applyRenderedEnvironment(true); // the HDR is loaded: lit at once
+    }
+    this.viewInset = { right: 0, bottom: 0 };
+    if (this.camera.view?.enabled) this.camera.clearViewOffset();
+    this.renderer.setPixelRatio(1);
+    this.renderer.setSize(outW, outH, false); // the canvas on screen keeps its CSS size
+    this.camera.aspect = outW / outH;
+    this.camera.updateProjectionMatrix();
+    const layers = views.map((view) => {
+      this.setCameraPreset(view, { instant: true }); // rendered mode frames every view for RENDER_ASPECT
+      this.renderer.render(this.scene, this.camera);
+      const out = document.createElement('canvas');
+      out.width = outW;
+      out.height = outH;
+      out.getContext('2d')!.drawImage(this.renderer.domElement, 0, 0, outW, outH);
+      return out;
+    });
+    this.renderer.setPixelRatio(saved.pixelRatio);
+    this.renderer.setSize(saved.size.x, saved.size.y, false);
+    if (!wasRendered) {
+      this.renderedBody = false;
+      this.syncRenderedBody();
+      this.applyRenderedEnvironment(false);
+    }
+    this.camera.aspect = saved.aspect;
+    this.camera.updateProjectionMatrix();
+    this.spherical = saved.spherical;
+    this.targetSpherical = saved.target;
+    this.currentLookAt.copy(saved.look);
+    this.targetLookAt.copy(saved.targetLook);
+    this.targetCameraPos.copy(saved.targetPos);
+    this.cameraDamping = saved.damping;
+    this.zoomRange = saved.zoom;
+    this.viewInset = savedInset;
+    this.currentInset = { right: 0, bottom: 0 }; // re-applied smoothly on the next frame
+    this.updateCameraTransform();
+    this.requestRender();
+    return layers;
   }
 
   public setAutoRotate(enabled: boolean) {

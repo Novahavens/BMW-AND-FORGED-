@@ -62,6 +62,8 @@ const PAGES = ['welcome', 'showroom', 'configure', 'paint', 'wheels', 'size', 'f
     // wrong data, so it fails. Fix: trust the proxy CA in $HOME/.pki/nssdb (certutil), never ignore errors
     const tlsFails = [];
     p.on('requestfailed', (r) => { if (/ERR_CERT/.test(r.failure()?.errorText || '')) tlsFails.push(new URL(r.url()).host); });
+    // a test run must never write to the live database (saved configurations, leads): answer its writes here
+    await p.route(/supabase\.co\/(rest|functions)\//, (r) => (r.request().method() === 'GET' || r.request().method() === 'HEAD' ? r.continue() : r.fulfill({ status: 201, contentType: 'application/json', body: '[]' })));
     await p.route(/supabase\.co\/storage\//, (r) => {
       const f = path.join(RIMS, path.basename(r.request().url()));
       if (fs.existsSync(f)) r.fulfill({ body: fs.readFileSync(f), contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } });
