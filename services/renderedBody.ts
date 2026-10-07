@@ -163,13 +163,11 @@ function rememberRecoloured(key: string, img: ImageData) {
  * the edges). Solid (Uni) paints have none; Frozen paints use the matte frames and get none either.
  */
 export const flakeLook = (paint: PaintColor) => {
-  const share = paint.type === 'Metallic' ? 0.6 : paint.type === 'Pearl' ? 0.45 : 0;
+  const share = paint.type === 'Metallic' ? 0.5 : paint.type === 'Pearl' ? 0.4 : 0;
   if (!share) return null;
   const [r, g, b] = hexLin(paint.hex);
-  const peak = Math.max(r, g, b, 1e-4);
-  // brighten towards a peak of 0.85 and keep the hue; very dark paints (black sapphire) still get a visible sparkle
-  const k = Math.min(6, 0.85 / peak);
-  const lift = (c: number) => Math.min(1, c * k * 0.7 + c * 0.3);
+  // a touch brighter than the pigment, same hue; near-black paints keep a faint neutral sparkle
+  const lift = (c: number) => Math.min(1, c * 1.25 + 0.012);
   return { r: lift(r), g: lift(g), b: lift(b), share };
 };
 
