@@ -48,7 +48,7 @@ DERIVE = a.studio == 'dark' and not a.two_render
 #  glass_unlink: light-link the crisp reflection strips (strip/low/shoulder/rim lights) away from the glass, so the
 #        glass reflects only the soft room (world, overhead panel, gradient wall) and never a ragged white bar.
 #        True = every glass mesh; a regex string = only the meshes whose name matches.
-#  dark_glass: regex of meshes rendered as flat, dark, glossy glass (no transmission: nothing to refract into blotches),
+#  dark_glass: regex of meshes rendered as flat, dark, glossy glass (no transmission, so no cabin shows through),
 #        e.g. a panoramic roof seen from above. Its material is copied, so the other windows are untouched.
 #  view_gain: {view: {light-name prefix: factor}} scales those lights for one view only (e.g. a roof that clips from above).
 #  dark: per-car overrides of the DARK studio values (e.g. calmer strips where a roof is hot).
@@ -62,6 +62,9 @@ CAR_FIXES = {
     # suspension, hubs and anti-roll bars sit inside the arches and show through the wheel gaps (arch liners 'tubs' stay)
     'm3_touring_g81': {'lamps': r'headlight',
                        'hide': r'(lowerarm|upperarm|spring|shock|hub|strut|swaybar(_links)?|halfshaft|tierod)_[FR]'},
+    # the panoramic roof's black plastic panel is coplanar with its glass: the two z-fought into black blotches from above.
+    # Drop the panel, render the glass as flat dark glass and keep the crisp strips off it.
+    'x5m_f95': {'hide': r'^roof_panoram_plastic', 'dark_glass': r'^roof_panoram\d*_glass', 'glass_unlink': r'^roof_panoram\d*_glass'},
 }
 LAMP_MATS = {  # source part name in the mesh name: Principled inputs
     'Lights_Common': {'Base Color': (0.7, 0.7, 0.71, 1), 'Metallic': 1.0, 'Roughness': 0.15},  # reflectors
