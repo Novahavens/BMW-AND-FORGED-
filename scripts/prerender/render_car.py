@@ -69,15 +69,19 @@ LAMP_MATS = {  # source part name in the mesh name: Principled inputs
 DARK = dict(
     exposure=0.0,            # view exposure, stops ('Standard' view transform stays linear)
     world_zenith=0.004, world_horizon=0.03,   # near-black room with a faint horizon glow (lower-body reflections)
-    top_rad=2.0, top_refl_rad=0.5, top_w=1.0, top_l=0.75, top_h=3.0,   # big soft overhead: width x length (xL), height above roof (m)
-    strip_rad=4.5, strip_w=0.05, strip_l=1.15, strip_d=0.5, strip_h=1.0,   # high side strips: width/length (xL), offset (xL), height above roof (m)
-    strip2_rad=0.0, strip2_w=0.05, strip2_d=0.4, strip2_h=1.5,   # second high strip, nearer and steeper: shoulder / roof-pillar lines
-    low_rad=4.0, low_w=0.05, low_d=0.7, low_h=0.35,   # low side strips (sills): height above ground (m)
-    rim_rad=8.0, rim_w=0.07, rim_l=0.8, rim_d=0.9, rim_h=1.8,    # end rim strips, high behind/in front, aimed at roof/bonnet
+    top_rad=2.1, top_w=1.0, top_l=0.75, top_h=3.0,   # big soft overhead, DIFFUSE only: width x length (xL), height above roof (m)
+    topg_lo=0.25, topg_hi=1.1, topg_dir=1,   # overhead reflection panel (glossy only): radiance rear->front gradient lo..hi (dir -1 flips)
+    strip_rad=3.0, strip_w=0.05, strip_l=2.4, strip_d=0.5, strip_h=1.0,   # high camera-side strip: width (xL), length (xL), offset (xL), height above roof (m)
+    sh_rad=6.0, sh_w=0.16, sh_l=2.6, sh_x=1.0, sh_h=1.5, sh_both=1,   # ONE long thin bright shoulder strip along the car: width (m), length (xL), lateral (m), height above roof (m), both sides
+    low_rad=4.0, low_w=0.05, low_d=0.7, low_h=0.35,   # low camera-side strip (sills / lower door): height above ground (m)
+    rim_rad=6.0, rim_w=0.07, rim_l=0.8, rim_d=0.9, rim_h=1.8,    # end rim strips, high behind/in front, aimed at roof/bonnet
     panel_rad_top=1.3, panel_rad_bottom=0.15, panel_d=0.75, panel_len=1.3, panel_h=2.4,   # far-side gradient wall (emissive, reflection-only): doors/flanks reflect a soft light-to-dark gradient; d, len in xL, h in metres
+    fill_rad=0.9, fill_d=0.75, fill_h=1.2,            # camera-side soft diffuse-only fill (flanks, lower body): radiance, offset (xL), height (m)
+    end_rad=1.6, end_d=0.95,                          # soft diffuse-only fills ahead of / behind the car (grille, bumper, tail)
+    cabin_rad=0.8,           # dim diffuse light inside the cabin so the interior reads through the glass
     far_strips=0,            # 1 also puts the high/low strips on the far side (they reflect strongly in the windscreen)
     strips_reflect_only=1,   # strips/rims are invisible to diffuse rays: they draw crisp reflections but do not light (wash out) the white pass or the floor
-    glass_spec=0.0,          # Principled 'Specular IOR Level' of the (opaque, dark) glazing (default 0.5); anything above ~0.05 turns the bumpy source glass into white wavy reflections
+    glass_tint=0.22, glass_opaque=0,   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
     floor_albedo=0.08,       # the (invisible) floor still shows in reflections
 )
 for kv in filter(None, a.dark_set.split(',')):
@@ -134,13 +138,12 @@ for o in meshes:
                     b.inputs['Base Color'].default_value = (0.05, 0.06, 0.07, 1)
                     b.inputs['Alpha'].default_value = 1.0
                     if a.studio == 'dark':
-                        # The bodies are hollow: through transmissive glass a camera ray leaves by the far window and the
-                        # transparent film shows the page backdrop (white wavy holes in every window). Render the glazing as
-                        # opaque dark-tinted glass that still mirrors the light strips.
-                        b.inputs['Transmission Weight'].default_value = 0.0
-                        b.inputs['Base Color'].default_value = (0.012, 0.014, 0.017, 1)
-                        b.inputs['Roughness'].default_value = 0.04
-                        b.inputs['Specular IOR Level'].default_value = DARK['glass_spec']
+                        # dark-tinted, reflective glass with the cabin visible behind it (tint = share of light that gets through)
+                        t = DARK['glass_tint']
+                        b.inputs['Base Color'].default_value = (t, t * 1.06, t * 1.14, 1)
+                        if DARK['glass_opaque']:   # fallback: no cabin, flat dark glass
+                            b.inputs['Transmission Weight'].default_value = 0.0
+                            b.inputs['Base Color'].default_value = (0.012, 0.014, 0.017, 1)
                     if fix.get('thin_glass'):
                         b.inputs['IOR'].default_value = 1.0
                         b.inputs['Coat Weight'].default_value = 1.0
@@ -232,52 +235,78 @@ else:
         l = bpy.data.lights.new(name, 'AREA'); l.shape = 'RECTANGLE'
         l.size, l.size_y = sx, sy; l.energy = rad * sx * sy * math.pi
         ob = bpy.data.objects.new(name, l); ob.location = loc; sc.collection.objects.link(ob)
-        if D['strips_reflect_only']: ob.visible_diffuse = False
-        ob.visible_transmission = False   # else they show through the windows as white scribbles
         aim(ob, target)
         return ob
-    # 1 big soft overhead (a large diffuser, low radiance: gives the form gradient on bonnet/roof)
+    def refl_only(ob):   # seen by glossy (reflection) rays only
+        if ob: ob.visible_diffuse = False; ob.visible_transmission = False
+        return ob
+    def diff_only(ob):   # lights diffusely only: never a reflection or something seen through the glass
+        if ob: ob.visible_glossy = False; ob.visible_transmission = False
+        return ob
+    # Rays that have passed through the glass must not see the shadow-catcher floor: the bodies are hollow, so through the
+    # windows it showed as transparent film (the page backdrop) with a wavy refracted edge.
+    floor.visible_transmission = False
+    def emissive_quad(name, corners, axis, v0, v1, lo, hi):
+        """Reflection-only emissive quad whose radiance runs lo..hi (smoothstep) as corner . axis goes v0..v1."""
+        me = bpy.data.meshes.new(name); me.from_pydata(corners, [], [(0, 1, 2, 3)])
+        ob = bpy.data.objects.new(name, me); sc.collection.objects.link(ob)
+        m = bpy.data.materials.new(name); m.use_nodes = True; t = m.node_tree; t.nodes.clear()
+        em = t.nodes.new('ShaderNodeEmission'); out = t.nodes.new('ShaderNodeOutputMaterial')
+        gp = t.nodes.new('ShaderNodeNewGeometry'); dt = t.nodes.new('ShaderNodeVectorMath'); dt.operation = 'DOT_PRODUCT'
+        dt.inputs[1].default_value = tuple(axis)
+        mr2 = t.nodes.new('ShaderNodeMapRange'); mr2.clamp = True; mr2.interpolation_type = 'SMOOTHSTEP'
+        mr2.inputs['From Min'].default_value = v0; mr2.inputs['From Max'].default_value = v1
+        mr2.inputs['To Min'].default_value = lo; mr2.inputs['To Max'].default_value = hi
+        t.links.new(gp.outputs['Position'], dt.inputs[0]); t.links.new(dt.outputs['Value'], mr2.inputs['Value'])
+        t.links.new(mr2.outputs[0], em.inputs['Strength']); t.links.new(em.outputs[0], out.inputs[0])
+        ob.data.materials.append(m); ob.visible_camera = False; ob.visible_shadow = False; refl_only(ob)
+        return ob
+    # 1 big soft overhead, diffuse only: the form gradient on bonnet / roof / door tops (and the floor shadow)
     tsx, tsy = L * D['top_l'], L * D['top_w']   # sx runs along the car (rz turns it), sy across
-    # (two co-located lights: one lights the paint and floor diffusely, one only shows in reflections, so the
-    # reflected softbox can be dimmer than the light that models the panel's shading; grazing Fresnel on the
-    # bonnet would otherwise reflect it at 30-50% and clip the white pass)
-    t_d = softbox('top', (cx, cy, H + D['top_h']), (0, 0, rz), tsx, tsy, D['top_rad'] * tsx * tsy * math.pi)
-    t_d.visible_glossy = False
-    if D['top_refl_rad'] > 0:
-        t_g = softbox('top_refl', (cx, cy, H + D['top_h']), (0, 0, rz), tsx, tsy, D['top_refl_rad'] * tsx * tsy * math.pi)
-        t_g.visible_diffuse = False; t_g.visible_transmission = False
+    diff_only(softbox('top', (cx, cy, H + D['top_h']), (0, 0, rz), tsx, tsy, D['top_rad'] * tsx * tsy * math.pi))
+    # 1b the same panel as seen in reflections: a rear->front radiance gradient, so a flat roof or bonnet shows a sheen, not a flat grey
+    if D['topg_hi'] > 0:
+        zq = H + D['top_h'] - 0.02; hl, hw = tsx / 2, tsy / 2
+        lonax = (0, 1, 0) if long_y else (1, 0, 0)
+        cor = [(cx + (-hw if long_y else -hl), cy + (-hl if long_y else -hw), zq), (cx + (hw if long_y else hl), cy + (-hl if long_y else -hw), zq),
+               (cx + (hw if long_y else hl), cy + (hl if long_y else hw), zq), (cx + (-hw if long_y else -hl), cy + (hl if long_y else hw), zq)]
+        c0 = (cy if long_y else cx)
+        emissive_quad('top_refl', cor, lonax, c0 - hl, c0 + hl, D['topg_lo'] if D['topg_dir'] > 0 else D['topg_hi'], D['topg_hi'] if D['topg_dir'] > 0 else D['topg_lo'])
     # The five views all shoot from one side of the car, so the camera side gets the strips (crisp lines on the
     # bonnet, roof and shoulder) and the far side gets a tall soft gradient wall that the doors and flanks reflect.
     camv = [(c.matrix_world.translation.x if long_y else c.matrix_world.translation.y) for c in cams.values()]
     cs = 1 if sum(camv) >= 0 else -1
     # 2 long narrow strips: crisp highlight lines along the shoulder and roofline
     for sgn in ((cs, -cs) if D['far_strips'] else (cs,)):
-        strip(f'strip{sgn}', lat(sgn, 0, L * D['strip_d'], H + D['strip_h']), lat(sgn, 0, 0, H * 0.55),
-              L * D['strip_l'], L * D['strip_w'], D['strip_rad'])
-        strip(f'strip2_{sgn}', lat(sgn, 0, L * D['strip2_d'], H + D['strip2_h']), lat(sgn, 0, 0, H * 0.5),
-              L * D['strip_l'], L * D['strip2_w'], D['strip2_rad'])
+        refl_only(strip(f'strip{sgn}', lat(sgn, 0, L * D['strip_d'], H + D['strip_h']), lat(sgn, 0, 0, H * 0.55),
+                        L * D['strip_l'], L * D['strip_w'], D['strip_rad']))
         # 3 low strips for the sills
-        strip(f'low{sgn}', lat(sgn, 0, L * D['low_d'], D['low_h']), lat(sgn, 0, 0, H * 0.3),
-              L * D['strip_l'], L * D['low_w'], D['low_rad'])
+        refl_only(strip(f'low{sgn}', lat(sgn, 0, L * D['low_d'], D['low_h']), lat(sgn, 0, 0, H * 0.3),
+                        L * D['strip_l'], L * D['low_w'], D['low_rad']))
+    # 2b the shoulder strip: one long, thin, bright line parallel to the car, above the shoulder (see the camera-side mirror geometry:
+    #    a crest with a 45 degree normal reflects what is straight above it, so one long strip draws one continuous line along door and shoulder)
+    if D['sh_rad'] > 0:
+        for sgn in ((cs, -cs) if D['sh_both'] else (cs,)):
+            refl_only(strip(f'shoulder{sgn}', lat(sgn, 0, D['sh_x'], H + D['sh_h']), lat(sgn, 0, D['sh_x'] - 0.6, 0.0),
+                            L * D['sh_l'], D['sh_w'], D['sh_rad']))
     # 3b far-side gradient wall: emissive quad, bright at the top fading to dark at the bottom, reflection-only
     if D['panel_rad_top'] > 0:
-        dd = L * D['panel_d']; hl = L * D['panel_len'] / 2; zt = D['panel_h']
-        corners = [lat(-cs, -hl, dd, 0.05), lat(-cs, hl, dd, 0.05), lat(-cs, hl, dd, zt), lat(-cs, -hl, dd, zt)]
-        me = bpy.data.meshes.new('panel'); me.from_pydata(corners, [], [(0, 1, 2, 3)])
-        pn = bpy.data.objects.new('panel', me); sc.collection.objects.link(pn)
-        pm = bpy.data.materials.new('panel'); pm.use_nodes = True; pt = pm.node_tree; pt.nodes.clear()
-        em = pt.nodes.new('ShaderNodeEmission'); out = pt.nodes.new('ShaderNodeOutputMaterial')
-        gp = pt.nodes.new('ShaderNodeNewGeometry'); sz = pt.nodes.new('ShaderNodeSeparateXYZ')
-        mr2 = pt.nodes.new('ShaderNodeMapRange'); mr2.clamp = True; mr2.interpolation_type = 'SMOOTHSTEP'
-        mr2.inputs['From Min'].default_value = 0.05; mr2.inputs['From Max'].default_value = zt
-        mr2.inputs['To Min'].default_value = D['panel_rad_bottom']; mr2.inputs['To Max'].default_value = D['panel_rad_top']
-        pt.links.new(gp.outputs['Position'], sz.inputs[0]); pt.links.new(sz.outputs['Z'], mr2.inputs['Value'])
-        pt.links.new(mr2.outputs[0], em.inputs['Strength']); pt.links.new(em.outputs[0], out.inputs[0])
-        pn.data.materials.append(pm); pn.visible_diffuse = False; pn.visible_camera = False; pn.visible_shadow = False; pn.visible_transmission = False
+        dd = L * D['panel_d']; hl2 = L * D['panel_len'] / 2; zt = D['panel_h']
+        corners = [lat(-cs, -hl2, dd, 0.05), lat(-cs, hl2, dd, 0.05), lat(-cs, hl2, dd, zt), lat(-cs, -hl2, dd, zt)]
+        emissive_quad('panel', corners, (0, 0, 1), 0.05, zt, D['panel_rad_bottom'], D['panel_rad_top'])
     # 4 weak rim strips ahead of / behind the car: separate roof and bonnet from the dark background
     for sgn in (1, -1):
-        strip(f'rim{sgn}', lat(1, sgn * L * D['rim_d'], 0, H + D['rim_h']), lat(1, 0, 0, H * 0.8),
-              L * D['rim_l'], L * D['rim_w'], D['rim_rad'])
+        refl_only(strip(f'rim{sgn}', lat(1, sgn * L * D['rim_d'], 0, H + D['rim_h']), lat(1, 0, 0, H * 0.8),
+                        L * D['rim_l'], L * D['rim_w'], D['rim_rad']))
+    # 5 soft diffuse-only fills: lift the flanks, lower body, grille and bumper that the overhead light cannot reach (no reflections)
+    if D['fill_rad'] > 0:
+        f = strip('fill_cam', lat(cs, 0, L * D['fill_d'], D['fill_h']), lat(cs, 0, 0, H * 0.4), L * 1.1, 1.8, D['fill_rad']); diff_only(f)
+    if D['end_rad'] > 0:
+        for sgn in (1, -1):
+            f = strip(f'end{sgn}', lat(cs, sgn * L * D['end_d'], 0.0, 1.0), lat(cs, 0, 0, H * 0.4), 3.6, 1.6, D['end_rad']); diff_only(f)
+    # 6 dim light inside the cabin: lights the seats / dash behind the (otherwise shadowing) glass
+    if D['cabin_rad'] > 0:
+        cab = softbox('cabin', (cx, cy + 0.15, 0.95), (0, 0, 0), 1.0, 1.8, D['cabin_rad'] * 1.8 * math.pi); diff_only(cab)
 
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'
 if a.threads: sc.render.threads_mode = 'FIXED'; sc.render.threads = a.threads
