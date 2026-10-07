@@ -1,6 +1,6 @@
 """Composite for oncar.cjs: studio backdrop + Blender body passes recoloured by paint (the same
 maths as components/journey/RenderedCarView.tsx) + the engine's wheel layer.
-  python3 oncar.py wheels.png carId view '#hex' Metallic|Frozen|Uni out.png"""
+  python3 oncar.py wheels.png carId view '#hex' Metallic|Pearl|Frozen|Uni out.png"""
 import sys
 import numpy as np
 from PIL import Image

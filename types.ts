@@ -38,7 +38,8 @@ export interface PaintColor {
   name: string;
   code: string;
   hex: string;
-  type: 'Metallic' | 'Frozen' | 'Uni';
+  /** Pearl = pearl, xirallic and amber-effect paints; drawn as gloss (only Frozen is matte). */
+  type: 'Metallic' | 'Pearl' | 'Frozen' | 'Uni';
   roughness: number;
   metalness: number;
   clearcoat: number;

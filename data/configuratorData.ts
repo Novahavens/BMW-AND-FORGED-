@@ -53,11 +53,7 @@ export const BMW_MODELS: CarModel[] = [
     },
     bodyStyle: 'coupe',
     paintIds: [
-      'skyscraper_grey', 'brooklyn_grey', 'isle_of_man_green', 'black_sapphire', 'toronto_red',
-      'portimao_blue', 'sao_paulo_yellow', 'alpine_white', 'aventurine_red_iii', 'tanzanite_blue_ii',
-      'dravit_grey', 'san_marino_blue', 'velvet_blue', 'java_green', 'frozen_dark_grey_ii', 'speed_yellow',
-      'frozen_pure_grey', 'frozen_black', 'marina_bay_blue', 'frozen_portimao_blue',
-      'frozen_brilliant_white'
+      'riviera_blue', 'frozen_isle_of_man_green', 'brooklyn_grey', 'black_sapphire'
     ],
     modelUrl: '/models/bmw-m4-cs-vr46.glb',
     modelLengthM: 4.79,
@@ -163,7 +159,7 @@ export const BMW_MODELS: CarModel[] = [
     paintIds: [
       'fire_red', 'skyscraper_grey', 'brooklyn_grey', 'black_sapphire', 'portimao_blue', 'zandvoort_blue',
       'sao_paulo_yellow', 'alpine_white', 'frozen_portimao_blue_c6r', 'frozen_pure_grey', 'java_green',
-      'grigio_telesto', 'twilight_purple', 'voodoo_blue'
+      'grigio_telesto', 'twilight_purple', 'voodoo_blue', 'borusan_turkish_blue'
     ],
     modelUrl: '/models/bmw-m2-competition.glb',
     modelLengthM: 4.58,
@@ -254,9 +250,9 @@ export const BMW_MODELS: CarModel[] = [
     recommendedWheelFitment: { front: '', rear: '', pcd: '5x112', cb: '66.6mm' },
     bodyStyle: 'coupe',
     paintIds: [
-      'alpine_white', 'aventurin_red', 'black_sapphire', 'brooklyn_grey', 'dravit_grey', 'frozen_pure_grey',
-      'frozen_tanzanite_blue', 'isle_of_man_green', 'marina_bay_blue', 'skyscraper_grey',
-      'tanzanite_blue_ii'
+      'alpine_white', 'aventurine_red_iii', 'black_sapphire', 'brooklyn_grey', 'dravit_grey',
+      'frozen_pure_grey', 'frozen_tanzanite_blue', 'isle_of_man_green', 'marina_bay_blue',
+      'skyscraper_grey', 'tanzanite_blue_ii'
     ],
     modelUrl: '/models/bmw-m8-competition-f92.glb',
     modelLengthM: 4.87,
@@ -314,74 +310,78 @@ export const BMW_MODELS: CarModel[] = [
   }
 ];
 
-// BMW South Africa factory paints (docs/bmw-factory-paints.md). Hex values are renderer-calibrated base
-// colours (matched to BMW's own car renders), not the raw swatch samples in the doc.
-// Mirrors supabase/migrations/20260927030000_factory_paints.sql; each car lists its own in paintIds.
+// BMW South Africa factory paints (docs/bmw-factory-paints.md). Hex values are the paint's true sRGB
+// albedo (the car renders are recoloured in linear light, so nothing is darkened or brightened to
+// compensate), estimated from the doc's swatches and BMW's names; they are not colour-managed data.
+// Mirrors supabase/migrations/20261007090000_bmw_paint_corrections.sql (on top of
+// 20260927030000_factory_paints.sql); each car lists its own in paintIds.
 export const BMW_PAINTS: PaintColor[] = [
-  { id: 'fire_red', name: 'Fire Red', code: 'C68', hex: '#8c2226', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'skyscraper_grey', name: 'Skyscraper Grey', code: 'C4W', hex: '#555a5d', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'brooklyn_grey', name: 'Brooklyn Grey', code: 'C4P', hex: '#889296', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'black_sapphire', name: 'Black Sapphire', code: '475', hex: '#151617', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'portimao_blue', name: 'Portimao Blue', code: 'C31', hex: '#1e3066', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'zandvoort_blue', name: 'Zandvoort Blue', code: 'C6E', hex: '#547bad', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'sao_paulo_yellow', name: 'São Paulo Yellow', code: 'C4H', hex: '#88a11c', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'alpine_white', name: 'Alpine White III', code: '300', hex: '#c8c8c9', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'frozen_portimao_blue_c6r', name: 'Frozen Portimao Blue', code: 'C6R', hex: '#0e2357', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'frozen_pure_grey', name: 'Frozen Pure Grey', code: 'C5A', hex: '#44494c', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'java_green', name: 'Java Green', code: 'P7V', hex: '#638954', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'grigio_telesto', name: 'Grigio Telesto', code: 'P6M', hex: '#555858', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'twilight_purple', name: 'Twilight Purple', code: 'P28', hex: '#5a2c4d', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'voodoo_blue', name: 'Voodoo Blue', code: 'P7L', hex: '#888888', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05, active: false }, // finish unverified; no colour in the BMW data yet
-  { id: 'thundernight', name: 'Thundernight', code: 'C56', hex: '#3a1f3d', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'storm_bay', name: 'Storm Bay', code: 'C3N', hex: '#5f686e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'isle_of_man_green', name: 'Isle of Man Green', code: 'C4G', hex: '#0f5444', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'toronto_red', name: 'Toronto Red', code: 'C3G', hex: '#9d3307', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'aventurine_red_iii', name: 'Aventurine Red III', code: 'C57', hex: '#630f1c', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'tanzanite_blue_ii', name: 'Tanzanite Blue II', code: 'C3Z', hex: '#151f32', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'dravit_grey', name: 'Dravit Grey', code: 'C36', hex: '#3c4041', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'san_marino_blue', name: 'San Marino Blue', code: 'B51', hex: '#092455', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'wildberry', name: 'Wildberry', code: 'T09', hex: '#5a2834', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'ruby_black', name: 'Ruby Black', code: 'X03', hex: '#24181c', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'frozen_deep_green', name: 'Frozen Deep Green', code: 'P80', hex: '#3f4d3c', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'frozen_dark_grey_ii', name: 'Frozen Dark Grey II', code: 'P79', hex: '#2a3235', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'fire_orange_iii', name: 'Fire Orange III', code: 'P7E', hex: '#975305', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'frozen_black', name: 'Frozen Black', code: 'U91', hex: '#18191b', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'thunder', name: 'Thunder', code: 'P6L', hex: '#373f43', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'mineral_white', name: 'Mineral White', code: 'A96', hex: '#ebeae9', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'riviera_blue', name: 'Riviera Blue', code: 'P5C', hex: '#028fc1', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'marina_bay_blue', name: 'Marina Bay Blue', code: 'C1K', hex: '#1c4085', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'mint_green', name: 'Mint Green', code: 'W97', hex: '#409084', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'sepia_iii', name: 'Sepia III', code: 'S0N', hex: '#4b494b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'frozen_tanzanite_blue', name: 'Frozen Tanzanite Blue', code: 'X1G', hex: '#02023f', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'frozen_portimao_blue', name: 'Frozen Portimao Blue', code: 'X1E', hex: '#0e2357', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'frozen_pure_grey_ii', name: 'Frozen Pure Grey II', code: 'X1F', hex: '#717e82', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'anglesey_green', name: 'Anglesey Green', code: 'P9R', hex: '#024b3a', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'ruby_star', name: 'Ruby Star', code: 'P9L', hex: '#75084c', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'frozen_brilliant_white', name: 'Frozen Brilliant White', code: 'X16', hex: '#cbcec4', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'frozen_preciosa_red', name: 'Frozen Preciosa Red', code: 'P9C', hex: '#510202', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'malachite_green_ii', name: 'Malachite Green II', code: 'P85', hex: '#31433a', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'speed_yellow', name: 'Speed Yellow', code: 'U96', hex: '#b09918', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'brewster_green', name: 'Brewster Green', code: 'T42', hex: '#1a2c26', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'urban_green_ii', name: 'Urban Green II', code: 'P9P', hex: '#485037', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'lagoon_green', name: 'Lagoon Green', code: '266', hex: '#135861', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'le_mans_blue', name: 'Le Mans Blue', code: '381', hex: '#1c5185', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'velvet_blue', name: 'Velvet Blue', code: '379', hex: '#342f58', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'frozen_deep_grey', name: 'Frozen Deep Grey', code: 'P7X', hex: '#25292f', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'velvet_orchid_ii', name: 'Velvet Orchid II', code: 'L74', hex: '#806c72', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'carbon_black', name: 'Carbon Black', code: '416', hex: '#0e1b2b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'sophisto_grey_brilliant_effect', name: 'Sophisto Grey Brilliant Effect', code: 'A90', hex: '#2b2c2b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'damast_red', name: 'Damast Red', code: 'B03', hex: '#45231f', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'imola_red', name: 'Imola Red', code: '405', hex: '#6e1b0d', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'nardo_grey', name: 'Nardo Grey', code: 'P6K', hex: '#666869', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'oxford_green_ii', name: 'Oxford Green II', code: '430', hex: '#1b3330', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'bernina_grey_amber_effect', name: 'Bernina Grey Amber Effect', code: 'C3E', hex: '#575852', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'frozen_deep_grey_c64', name: 'Frozen Deep Grey', code: 'C64', hex: '#242628', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'barcelona_blue', name: 'Barcelona Blue', code: 'C38', hex: '#636f78', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'arctic_race_blue', name: 'Arctic Race Blue', code: 'C4F', hex: '#30495b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'dune_grey', name: 'Dune Grey', code: 'C7A', hex: '#adada6', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'fire_red_ii', name: 'Fire Red II', code: '375', hex: '#742002', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified
-  { id: 'sepang_bronze', name: 'Sepang Bronze', code: 'A32', hex: '#636054', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'aventurin_red', name: 'Aventurin Red', code: 'X15', hex: '#530202', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'fire_red', name: 'Fire Red', code: 'C68', hex: '#b0282e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'skyscraper_grey', name: 'Skyscraper Grey', code: 'C4W', hex: '#7f8587', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'brooklyn_grey', name: 'Brooklyn Grey', code: 'C4P', hex: '#a4a9ac', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'black_sapphire', name: 'Black Sapphire', code: '475', hex: '#15171b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'portimao_blue', name: 'Portimao Blue', code: 'C31', hex: '#2f4f94', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'zandvoort_blue', name: 'Zandvoort Blue', code: 'C6E', hex: '#8fb1d8', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'sao_paulo_yellow', name: 'São Paulo Yellow', code: 'C4H', hex: '#f5c900', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'alpine_white', name: 'Alpine White III', code: '300', hex: '#f0f0ee', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'frozen_portimao_blue_c6r', name: 'Frozen Portimao Blue', code: 'C6R', hex: '#34478a', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'frozen_pure_grey', name: 'Frozen Pure Grey', code: 'C5A', hex: '#8a9091', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'java_green', name: 'Java Green', code: 'P7V', hex: '#7fa35f', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'grigio_telesto', name: 'Grigio Telesto', code: 'P6M', hex: '#6f716d', type: 'Pearl', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'twilight_purple', name: 'Twilight Purple', code: 'P28', hex: '#6b3f6e', type: 'Pearl', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'voodoo_blue', name: 'Voodoo Blue', code: 'P7L', hex: '#1f7ac8', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'thundernight', name: 'Thundernight', code: 'C56', hex: '#483652', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'storm_bay', name: 'Storm Bay', code: 'C3N', hex: '#6c747b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'isle_of_man_green', name: 'Isle of Man Green', code: 'C4G', hex: '#1b6a55', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'toronto_red', name: 'Toronto Red', code: 'C3G', hex: '#c0302a', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'aventurine_red_iii', name: 'Aventurine Red III', code: 'C57', hex: '#7a1f2b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'tanzanite_blue_ii', name: 'Tanzanite Blue II', code: 'C3Z', hex: '#1c2b4d', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'dravit_grey', name: 'Dravit Grey', code: 'C36', hex: '#55575a', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'san_marino_blue', name: 'San Marino Blue', code: 'B51', hex: '#2a3a6e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'wildberry', name: 'Wildberry', code: 'T09', hex: '#6a2c47', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'ruby_black', name: 'Ruby Black', code: 'X03', hex: '#2a1c20', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'frozen_deep_green', name: 'Frozen Deep Green', code: 'P80', hex: '#4d5b47', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'frozen_dark_grey_ii', name: 'Frozen Dark Grey II', code: 'P79', hex: '#4c5052', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'fire_orange_iii', name: 'Fire Orange III', code: 'P7E', hex: '#e2621a', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'frozen_black', name: 'Frozen Black', code: 'U91', hex: '#252627', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'thunder', name: 'Thunder', code: 'P6L', hex: '#4e5558', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'mineral_white', name: 'Mineral White', code: 'A96', hex: '#e6e4df', type: 'Pearl', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'riviera_blue', name: 'Riviera Blue', code: 'P5C', hex: '#22a6d6', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'marina_bay_blue', name: 'Marina Bay Blue', code: 'C1K', hex: '#2d4a8e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'mint_green', name: 'Mint Green', code: 'W97', hex: '#70b8a2', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'sepia_iii', name: 'Sepia III', code: 'S0N', hex: '#6a625e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'frozen_tanzanite_blue', name: 'Frozen Tanzanite Blue', code: 'X1G', hex: '#27345f', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'frozen_portimao_blue', name: 'Frozen Portimao Blue', code: 'X1E', hex: '#34478a', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'frozen_pure_grey_ii', name: 'Frozen Pure Grey II', code: 'X1F', hex: '#a8b0b3', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'anglesey_green', name: 'Anglesey Green', code: 'P9R', hex: '#2d6a52', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'ruby_star', name: 'Ruby Star', code: 'P9L', hex: '#a02a6b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified (BMW does not state it)
+  { id: 'frozen_brilliant_white', name: 'Frozen Brilliant White', code: 'X16', hex: '#dcdcd6', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'frozen_preciosa_red', name: 'Frozen Preciosa Red', code: 'P9C', hex: '#7a2427', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'malachite_green_ii', name: 'Malachite Green II', code: 'P85', hex: '#4b5d4e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'speed_yellow', name: 'Speed Yellow', code: 'U96', hex: '#f0b800', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified (BMW does not state it)
+  { id: 'brewster_green', name: 'Brewster Green', code: 'T42', hex: '#2a352f', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified (BMW does not state it)
+  { id: 'urban_green_ii', name: 'Urban Green II', code: 'P9P', hex: '#5a5d43', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'lagoon_green', name: 'Laguna Green', code: '266', hex: '#2e7480', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // BMW's name is Laguna Green
+  { id: 'le_mans_blue', name: 'Le Mans Blue', code: '381', hex: '#3a66a6', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'velvet_blue', name: 'Velvet Blue', code: '379', hex: '#4a4b78', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'frozen_deep_grey', name: 'Frozen Deep Grey', code: 'P7X', hex: '#515356', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'velvet_orchid_ii', name: 'Velvet Orchid II', code: 'L74', hex: '#a58a96', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'carbon_black', name: 'Carbon Black', code: '416', hex: '#1f2127', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'sophisto_grey_brilliant_effect', name: 'Sophisto Grey Brilliant Effect', code: 'A90', hex: '#484a4e', type: 'Pearl', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'damast_red', name: 'Damast Red', code: 'B03', hex: '#5c2a2a', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish third-party only
+  { id: 'imola_red', name: 'Imola Red', code: '405', hex: '#b01c1f', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'nardo_grey', name: 'Nardo Grey', code: 'P6K', hex: '#808284', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified (BMW does not state it)
+  { id: 'oxford_green_ii', name: 'Oxford Green II', code: '430', hex: '#2f4540', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'bernina_grey_amber_effect', name: 'Bernina Grey Amber Effect', code: 'C3E', hex: '#77756d', type: 'Pearl', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'frozen_deep_grey_c64', name: 'Frozen Deep Grey', code: 'C64', hex: '#515356', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'barcelona_blue', name: 'Barcelona Blue', code: 'C38', hex: '#8697a6', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'arctic_race_blue', name: 'Arctic Race Blue', code: 'C4F', hex: '#5b7d92', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'dune_grey', name: 'Dune Grey', code: 'C7A', hex: '#aeaba0', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'fire_red_ii', name: 'Fire Red II', code: '375', hex: '#c0282c', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified (BMW does not state it)
+  { id: 'sepang_bronze', name: 'Sepang Bronze', code: 'A32', hex: '#7b6850', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'aventurin_red', name: 'Aventurin Red', code: 'X15', hex: '#6a1612', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05, active: false }, // M8 now uses C57 (aventurine_red_iii); kept inactive so saved builds still open
+  { id: 'frozen_isle_of_man_green', name: 'Frozen Isle of Man Green', code: 'P92', hex: '#1d5a45', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
+  { id: 'borusan_turkish_blue', name: 'Borusan Turkish Blue', code: 'P9E', hex: '#25aed4', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 },
 ];
 
 export const WHEEL_FINISHES: Record<FinishVariantKey, WheelFinish> = {
