@@ -1,6 +1,6 @@
 -- BMW paint corrections (owner-approved; mirrors data/configuratorData.ts BMW_PAINTS and the three palettes
 -- below). Sources and evidence: docs/bmw-factory-paints.md ("Update 2026-10-04: verified codes, finishes").
--- NOT yet applied: the owner runs it. Idempotent: every statement can be run again.
+-- Applied 2026-10-07 with the dark-studio car renders. Idempotent: every statement can be run again.
 --
 -- 1. Pearl finish type. The renderer treats it as gloss (only 'Frozen' is drawn matte).
 -- 2. Hex values are the paints' true sRGB albedo. The car bodies are Blender renders recoloured in linear
