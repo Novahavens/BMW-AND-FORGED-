@@ -8,7 +8,7 @@ Background is transparent; the floor is a shadow catcher.
 
   python3 scripts/prerender/render_car.py scene.glb public/renders/<carId> [--samples 32] [--width 1440]
 """
-import argparse, math, os, re, sys
+import argparse, json, math, os, re, sys
 import bpy, bmesh, mathutils
 
 ap = argparse.ArgumentParser()
@@ -27,6 +27,8 @@ ap.add_argument('--passes', default='', help='comma list of passes to render (de
 ap.add_argument('--two-render', action='store_true',
                 help='render white AND black base colour separately (4 renders per view). Default for --studio dark: ONE render per '
                      'material set with Diffuse passes, black base derived as  B = W - DiffColor*(DiffDirect+DiffIndirect)*paintmask')
+ap.add_argument('--seed', type=int, default=0, help='Cycles seed (for noise-floor tests)')
+ap.add_argument('--wheels', default='', help="json from export-scene.cjs / wheelpos.cjs: [[x, y, z, radius, width] x4]; default <glb minus .glb>.wheels.json")
 ap.add_argument('--threads', type=int, default=0, help='CPU threads for Cycles (0 = all)')
 a = ap.parse_args()
 DERIVE = a.studio == 'dark' and not a.two_render
@@ -46,12 +48,6 @@ CAR_FIXES = {
     'm8_f92': {'hide': r'^(PAINT_)?(m8f92_fender_[LR](_cs)?(00\d)?_m8f92_|keyvany_fender_[LR])'},
     'm3_g80': {'thin_glass': True, 'no_subdiv': True},  # subdivided, it runs out of memory (12.7 GB)
     'm3_touring_g81': {'lamps': r'headlight'},
-    # wheels: (x, y, z, tyre radius, tyre width) in Blender axes, for --studio dark. The live engine draws
-    # the wheels, so none is in the scene; these invisible-to-camera tyre cylinders only cast the contact
-    # shadows, darken the arches and show in the paint's reflections. Taken from the engine's wheel
-    # assemblies (window.e.wheelAssemblies in scripts/render/engine.html: Blender = (x, -z, y)).
-    'm4_g82': {'wheels': [(-0.789, -1.534, 0.381, 0.363, 0.275), (0.789, -1.534, 0.381, 0.363, 0.275),
-                          (-0.817, 1.320, 0.371, 0.371, 0.313), (0.817, 1.320, 0.371, 0.371, 0.313)]},
 }
 LAMP_MATS = {  # source part name in the mesh name: Principled inputs
     'Lights_Common': {'Base Color': (0.7, 0.7, 0.71, 1), 'Metallic': 1.0, 'Roughness': 0.15},  # reflectors
@@ -85,14 +81,19 @@ DARK = dict(
     cabin_rad=0.8,           # dim diffuse light inside the cabin so the interior reads through the glass
     far_strips=0,            # 1 also puts the high/low strips on the far side (they reflect strongly in the windscreen)
     strips_reflect_only=1,   # strips/rims are invisible to diffuse rays: they draw crisp reflections but do not light (wash out) the white pass or the floor
-    glass_tint=0.22, glass_opaque=0, glass_rough=0.02, glass_ior=1.45,   # glass_rough / glass_ior: a little roughness and a lower IOR turn the strip reflections into soft dim ones
-    coat_rough=0.02,         # paint clear-coat roughness: ~0.05 softens the bumpy source mesh's mirror reflections
-    smooth_body=0,           # Corrective Smooth passes on the paint meshes before subdivision (0 = off)   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
+    glass_tint=0.22, glass_opaque=0, glass_rough=0.07, glass_ior=1.25,   # glass_rough / glass_ior: a little roughness and a lower IOR turn the strip reflections into soft dim ones
+    coat_rough=0.05,         # paint clear-coat roughness: ~0.05 softens the bumpy source mesh's mirror reflections
+    smooth_body=2,           # Corrective Smooth passes on the paint meshes before subdivision (0 = off; skipped for dense / no_subdiv meshes)   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
     floor_albedo=0.08,       # the (invisible) floor still shows in reflections
 )
 for kv in filter(None, a.dark_set.split(',')):
     k, v = kv.split('='); DARK[k] = float(v)
 fix = CAR_FIXES.get(a.car or os.path.basename(os.path.normpath(a.out)), {})
+# Tyre stand-ins (--studio dark): where the live engine puts the wheels. The GLB has none (the engine draws them), so the
+# stand-ins only cast the contact shadow, darken the arches and show in the paint's reflections.
+_wj = a.wheels or re.sub(r'\.glb$', '', a.glb) + '.wheels.json'
+WHEELS = json.load(open(_wj)) if os.path.exists(_wj) else fix.get('wheels')
+if a.studio == 'dark' and not WHEELS: print('WARNING: no wheel positions (%s): no contact shadows or dark arches. Run export-scene.cjs or wheelpos.cjs.' % _wj)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=a.glb)
@@ -111,6 +112,15 @@ def principled(name):
 
 paint, pb = principled('PAINT')
 pb.inputs['Coat Roughness'].default_value = DARK['coat_rough'] if a.studio == 'dark' else 0.02
+if a.studio == 'dark':
+    # The source models' cabins are 'paint' too. Seen through the glass they were body-coloured; a real interior is dark and
+    # neutral, and it must not depend on the paint (the Diffuse passes do not see through glass, so the derived B could not
+    # remove it). Rays that have been through glass (Light Path: Is Transmission Ray) get a dark leather/plastic instead.
+    pnt = paint.node_tree; pout = pnt.nodes['Material Output']
+    ib = pnt.nodes.new('ShaderNodeBsdfPrincipled'); ib.inputs['Base Color'].default_value = (0.04, 0.04, 0.045, 1); ib.inputs['Roughness'].default_value = 0.55
+    lp = pnt.nodes.new('ShaderNodeLightPath'); mx = pnt.nodes.new('ShaderNodeMixShader')
+    pnt.links.new(lp.outputs['Is Transmission Ray'], mx.inputs['Fac']); pnt.links.new(pb.outputs['BSDF'], mx.inputs[1])
+    pnt.links.new(ib.outputs['BSDF'], mx.inputs[2]); pnt.links.new(mx.outputs['Shader'], pout.inputs['Surface'])
 if DERIVE:   # marks the paint's pixels (filtered like colour, so anti-aliased edges get a fractional mask)
     aovn = paint.node_tree.nodes.new('ShaderNodeOutputAOV'); aovn.aov_name = 'paintmask'; aovn.inputs['Value'].default_value = 1.0
 
@@ -124,7 +134,7 @@ for o in meshes:
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
         bm.to_mesh(o.data); bm.free()
         for p in o.data.polygons: p.use_smooth = True
-        if a.studio == 'dark' and DARK['smooth_body'] > 0:   # irons out the bumpy source mesh before it is mirrored in the coat
+        if a.studio == 'dark' and DARK['smooth_body'] > 0 and not (a.no_subdiv or fix.get('no_subdiv')) and len(o.data.vertices) < 150000:   # irons out the bumpy source mesh before it is mirrored in the coat
             cs_ = o.modifiers.new('csmooth', 'CORRECTIVE_SMOOTH'); cs_.factor = 0.5; cs_.iterations = int(DARK['smooth_body'])
             cs_.smooth_type = 'SIMPLE'; cs_.rest_source = 'ORCO'
         if not (a.no_subdiv or fix.get('no_subdiv')) and len(o.data.vertices) < 150000:  # dense meshes are smooth enough and would run out of memory
@@ -227,11 +237,11 @@ else:
     fm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (D['floor_albedo'],) * 3 + (1,)
     fm.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.5
     floor.data.materials.append(fm)
-    if fix.get('wheels'):
+    if WHEELS:
         rub = bpy.data.materials.new('rubber'); rub.use_nodes = True
         rb = rub.node_tree.nodes['Principled BSDF']
         rb.inputs['Base Color'].default_value = (0.015, 0.015, 0.016, 1); rb.inputs['Roughness'].default_value = 0.7
-        for (x, y, z, r, wd) in fix['wheels']:
+        for (x, y, z, r, wd) in WHEELS:
             bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=r, depth=wd, location=(x, y, z), rotation=(0, math.pi / 2, 0))
             t = bpy.context.object; t.data.materials.append(rub)
             for pl in t.data.polygons: pl.use_smooth = True
@@ -322,7 +332,7 @@ else:
 
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'
 if a.threads: sc.render.threads_mode = 'FIXED'; sc.render.threads = a.threads
-sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
+sc.cycles.seed = a.seed; sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
 sc.render.film_transparent = True
 sc.render.resolution_x = a.width; sc.render.resolution_y = round(a.width / 1.6)
 sc.view_settings.view_transform = 'Standard'  # linear-safe: the browser mixes black/white passes
@@ -339,26 +349,46 @@ def setup_derive():
     Only the paint's diffuse depends on base colour (metallic 0; the coat and the dielectric specular layer do not), and the
     mask keeps every other material's diffuse in B. Inter-reflection between paint panels is the only (tiny) approximation."""
     vl = sc.view_layers[0]
-    vl.use_pass_diffuse_direct = vl.use_pass_diffuse_indirect = vl.use_pass_diffuse_color = True
+    vl.use_pass_diffuse_direct = vl.use_pass_diffuse_indirect = vl.use_pass_diffuse_color = vl.use_pass_normal = True
+    vl.cycles.denoising_store_passes = True   # gives the 'Noisy Image' pass
     aov = vl.aovs.add(); aov.name = 'paintmask'; aov.type = 'VALUE'
     ng = bpy.data.node_groups.new('derive', 'CompositorNodeTree'); sc.compositing_node_group = ng
     rl = ng.nodes.new('CompositorNodeRLayers'); rl.layer = vl.name
     def mix(op, x, y):
         m = ng.nodes.new('ShaderNodeMix'); m.data_type = 'RGBA'; m.blend_type = op; m.clamp_result = False
         m.inputs[0].default_value = 1.0   # Factor
-        ia = [i for i in m.inputs if i.name == 'A' and i.type == 'RGBA'][0]; ib = [i for i in m.inputs if i.name == 'B' and i.type == 'RGBA'][0]
-        ng.links.new(x, ia); ng.links.new(y, ib); return [o for o in m.outputs if o.type == 'RGBA'][0]
+        for nm, v in (('A', x), ('B', y)):
+            sock = [i for i in m.inputs if i.name == nm and i.type == 'RGBA'][0]
+            if isinstance(v, tuple): sock.default_value = v
+            else: ng.links.new(v, sock)
+        return [o for o in m.outputs if o.type == 'RGBA'][0]
     light = mix('ADD', rl.outputs['Diffuse Direct'], rl.outputs['Diffuse Indirect'])
-    diff = mix('MULTIPLY', mix('MULTIPLY', light, rl.outputs['Diffuse Color']), rl.outputs['paintmask'])
-    sub = mix('SUBTRACT', rl.outputs['Image'], diff)
+    # The passes are averaged per pixel like colour, so at anti-aliased edges the paint's share is already in them: multiplying by the
+    # fractional mask would count it twice (bright seams along every panel edge). The mask is used as a plain 'any paint here' switch.
+    has_paint = ng.nodes.new('ShaderNodeMath'); has_paint.operation = 'GREATER_THAN'; has_paint.inputs[1].default_value = 0.01
+    ng.links.new(rl.outputs['paintmask'], has_paint.inputs[0])
+    diff = mix('MULTIPLY', mix('MULTIPLY', light, rl.outputs['Diffuse Color']), has_paint.outputs[0])
+    # W is Cycles' own denoised Combined, exactly what the two-render path writes. B on the paint is what a black-base render would be:
+    # the NOISY combined minus the (raw) paint diffuse, then denoised the same way (guides: normal, and an albedo that is black on the paint).
+    # Denoising W and subtracting a smooth diffuse term instead would leave W's denoiser texture in B, which shows on dark paints.
+    # Off the paint nothing is subtracted, so there B is simply the noisy W denoised again; alpha is W's (already clean).
+    raw_b = mix('SUBTRACT', rl.outputs['Noisy Image'], diff)
+    alb_b = mix('MULTIPLY', rl.outputs['Diffuse Color'], mix('SUBTRACT', (1, 1, 1, 1), has_paint.outputs[0]))
+    dn = ng.nodes.new('CompositorNodeDenoise')
+    ng.links.new(raw_b, dn.inputs['Image']); ng.links.new(alb_b, dn.inputs['Albedo']); ng.links.new(rl.outputs['Normal'], dn.inputs['Normal'])
     sa = ng.nodes.new('CompositorNodeSetAlpha'); sa.inputs['Type'].default_value = 'Replace Alpha'
-    ng.links.new(sub, sa.inputs['Image']); ng.links.new(rl.outputs['Alpha'], sa.inputs['Alpha'])
+    ng.links.new(dn.outputs['Image'], sa.inputs['Image']); ng.links.new(rl.outputs['Alpha'], sa.inputs['Alpha'])
+    out_w = rl.outputs['Image']; out_b = sa.outputs['Image']
     fo = ng.nodes.new('CompositorNodeOutputFile')
     fo.format.media_type = 'IMAGE'; fo.format.file_format = 'PNG'; fo.format.color_mode = 'RGBA'; fo.format.color_depth = '8'
     fo.format.color_management = 'FOLLOW_SCENE'
     fo.file_output_items.clear()
     fo.file_output_items.new('RGBA', 'W'); fo.file_output_items.new('RGBA', 'B')
-    ng.links.new(rl.outputs['Image'], fo.inputs[0]); ng.links.new(sa.outputs['Image'], fo.inputs[1])
+    if os.environ.get('DEBUG_PASSES'):
+        for nm in ('mask', 'light', 'diffcol'): fo.file_output_items.new('RGBA', nm)
+    ng.links.new(out_w, fo.inputs[0]); ng.links.new(out_b, fo.inputs[1])
+    if os.environ.get('DEBUG_PASSES'):
+        ng.links.new(mix('MULTIPLY', rl.outputs['paintmask'], (1, 1, 1, 1)), fo.inputs[2]); ng.links.new(light, fo.inputs[3]); ng.links.new(rl.outputs['Diffuse Color'], fo.inputs[4])
     return fo
 
 if DERIVE:

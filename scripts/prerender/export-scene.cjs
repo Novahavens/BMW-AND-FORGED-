@@ -16,7 +16,7 @@ const VIEWS = ['frontThreeQuarter', 'side', 'rearThreeQuarter', 'frontWheel', 't
   p.on('pageerror', (e) => console.error('pageerror', e.message));
   await p.goto(`http://127.0.0.1:5173/scripts/render/engine.html?car=${carIdx}`);
   await p.waitForFunction(() => window.done !== undefined, null, { timeout: 300000 });
-  const b64 = await p.evaluate(async ({ ASPECT, VIEWS }) => {
+  const { b64, wheels } = await p.evaluate(async ({ ASPECT, VIEWS }) => {
     const THREE = await import('/node_modules/three/build/three.module.js');
     const { GLTFExporter } = await import('/node_modules/three/examples/jsm/exporters/GLTFExporter.js');
     const e = window.e;
@@ -56,9 +56,16 @@ const VIEWS = ['frontThreeQuarter', 'side', 'rearThreeQuarter', 'frontWheel', 't
     const buf = await new GLTFExporter().parseAsync(root, { binary: true });
     let s = ''; const u = new Uint8Array(buf);
     for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
-    return btoa(s);
+    // Where the engine puts the wheels (they are hidden in the GLB), for render_car.py's tyre stand-ins (contact shadow, dark arches):
+    // [x, y, z, tyre radius, tyre width] in Blender axes (x, -z, y), from the engine's wheel assemblies (tyre 0.35 m x group scale).
+    const wheels = e.wheelAssemblies.map((a) => {
+      const w = a.group.getWorldPosition(new THREE.Vector3()); const sc = a.group.scale.x;
+      return [w.x, -w.z, w.y, 0.35 * sc, (a.isFront ? 0.265 : 0.295) * sc].map((v) => +v.toFixed(4));
+    });
+    return { b64: btoa(s), wheels };
   }, { ASPECT, VIEWS });
   fs.writeFileSync(out, Buffer.from(b64, 'base64'));
+  fs.writeFileSync(out.replace(/\.glb$/, '') + '.wheels.json', JSON.stringify(wheels));
   console.log('wrote', out, fs.statSync(out).size);
   await b.close();
 })().catch((e) => { console.error(e); process.exit(1); });

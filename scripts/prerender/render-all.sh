@@ -2,6 +2,8 @@
 # Pre-renders every car (or the given catalogue indexes) into public/renders and updates the
 # manifest. Needs the dev server: bunx vite --host 127.0.0.1 --port 5173
 #   scripts/prerender/render-all.sh [index ...]     e.g. scripts/prerender/render-all.sh 0 3
+# Env: STUDIO=dark (default: default = the old grey studio), SAMPLES (32), WIDTH (1440), THREADS (0 = all cores).
+#   STUDIO=dark THREADS=3 scripts/prerender/render-all.sh 0     # dark studio, one render per material set (W+B derived), tyre stand-ins from the engine
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 TMP=${TMPDIR:-/tmp}/prerender; mkdir -p "$TMP"
@@ -11,7 +13,7 @@ IDX=("$@"); [ ${#IDX[@]} -eq 0 ] && IDX=($(seq 0 $((${#ALL[@]} - 1))))
 for i in "${IDX[@]}"; do
   id=${ALL[$i]}; echo "== $i $id"
   node scripts/prerender/export-scene.cjs "$i" "$TMP/$id.glb"
-  python3 scripts/prerender/render_car.py "$TMP/$id.glb" "$TMP/$id" --samples "${SAMPLES:-32}" | grep '^rendered' || true
+  python3 scripts/prerender/render_car.py "$TMP/$id.glb" "$TMP/$id" --car "$id" --studio "${STUDIO:-default}" --samples "${SAMPLES:-32}" --width "${WIDTH:-1440}" --threads "${THREADS:-0}" | grep '^rendered' || true
   python3 - "$TMP/$id" "public/renders/$id" <<'PY'
 import sys, os, glob
 from PIL import Image
