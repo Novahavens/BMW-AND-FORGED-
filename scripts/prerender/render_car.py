@@ -339,6 +339,7 @@ sc.view_settings.view_transform = 'Standard'  # linear-safe: the browser mixes b
 sc.view_settings.exposure = -1.6 if a.studio == 'default' else DARK['exposure']
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
 
+FLAKE_ROUGH = 0.38   # metallic flake layer: a glossy-but-blurred metal reflection under the clear coat
 PASSES = {  # name: (base value, metallic, roughness, coat)
     'gloss_w': (1.0, 0.0, 0.30, 1.0), 'gloss_b': (0.0, 0.0, 0.30, 1.0),
     'matte_w': (1.0, 0.0, 0.55, 0.0), 'matte_b': (0.0, 0.0, 0.55, 0.0),
@@ -392,16 +393,19 @@ def setup_derive():
     return fo
 
 if DERIVE:
-    SETS = {'gloss': (0.30, 1.0), 'matte': (0.55, 0.0)}
+    # flake: the same coat over a white METAL base. The browser adds (flake_w - gloss_b) x paint colour for metallic
+    # paints, which gives them coloured, angle-dependent specular (bright where the panel faces a light, dark as it
+    # turns away) instead of the flat look of a diffuse-only tint. Only its W is used.
+    SETS = {'gloss': (0.30, 1.0, 0.0), 'matte': (0.55, 0.0, 0.0), 'flake': (FLAKE_ROUGH, 1.0, 1.0)}
     fo = setup_derive()
 views = a.views.split(',') if a.views else list(cams)
 for v in views:
     sc.camera = cams[v]
     os.makedirs(os.path.join(a.out, v), exist_ok=True)
     if DERIVE:
-        for sname, (rough, coat) in SETS.items():
+        for sname, (rough, coat, metal) in SETS.items():
             if a.passes and not any(x.startswith(sname) for x in a.passes.split(',')): continue
-            pb.inputs['Base Color'].default_value = (1, 1, 1, 1); pb.inputs['Metallic'].default_value = 0.0
+            pb.inputs['Base Color'].default_value = (1, 1, 1, 1); pb.inputs['Metallic'].default_value = metal
             pb.inputs['Roughness'].default_value = rough; pb.inputs['Coat Weight'].default_value = coat
             fo.directory = os.path.join(a.out, v); fo.file_name = ''
             for it, nm in zip(fo.file_output_items, ('W', 'B')): it.name = f'{sname}_{nm.lower()}'
