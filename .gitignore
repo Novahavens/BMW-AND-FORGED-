@@ -27,3 +27,4 @@ dist-ssr
 # Throwaway helper scripts
 scripts/_*.mjs
 .prerender/
+__pycache__/
