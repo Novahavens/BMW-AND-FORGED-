@@ -354,7 +354,7 @@ export const BMW_PAINTS: PaintColor[] = [
   { id: 'frozen_portimao_blue', name: 'Frozen Portimao Blue', code: 'X1E', hex: '#34478a', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
   { id: 'frozen_pure_grey_ii', name: 'Frozen Pure Grey II', code: 'X1F', hex: '#a8b0b3', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
   { id: 'anglesey_green', name: 'Anglesey Green', code: 'P9R', hex: '#2d6a52', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
-  { id: 'ruby_star', name: 'Ruby Star', code: 'P9L', hex: '#a02a6b', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish unverified (BMW does not state it)
+  { id: 'ruby_star', name: 'Ruby Star', code: 'P9L', hex: '#cf1272', type: 'Uni', roughness: 0.5, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // solid ("Sternrubin Uni"); hex from BMW Welt photos
   { id: 'frozen_brilliant_white', name: 'Frozen Brilliant White', code: 'X16', hex: '#dcdcd6', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
   { id: 'frozen_preciosa_red', name: 'Frozen Preciosa Red', code: 'P9C', hex: '#7a2427', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
   { id: 'malachite_green_ii', name: 'Malachite Green II', code: 'P85', hex: '#4b5d4e', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
@@ -365,7 +365,7 @@ export const BMW_PAINTS: PaintColor[] = [
   { id: 'le_mans_blue', name: 'Le Mans Blue', code: '381', hex: '#3a66a6', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
   { id: 'velvet_blue', name: 'Velvet Blue', code: '379', hex: '#4a4b78', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
   { id: 'frozen_deep_grey', name: 'Frozen Deep Grey', code: 'P7X', hex: '#515356', type: 'Frozen', roughness: 0.55, metalness: 0.4, clearcoat: 0.0, clearcoatRoughness: 0.5 },
-  { id: 'velvet_orchid_ii', name: 'Velvet Orchid II', code: 'L74', hex: '#a58a96', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
+  { id: 'velvet_orchid_ii', name: 'Velvet Orchid II', code: 'L74', hex: '#8e7183', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
   { id: 'carbon_black', name: 'Carbon Black', code: '416', hex: '#1f2127', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
   { id: 'sophisto_grey_brilliant_effect', name: 'Sophisto Grey Brilliant Effect', code: 'A90', hex: '#484a4e', type: 'Pearl', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 },
   { id: 'damast_red', name: 'Damast Red', code: 'B03', hex: '#5c2a2a', type: 'Metallic', roughness: 0.45, metalness: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 }, // finish third-party only
