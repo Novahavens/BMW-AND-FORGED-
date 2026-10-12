@@ -2,7 +2,7 @@
 -- see public/models/CREDITS.md). Palette, wheel fitment and engine come from the M4 Competition row.
 -- The model's own wheels are hidden and replaced by ours; its own calipers are kept (not in hide_mesh_match)
 -- and recoloured by the configurator.
--- NOT yet applied: run it after the app version carrying /models/bmw-m4-cs-vr46.glb is deployed.
+-- Applied 2026-10-07 (with the CS palette: riviera_blue, frozen_isle_of_man_green, brooklyn_grey, black_sapphire).
 
 insert into public.cars (id, name, badge, generation, chassis_code, engine, power, torque, acceleration,
   recommended_wheel_fitment, body_style, model_url, model_rotation_deg, model_length_m,

@@ -1,0 +1,7 @@
+{"fold": 5, "mirror": false, "rotate": 0, "hub": 0.27, "fillet": 0.01,
+ "spokes": [
+  {"pts": [[0.30,11.0,0.105],[0.62,4.5,0.115],[0.93,2.5,0.08]]},
+  {"pts": [[0.30,45.0,0.095],[0.62,40.0,0.105],[0.93,37.5,0.075]]}
+ ],
+ "_source": "centre lines and widths measured on the owner's Twin-Y photo (c00ad5c4-image.jpg) after undoing its parallax: the spoke-tip ellipse rectifies the lip, then points on the dished face are shifted back by shift * (1 - (r / 0.916)^2) with shift (-19.5, -204.5) px at 2048. Spoke width about 0.11 R mid-length and 0.08 R at the lip."
+}

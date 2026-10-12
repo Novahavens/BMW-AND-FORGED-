@@ -43,11 +43,28 @@ DERIVE = a.studio == 'dark' and not a.two_render
 #        winding but outward custom normals, so Cycles shades it from behind (black); its chrome
 #        reflector is also an 'other' material (made satin black) and the lens a 30% white alpha
 #        sheet. Re-wind those meshes, then give the lamp parts the materials in LAMP_MATS.
+#  glass_rough / glass_coat_rough: override the glass roughness (and, with thin_glass, its coat roughness): the
+#        coarse, bumpy glazing of some models turns a crisp strip reflection into scribbles; blurred, it reads as sheen.
+#  glass_unlink: light-link the crisp reflection strips (strip/low/shoulder/rim lights) away from the glass, so the
+#        glass reflects only the soft room (world, overhead panel, gradient wall) and never a ragged white bar.
+#        True = every glass mesh; a regex string = only the meshes whose name matches.
+#  dark_glass: regex of meshes rendered as flat, dark, glossy glass (no transmission, so no cabin shows through),
+#        e.g. a panoramic roof seen from above. Its material is copied, so the other windows are untouched.
+#  view_gain: {view: {light-name prefix: factor}} scales those lights for one view only (e.g. a roof that clips from above).
+#  dark: per-car overrides of the DARK studio values (e.g. calmer strips where a roof is hot).
+#  glass_tint: darker glass base colour (the dark studio's glass_tint) for this car.
 CAR_FIXES = {
     # four front-fender variants (stock, Competition, CS, Keyvany): keep the Competition one
     'm8_f92': {'hide': r'^(PAINT_)?(m8f92_fender_[LR](_cs)?(00\d)?_m8f92_|keyvany_fender_[LR])'},
-    'm3_g80': {'thin_glass': True, 'no_subdiv': True},  # subdivided, it runs out of memory (12.7 GB)
-    'm3_touring_g81': {'lamps': r'headlight'},
+    # no_subdiv: subdivided, it runs out of memory (12.7 GB). glass_unlink: no ragged strip reflections in the bumpy glazing.
+    # view_gain: from above the roof's shoulder highlights clipped (p99 1.0), so that one strip is 25% dimmer in the top view.
+    'm3_g80': {'thin_glass': True, 'no_subdiv': True, 'glass_unlink': True, 'view_gain': {'top': {'shoulder': 0.75}}},
+    # suspension, hubs and anti-roll bars sit inside the arches and show through the wheel gaps (arch liners 'tubs' stay)
+    'm3_touring_g81': {'lamps': r'headlight',
+                       'hide': r'(lowerarm|upperarm|spring|shock|hub|strut|swaybar(_links)?|halfshaft|tierod)_[FR]'},
+    # the panoramic roof's black plastic panel is coplanar with its glass: the two z-fought into black blotches from above.
+    # Drop the panel, render the glass as flat dark glass and keep the crisp strips off it.
+    'x5m_f95': {'hide': r'^roof_panoram_plastic', 'dark_glass': r'^roof_panoram\d*_glass', 'glass_unlink': r'^roof_panoram\d*_glass'},
 }
 LAMP_MATS = {  # source part name in the mesh name: Principled inputs
     'Lights_Common': {'Base Color': (0.7, 0.7, 0.71, 1), 'Metallic': 1.0, 'Roughness': 0.15},  # reflectors
@@ -89,9 +106,10 @@ DARK = dict(
     smooth_body=2,           # Corrective Smooth passes on the paint meshes before subdivision (0 = off; skipped for dense / no_subdiv meshes)   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
     floor_albedo=0.03,       # the (invisible) floor still shows in reflections
 )
+fix = CAR_FIXES.get(a.car or os.path.basename(os.path.normpath(a.out)), {})
+DARK.update(fix.get('dark', {}))   # per-car studio tweaks (fix['dark'] = {'sh_rad': 4.5}); --dark-set still wins
 for kv in filter(None, a.dark_set.split(',')):
     k, v = kv.split('='); DARK[k] = float(v)
-fix = CAR_FIXES.get(a.car or os.path.basename(os.path.normpath(a.out)), {})
 # Tyre stand-ins (--studio dark): where the live engine puts the wheels. The GLB has none (the engine draws them), so the
 # stand-ins only cast the contact shadow, darken the arches and show in the paint's reflections.
 _wj = a.wheels or re.sub(r'\.glb$', '', a.glb) + '.wheels.json'
@@ -172,7 +190,22 @@ for o in meshes:
                     if fix.get('thin_glass'):
                         b.inputs['IOR'].default_value = 1.0
                         b.inputs['Coat Weight'].default_value = 1.0
-                        b.inputs['Coat Roughness'].default_value = 0.02
+                        b.inputs['Coat Roughness'].default_value = fix.get('glass_coat_rough', 0.02)
+                    if 'glass_rough' in fix: b.inputs['Roughness'].default_value = fix['glass_rough']
+                    if 'glass_tint' in fix and a.studio == 'dark':
+                        t = fix['glass_tint']; b.inputs['Base Color'].default_value = (t, t * 1.06, t * 1.14, 1)
+
+if fix.get('dark_glass'):
+    for o in [o for o in meshes if re.search(fix['dark_glass'], o.name)]:
+        for s in o.material_slots:
+            if not s.material: continue
+            s.material = s.material.copy()
+            b = s.material.node_tree.nodes.get('Principled BSDF')
+            if not b: continue
+            b.inputs['Transmission Weight'].default_value = 0.0; b.inputs['Alpha'].default_value = 1.0
+            b.inputs['Base Color'].default_value = (0.010, 0.012, 0.015, 1)
+            b.inputs['Metallic'].default_value = 0.0; b.inputs['Roughness'].default_value = fix.get('dark_glass_rough', 0.10)
+            b.inputs['IOR'].default_value = 1.45
 
 def rewind(o):
     """Reverse faces whose winding disagrees with their custom normals, keeping those normals."""
@@ -333,6 +366,17 @@ else:
     if D['cabin_rad'] > 0:
         cab = softbox('cabin', (cx, cy + 0.15, 0.95), (0, 0, 0), 1.0, 1.8, D['cabin_rad'] * 1.8 * math.pi); diff_only(cab)
 
+if fix.get('glass_unlink') and a.studio == 'dark':
+    # the crisp strips light everything except the glass (Cycles light linking: receivers = every other object)
+    gu = fix['glass_unlink']
+    glass_objs = {o for o in meshes if (re.search(gu, o.name) if isinstance(gu, str) else
+                                        any(s.material and 'glass' in s.material.name.lower() for s in o.material_slots))}
+    rc = bpy.data.collections.new('light_receivers')
+    for o in sc.objects:
+        if o not in glass_objs and o.type in ('MESH',): rc.objects.link(o)
+    for o in sc.objects:
+        if o.type == 'LIGHT' and re.match(r'(strip|low|shoulder|rim)', o.name): o.light_linking.receiver_collection = rc
+
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'
 if a.threads: sc.render.threads_mode = 'FIXED'; sc.render.threads = a.threads
 sc.cycles.seed = a.seed; sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
@@ -402,8 +446,13 @@ if DERIVE:
     SETS = {'gloss': (0.30, 1.0, 0.0), 'matte': (0.55, 0.0, 0.0), 'flake': (FLAKE_ROUGH, 1.0, 1.0)}
     fo = setup_derive()
 views = a.views.split(',') if a.views else list(cams)
+base_energy = {o.name: o.data.energy for o in sc.objects if o.type == 'LIGHT'}
 for v in views:
     sc.camera = cams[v]
+    for o in sc.objects:
+        if o.type == 'LIGHT':
+            g = next((f for k, f in fix.get('view_gain', {}).get(v, {}).items() if o.name.startswith(k)), 1.0)
+            o.data.energy = base_energy[o.name] * g
     os.makedirs(os.path.join(a.out, v), exist_ok=True)
     if DERIVE:
         for sname, (rough, coat, metal) in SETS.items():

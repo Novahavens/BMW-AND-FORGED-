@@ -148,6 +148,17 @@ face from measured bars, so it's crisp by construction:
 4. **Register the mask:** `RIM_FACE_MASKS` in `services/rimFaces.ts` (`'/rim-faces/<id>.png'`).
    The engine reads it in `clean` mode.
 
+### Route 3b: a curve face, for blades that bend or taper (FSA-12, FSA-13)
+
+`make-bar-face.py` draws straight, constant-width bars; a bent blade built from two bars shows a step (a jagged edge) at the joint.
+`scripts/render/make-curve-face.py` draws each spoke as one smooth Catmull-Rom curve with its own width at every point
+(`{"pts": [[r, deg, full width], ...]}`, `fold`, `mirror`, `rotate`, `hub`, `fillet`), straight into the hub and past the lip, so edges
+are clean by construction. Measure the points on the photo **after undoing its parallax** if it is angled: rectify the lip ellipse
+(`scripts/rim3d/rectify.py`), then shift the dished face back by `shift * (1 - (r / 0.916)^2)` (shift = where the hub sits relative to
+the lip centre); a polar unwrap (angle across, radius down) of that image makes every spoke edge readable. Check with a translucent tint
+of the mask over the photo, never only by the numbers. Set `RIM_FACE_OPTIONS[id] = { fold: N }` when the spokes are not evenly spaced
+(symmetry detection would average unlike spokes). The same PNG feeds Blender: `mask_outline.py` then `build_rim.py --shapes`.
+
 ### Route 4: an AI face mask, for curved or organic designs the photo can't give cleanly
 
 ```bash

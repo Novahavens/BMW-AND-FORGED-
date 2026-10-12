@@ -21,6 +21,7 @@ ap.add_argument('--samples', type=int, default=16)
 ap.add_argument('--finishes', default=os.path.join(os.path.dirname(__file__), 'finishes.json'))
 ap.add_argument('--only', default='')
 ap.add_argument('--lens', type=float, default=70)
+ap.add_argument('--threads', type=int, default=0, help='CPU threads for Cycles (0 = all); on a shared box pass 3')
 ap.add_argument('--resmooth', action='store_true', help='rebuild the face mesh normals by angle (30 deg) instead of '
                 'the GLB custom normals: cures streaky, wavy reflections on large flat traced faces made of long '
                 'thin triangles (e.g. the solid step flange of FSA-09)')
@@ -95,12 +96,35 @@ cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.ob
 cam.location = (0, -6.2, 1.55); cam.rotation_euler = (Vector((0, 0, 0.95)) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = a.lens
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
 sc.render.film_transparent = True
+if a.threads: sc.render.threads_mode = 'FIXED'; sc.render.threads = a.threads
 W, H = map(int, a.size.split('x')); sc.render.resolution_x, sc.render.resolution_y = W, H
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Base Contrast'; sc.view_settings.exposure = -0.9
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
 
 from PIL import Image
 os.makedirs(a.out, exist_ok=True)
+
+# Parts that keep their own look in every finish, as in the engine (wheelKit createWheelKitMaterials): the polished lip of a
+# multi-piece rim ('lip', 'shelf'), its bolts, the lug nuts, and the black centre cap with a gold ring and lettering.
+# Rims built before these parts existed have none of these names and render exactly as before.
+def fixed_material(name, hex_, metal, rough, coat=0.0):
+    m = bpy.data.materials.new(name); m.use_nodes = True; b = m.node_tree.nodes['Principled BSDF']
+    b.inputs['Base Color'].default_value = (*materials.srgb_to_lin(hex_), 1); b.inputs['Metallic'].default_value = metal
+    b.inputs['Roughness'].default_value = rough; b.inputs['Coat Weight'].default_value = coat; b.inputs['Coat Roughness'].default_value = 0.05
+    return m
+fixed = {}
+if any(o.name.startswith('captext') for o in objs):
+    fixed['cap'] = fixed_material('cap_dark', '#161719', 0.35, 0.28, 1.0)
+    fixed['capring'] = fixed['captext'] = fixed_material('cap_gold', '#CF9F52', 1.0, 0.3, 0.3)
+if any(o.name.startswith('lugnut') for o in objs): fixed['lugnut'] = fixed_material('lugnut', '#9da2a8', 1.0, 0.18)
+if any(o.name.startswith('lip') for o in objs):
+    fixed['lip'] = fixed['shelf'] = fixed_material('lip_polished', '#eceef0', 1.0, 0.06, 1.0)
+    fixed['bolt'] = fixed_material('bolt', '#b9bdc3', 1.0, 0.22)
+def part_material(o, default, barrel):
+    n = o.name.split('.')[0]
+    for key in ('captext', 'capring', 'cap', 'lugnut', 'lip', 'shelf', 'bolt'):
+        if n.startswith(key) and key in fixed: return fixed[key]
+    return barrel if o.name.startswith('barrel') else default
 for fid, f in finishes.items():
     # tone curve per finish: gloss black and chrome are photographed with hard contrast, satins soft
     sc.view_settings.look = f.get('look', 'AgX - Base Contrast')
@@ -108,7 +132,7 @@ for fid, f in finishes.items():
     # the world each finish reflects: chrome needs a brighter surround or it reads as gloss black
     w.node_tree.nodes['Background'].inputs['Color'].default_value = (*[f.get('world', 0.08)] * 3, 1)
     for o in objs:
-        o.data.materials.clear(); o.data.materials.append(mb if o.name.startswith('barrel') else m)
+        o.data.materials.clear(); o.data.materials.append(part_material(o, m, mb))
     d = os.path.join(a.out, fid); os.makedirs(d, exist_ok=True)
     for i in range(a.frames):
         if os.path.exists(os.path.join(d, f'f{i:02d}.webp')): continue  # resume an interrupted run

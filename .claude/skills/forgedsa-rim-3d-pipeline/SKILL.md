@@ -29,6 +29,13 @@ A photo has no depth: complex or concave designs need CAD. The template is anoth
 ## Rim detail page = pre-rendered spin
 `turntable.py full.glb public/renders/rims/<id>` (or `convert.sh … --spin`) renders 36 frames × 4 finishes; `spin-manifest.py` updates the manifest; `RimSpinView.tsx` shows it, live engine as fallback. The car view is untouched by this.
 
+## Matching the car (spec keys of build_rim.py, used for FSA-06/08/12/13)
+`{"face_front": 0.408, "face_thick": 0.13, "dish": 0.137, "dish_curve": "parabola", "subdivide": 0.03, "bolts": 0, "bore": 0, "nuts": true, "cap": {"text": "FSA"}, "lip": "mono"|"two"|"three"}`
+gives the spin the engine's own hub kit: dished face, spoke ends 10 mm behind the lip, five lug nuts, black cap with gold ring and
+lettering, polished bolted lip (30 / 40 bolts) for two / three-piece. `turntable.py` keeps those parts in their own material in every
+finish (by object name: cap, capring, captext, lugnut, lip, shelf, bolt) and takes `--threads N` for a shared box. Cap lettering on the
+car is `RIM_CAP_TEXT` in `services/rimFaces.ts`. Render with `--resmooth --weighted`.
+
 ## Scripts (scripts/rim3d/)
 - `trace-mask.cjs <photo> <out.json> [--mask]`: photo → cleaned outlines (processRimPhoto + traceMaskShapes).
 - `build_rim.py <spec.json|-> <out.glb> [--shapes traced.json]`: outlines or bar spec → complete rim (face, barrel, lip, hub, cap, optional spoke channel), bpy.

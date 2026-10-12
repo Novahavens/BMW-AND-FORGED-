@@ -26,6 +26,7 @@ import {
   buildCaliper,
   buildDisc,
   buildHub,
+  capTexture,
   buildRimShell,
   buildTyre,
   createWheelKitMaterials,
@@ -36,7 +37,7 @@ import {
 } from './wheelKit';
 import { buildRimFacesAsync, promoteRimFace, RimFacePriority } from './rimFaceAsync';
 import { finishLook, installFinishLayers, applyFinishLook } from './wheelFinish';
-import { RIM_FACE_MASKS, RIM_FACE_OPTIONS } from './rimFaces';
+import { RIM_CAP_TEXT, RIM_FACE_MASKS, RIM_FACE_OPTIONS } from './rimFaces';
 import { proceduralRimShapes } from './proceduralRims';
 import { 
   CarModel, 
@@ -1671,6 +1672,7 @@ export class CarConfiguratorEngine {
       this.pendingWheelToken = null;
       this.wheelMode = mode;
       this.lipStyle = lip;
+      this.kit.cap.map = capTexture(RIM_CAP_TEXT[wheel.id] ?? 'FSA'); // the cap's lettering belongs to the design
       this.clearSpokes();
       this.syncWheelShells();
       this.wheelAssemblies.forEach((a) => {
