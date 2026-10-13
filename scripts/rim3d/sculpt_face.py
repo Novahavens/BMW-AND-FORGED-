@@ -308,18 +308,29 @@ def build(traced, prof, SC, clip_r, FF, FT, dish_sink, hub_r, cuts=(), log=print
     bx = FF - FT * (1 - (1 - taper) * t) - np.array([dish_sink(x) for x in rB])
 
     # ---- assemble: front surface, back surface, wall; px,py (traced plane) -> wheel (y, z) = (py, -px)
-    nF = len(FV)
+    # the wall has its own bottom vertices (same positions as the back surface's edge) so the back surface keeps flat normals and the wall
+    # outward ones: one shared normal at that corner makes the back of every spoke look scalloped
+    nF = len(FV); nB = len(BV)
     vf = np.stack([fx, FV[:, 1], -FV[:, 0]], 1); vb = np.stack([bx, BV[:, 1], -BV[:, 0]], 1)
-    verts3 = np.vstack([vf, vb])
-    faces = [tuple(map(int, t_)) for t_ in FT3] + [tuple(int(nF + i) for i in t_) for t_ in BT]
+    wall_ids = sorted({i for loop in ring0 for i in loop}); wall_row = {i: k for k, i in enumerate(wall_ids)}
+    vw = vb[wall_ids]
+    verts3 = np.vstack([vf, vb, vw])
+    base_w = nF + nB
+    # winding: front counter-clockwise seen from +x (normal +x); back reversed (normal -x); wall quads outward
+    faces = [tuple(map(int, t_)) for t_ in FT3] + [tuple(int(nF + i) for i in t_[::-1]) for t_ in BT]
     for loop in ring0:
-        for a, b in zip(loop, loop[1:] + loop[:1]): faces.append((a, b, nF + b, nF + a))
-    # back surface: facing -x; its edge vertices (shared with the wall) lean outward 45 degrees (the wall's own normal is outward)
-    nb = np.tile([-1.0, 0.0, 0.0], (len(BV), 1))
-    for loop in ring0:
-        for i in loop:
-            ox, oy = -u[i]                                                      # outward in the traced plane
-            nb[i] = (-0.7071, 0.7071 * oy, -0.7071 * ox)
-    normals = np.vstack([nF_, nb])
-    info = dict(front_tris=len(FT3), back_tris=len(BT), d_max=float(d.max()), dbg=dict(d=d, dh=dh, u=u, hd=hd, hdh=hdh, W=W, uh=uh, vun=vun))
+        for a, b in zip(loop, loop[1:] + loop[:1]): faces.append((base_w + wall_row[a], base_w + wall_row[b], b, a))
+    # back normals: the back surface's own slope (the dish and the taper), flipped
+    eps_b = 1e-4
+    def bfun(r_):
+        t_ = np.clip((r_ - hub_r) / (0.9 - hub_r), 0, 1); t_ = t_ * t_ * (3 - 2 * t_)
+        return -FT * (1 - (1 - taper) * t_) - np.array([dish_sink(x) for x in r_])
+    bs = (bfun(rB + eps_b) - bfun(np.maximum(rB - eps_b, 0))) / (2 * eps_b)
+    gb = bs[:, None] * (BV / np.maximum(rB[:, None], 1e-9))
+    nb = -np.stack([np.ones(nB), -gb[:, 1], gb[:, 0]], 1); nb /= np.linalg.norm(nb, axis=1, keepdims=True)
+    nw = np.zeros((len(wall_ids), 3))
+    for k, i in enumerate(wall_ids):
+        ox, oy = -u[i]; nw[k] = (0.0, oy, -ox)                                  # outward in the traced plane -> wheel frame
+    normals = np.vstack([nF_, nb, nw])
+    info = dict(front_tris=len(FT3), back_tris=len(BT), d_max=float(d.max()))
     return verts3, faces, info, normals

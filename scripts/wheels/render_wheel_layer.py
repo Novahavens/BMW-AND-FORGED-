@@ -66,7 +66,8 @@ ap.add_argument('--tex-scale', type=int, default=1, help='sidewall lettering map
 ap.add_argument('--squash', type=float, default=0.008, help='tyre contact-patch deflection in m (0 = round tyre; ~0.008 = a loaded road tyre)')
 ap.add_argument('--brand', default='', help='sidewall brand word (default none)')
 ap.add_argument('--debug-tyre', action='store_true', help='light grey rubber, to check the lettering')
-ap.add_argument('--rubber', type=float, default=0.045, help='linear albedo of the sidewall rubber')
+ap.add_argument('--rubber', type=float, default=0.045, help='linear albedo of the sidewall rubber (deep black: the owner\'s choice; do not light the tyre with --wheel-fill)')
+ap.add_argument('--letter-gain', type=float, default=5.0, help='sidewall lettering albedo as a multiple of the rubber: tone-on-tone, still readable on the deep-black rubber (raised, glossier, lighter)')
 args = ap.parse_args()
 T0 = time.time()
 # lighting presets per finish (wheel-only lights; the car studio is untouched): mirror finishes need a grey surround to reflect
@@ -357,7 +358,7 @@ def run_job():
             bp = nt.nodes.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 1.0; bp.inputs['Distance'].default_value = 0.0015
             nt.links.new(ti.outputs['Color'], bp.inputs['Height']); nt.links.new(bp.outputs['Normal'], b.inputs['Normal'])
             mxl = nt.nodes.new('ShaderNodeMix'); mxl.data_type = 'RGBA'; mxl.inputs['Factor'].default_value = 1.0
-            mxl.inputs['A'].default_value = (*[RUB] * 3, 1); mxl.inputs['B'].default_value = (*[RUB * 3.5] * 3, 1)
+            mxl.inputs['A'].default_value = (*[RUB] * 3, 1); mxl.inputs['B'].default_value = (*[RUB * args.letter_gain] * 3, 1)
             lm = nt.nodes.new('ShaderNodeMath'); lm.operation = 'MULTIPLY'; lm.inputs[1].default_value = 1.0; nt.links.new(ti.outputs['Color'], lm.inputs[0])
             rr = nt.nodes.new('ShaderNodeSeparateColor'); nt.links.new(ti.outputs['Color'], rr.inputs[0])
             sm = nt.nodes.new('ShaderNodeMapRange'); sm.inputs['From Min'].default_value = 0.35; sm.inputs['From Max'].default_value = 0.8; nt.links.new(rr.outputs[0], sm.inputs['Value'])

@@ -115,7 +115,6 @@ if a.shapes:
         v3, f3, info, nrm = sculpt_face.build(traced, PROFILE, SC, 0.95, FF, FT, _sink, hub_r, cuts)
         me = bpy.data.meshes.new('face'); me.from_pydata([tuple(map(float, v)) for v in v3], [], f3); me.update()
         face = bpy.data.objects.new('face', me); sc.collection.objects.link(face); me.materials.append(mat)
-        bm = bmesh.new(); bm.from_mesh(me); bmesh.ops.recalc_face_normals(bm, faces=bm.faces); bm.to_mesh(me); bm.free()
         for p_ in me.polygons: p_.use_smooth = True
         me.normals_split_custom_set_from_vertices([tuple(map(float, n_)) for n_ in nrm])    # analytic normals from the height function
         print('sculpt', info)
