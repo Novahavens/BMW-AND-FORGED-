@@ -28,6 +28,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--glb', required=True); ap.add_argument('--car', required=True); ap.add_argument('--rim', default='')
 ap.add_argument('--view', default='side'); ap.add_argument('--finish', default='silver')
 ap.add_argument('--size', type=float, default=20, help='rim diameter in inches (19-22)')
+ap.add_argument('--size-rear', type=float, default=0, help='rear rim diameter in inches (staggered fitment, e.g. M5 G90 20 front / 21 rear); 0 = same as --size')
+ap.add_argument('--disc-front', type=float, default=0, help='front brake disc radius in m (default 0.19 = 380 mm; the M5 steel M Compound disc is ~395 mm)')
+ap.add_argument('--disc-rear', type=float, default=0, help='rear brake disc radius in m (default 0.185)')
 ap.add_argument('--parts', choices=['all', 'rim', 'under'], default='all')
 ap.add_argument('--caliper', default='#0055b8')
 ap.add_argument('--out', required=True); ap.add_argument('--name', default='')
@@ -52,6 +55,9 @@ ap.add_argument('--denoise-quality', default=None, help='HIGH|BALANCED|FAST')
 ap.add_argument('--clamp', type=float, default=0.0, help='indirect clamp (kills fireflies)')
 ap.add_argument('--batch', default='', help='json list of jobs {rim, finish, size, parts, view, name, caliper, ...} rendered in ONE session (the car, its BVH and the studio are built once; Cycles persistent data)')
 ap.add_argument('--repeat', type=int, default=1, help='timing test: render every region N times in one session (with persistent data) and record each time')
+ap.add_argument('--tex-scale', type=int, default=1, help='sidewall lettering map resolution multiplier (2 = 8192x512, crisp at a 2x close-up)')
+ap.add_argument('--squash', type=float, default=0.0, help='tyre contact-patch deflection in m (0 = round tyre; ~0.008 = a loaded road tyre)')
+ap.add_argument('--brand', default='', help='sidewall brand word (default none)')
 ap.add_argument('--debug-tyre', action='store_true', help='light grey rubber, to check the lettering')
 ap.add_argument('--rubber', type=float, default=0.03, help='linear albedo of the sidewall rubber')
 args = ap.parse_args()
@@ -78,13 +84,17 @@ import materials as rimmat
 
 T_PRE = time.time() - T0
 assert WHEELS, 'no wheel positions'
-def wheel_projection(cam, S):
+def axle_scale(front, S0):
+    """rim scale of an axle: --size for the front, --size-rear for the rear (staggered fitment)."""
+    return S0 if (front or not args.size_rear) else args.size_rear / 20.0
+def wheel_projection(cam, S0):
     """Per wheel: the tyre (centre plane) and the rim's lip-front circle in the frame, px: centre and radii. Used to place a layer on another car."""
     from bpy_extras.object_utils import world_to_camera_view as wc
     RX, RY = sc.render.resolution_x, sc.render.resolution_y
     out = []
     for idx, (wx, wy, wz, wr, ww) in enumerate(WHEELS):
         gs = wr / 0.35; sgn = 1 if wx > 0 else -1; tw = 0.265 if idx < 2 else 0.295
+        S = axle_scale(idx < 2, S0)
         def circ(cx, R):
             c0 = wc(sc, cam, Vector((cx, wy, wz))); c1 = wc(sc, cam, Vector((cx, wy, wz + R))); c2 = wc(sc, cam, Vector((cx, wy + R, wz)))
             return {'cx': round(c0.x * RX, 2), 'cy': round((1 - c0.y) * RY, 2), 'ry': round(abs(c1.y - c0.y) * RY, 2), 'rx': round(abs(c2.x - c0.x) * RX, 2)}
@@ -114,7 +124,7 @@ def rim_layout(front, s):
     dish = 0.036 if front else 0.058
     hubFrontX = faceEdgeX - dish; hubBackX = hubFrontX - 0.032 - 2 * 0.003 - 0.001
     return dict(tw=tw, lipOuter=lipOuter, faceRadius=faceRadius, beadSeat=beadSeat, rimWidth=rimWidth, lipX=lipX, faceEdgeX=faceEdgeX,
-                hubBackX=hubBackX, discRadius=0.19 if front else 0.185, discThickness=0.036 if front else 0.028, discX=-0.014 if front else -0.008)
+                hubBackX=hubBackX, discRadius=(args.disc_front or 0.19) if front else (args.disc_rear or 0.185), discThickness=0.036 if front else 0.028, discX=-0.014 if front else -0.008)
 
 def srgb2lin(h):
     return rimmat.srgb_to_lin(h)
@@ -219,14 +229,16 @@ def smoothstep(a, b, x):
     t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 
 def sidewall_maps(label):
-    W, H = 4096, 256
+    K = max(1, args.tex_scale)
+    W, H = 4096 * K, 256 * K
     im = Image.new('L', (W, H), 0); d = ImageDraw.Draw(im)
     def font(px, bold=True):
+        px = int(px * K)
         for f in ('/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'):
             if os.path.exists(f): return ImageFont.truetype(f, px)
         return ImageFont.load_default()
     def write(text, x, y, px, spacing=0.06):
-        ft = font(px); ws = [d.textlength(c, font=ft) * 0.82 + px * spacing for c in text]   # narrow-ish
+        ft = font(px); ws = [d.textlength(c, font=ft) * 0.82 + px * K * spacing for c in text]   # narrow-ish
         cx = x - sum(ws) / 2
         for c, w in zip(text, ws):
             d.text((cx, y), c, font=ft, fill=255, anchor='lm'); cx += w
@@ -235,7 +247,7 @@ def sidewall_maps(label):
     write('MAX LOAD 850 KG (1874 LBS)  AT 340 KPA (50 PSI) MAX PRESS', W * 0.86, H * 0.66, 22, 0.06)
     write('TREADWEAR 300   TRACTION AA   TEMPERATURE A', W * 0.86, H * 0.5, 22, 0.06)
     write('DOT  XB 4T  3925', W * 0.05, H * 0.5, 28, 0.08)
-    for x in (W * 0.12, W * 0.47, W * 0.95): d.polygon([(x - 14, H * 0.86), (x + 14, H * 0.86), (x, H * 0.95)], fill=255)
+    for x in (W * 0.12, W * 0.47, W * 0.95): d.polygon([(x - 14 * K, H * 0.86), (x + 14 * K, H * 0.86), (x, H * 0.95)], fill=255)
     letters = np.asarray(im).astype(np.float32) / 255
     v = (np.arange(H) / (H - 1))[:, None]
     band = smoothstep(0.26, 0.32, v) * (1 - smoothstep(0.76, 0.82, v))
@@ -250,7 +262,7 @@ sc.render.use_persistent_data = True
 DISC_CACHE = {}   # drilled friction plate per front/rear: the exact boolean is 2 s, so build it once per session
 
 def run_job():
-    T0j = time.time(); S = args.size / 20.0
+    T0j = time.time(); S0 = args.size / 20.0; S = S0
     # ---- 3. parts
     FIN = json.load(open(os.path.join(ROOT, 'scripts', 'rim3d', 'finishes.json')))
     fin = FIN[args.finish]
@@ -492,8 +504,8 @@ def run_job():
         bp = nt.nodes.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 0.35; bp.inputs['Distance'].default_value = 0.0006
         nt.links.new(h2.outputs[0], bp.inputs['Height']); nt.links.new(bp.outputs['Normal'], b.inputs['Normal'])
         # one friction plate: ring with three staggered rows of drillings, then duplicated for the inner plate
-        if front in DISC_CACHE:
-            pl = bpy.data.objects.new('disc_plate', DISC_CACHE[front]); sc.collection.objects.link(pl); pl.parent = parent; pl.location = (L['discX'] + t / 2 - plate, 0, 0)
+        if (front, Rd) in DISC_CACHE:
+            pl = bpy.data.objects.new('disc_plate', DISC_CACHE[(front, Rd)]); sc.collection.objects.link(pl); pl.parent = parent; pl.location = (L['discX'] + t / 2 - plate, 0, 0)
             for p_ in pl.data.polygons: p_.use_smooth = False
             pl.data.materials[0] = dm
         else:
@@ -526,7 +538,7 @@ def run_job():
             for o in bpy.context.selected_objects: o.select_set(False)
             bpy.context.view_layer.objects.active = pl; pl.select_set(True); bpy.ops.object.modifier_apply(modifier=mod.name); pl.select_set(False)
             bpy.data.objects.remove(cut, do_unlink=True)
-            pl.data.use_fake_user = True; DISC_CACHE[front] = pl.data
+            pl.data.use_fake_user = True; DISC_CACHE[(front, Rd)] = pl.data
         pl2 = bpy.data.objects.new('disc_plate_in', pl.data); sc.collection.objects.link(pl2); pl2.parent = parent; pl2.location = (L['discX'] - t / 2, 0, 0)
         objs += [pl, pl2]
         # vanes
@@ -622,6 +634,7 @@ def run_job():
     tyre_cache = {}
     for idx, (wx, wy, wz, wr, ww) in enumerate(WHEELS):
         front = idx < 2; is_right = idx % 2 == 1; gs = wr / 0.35
+        S = axle_scale(front, S0)
         root = bpy.data.objects.new(f'wheel{idx}', None); sc.collection.objects.link(root)
         root.location = (wx, wy, wz); root.rotation_euler = (math.pi / 2, 0, 0)            # engine Y-up frame -> Blender Z-up
         grp = bpy.data.objects.new(f'grp{idx}', None); sc.collection.objects.link(grp); grp.parent = root
@@ -768,7 +781,7 @@ def run_job():
                                 'kb': round(os.path.getsize(os.path.join(odir, f'{name}_{ri}.webp')) / 1024, 1),
                                 'kb_raw': round(os.path.getsize(os.path.join(odir, f'{name}_{ri}.raw.webp')) / 1024, 1)})
         print(f'region {ri} {w}x{h} rendered', flush=True)
-    wproj = wheel_projection(cam, S)
+    wproj = wheel_projection(cam, S0)
     meta['wheels'] = wproj
     meta['preamble_seconds'] = round(T_PRE, 1); meta['render_times'] = times; meta['render_seconds'] = round(t_render, 1); meta['total_seconds'] = round(time.time() - T0j, 1); meta['tyre_labels'] = sorted(set(labels.values()))
     json.dump(meta, open(os.path.join(odir, f'{name}.json'), 'w'), indent=1)
