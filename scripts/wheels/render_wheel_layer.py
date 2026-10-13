@@ -32,7 +32,7 @@ ap.add_argument('--size-rear', type=float, default=0, help='rear rim diameter in
 ap.add_argument('--disc-front', type=float, default=0, help='front brake disc radius in m (default 0.19 = 380 mm; the M5 steel M Compound disc is ~395 mm)')
 ap.add_argument('--disc-rear', type=float, default=0, help='rear brake disc radius in m (default 0.185)')
 ap.add_argument('--parts', choices=['all', 'rim', 'under'], default='all')
-ap.add_argument('--caliper', default='#0055b8')
+ap.add_argument('--caliper', default='', help="'#rrggbb' | white | black; default = the car's caliper_default in the OEM json, else #0055b8")
 ap.add_argument('--out', required=True); ap.add_argument('--name', default='')
 ap.add_argument('--samples', type=int, default=96); ap.add_argument('--threads', type=int, default=3)
 ap.add_argument('--width', type=int, default=1440)
@@ -55,11 +55,18 @@ ap.add_argument('--denoise-quality', default=None, help='HIGH|BALANCED|FAST')
 ap.add_argument('--clamp', type=float, default=0.0, help='indirect clamp (kills fireflies)')
 ap.add_argument('--batch', default='', help='json list of jobs {rim, finish, size, parts, view, name, caliper, ...} rendered in ONE session (the car, its BVH and the studio are built once; Cycles persistent data)')
 ap.add_argument('--repeat', type=int, default=1, help='timing test: render every region N times in one session (with persistent data) and record each time')
+ap.add_argument('--oem', default='', help='OEM fitment json (default scripts/wheels/oem_tyres.json): real tyre section width, overall diameter, sidewall text and brake discs per car + rim size; "none" = the engine\'s fixed 265/295 x 700 mm tyre')
+ap.add_argument('--oem-car', default='', help='car id row of the OEM json (default --car)')
+ap.add_argument('--no-brand', action='store_true', help='size text only, never the maker/model name')
+ap.add_argument('--face-shade', choices=['weighted', 'flat', 'angle'], default='angle', help='shading of the traced rim face: weighted normals (v1), flat facets, or smooth-by-angle only')
+ap.add_argument('--face-smooth', type=int, default=8, help='Laplacian-smooth passes on the rim face mesh outline (rounds traced-mask wobble); 0 = off')
+ap.add_argument('--face-bevel', type=float, default=0.008, help='bevel width (rim-local units, 1 = 262 mm) on the traced face edges: catches the edge highlight a flat extruded outline lacks; 0 = off')
+ap.add_argument('--caliper-text', default='FORGEDSA', help='plain white lettering on the caliper (no logo artwork); empty = none')
 ap.add_argument('--tex-scale', type=int, default=1, help='sidewall lettering map resolution multiplier (2 = 8192x512, crisp at a 2x close-up)')
-ap.add_argument('--squash', type=float, default=0.0, help='tyre contact-patch deflection in m (0 = round tyre; ~0.008 = a loaded road tyre)')
+ap.add_argument('--squash', type=float, default=0.008, help='tyre contact-patch deflection in m (0 = round tyre; ~0.008 = a loaded road tyre)')
 ap.add_argument('--brand', default='', help='sidewall brand word (default none)')
 ap.add_argument('--debug-tyre', action='store_true', help='light grey rubber, to check the lettering')
-ap.add_argument('--rubber', type=float, default=0.03, help='linear albedo of the sidewall rubber')
+ap.add_argument('--rubber', type=float, default=0.045, help='linear albedo of the sidewall rubber')
 args = ap.parse_args()
 T0 = time.time()
 # lighting presets per finish (wheel-only lights; the car studio is untouched): mirror finishes need a grey surround to reflect
@@ -69,6 +76,39 @@ def apply_preset():
     pf = PRESET.get(args.finish.split(',')[0], dict(lights=0.75, wall=0.0, dome=0.0))
     args.wheel_lights, args.wheel_wall, args.wheel_dome = [c if c is not None else pf[k] for c, k in zip(_CLI_LIGHTS, ('lights', 'wall', 'dome'))]
 apply_preset()
+
+# ---- OEM fitment (scripts/wheels/oem_tyres.json): per car and rim size the real tyre width / overall diameter / lettering and the brake discs
+OEM_PATH = args.oem or os.path.join(HERE, 'oem_tyres.json')
+OEM = {} if args.oem == 'none' or not os.path.exists(OEM_PATH) else json.load(open(OEM_PATH))
+CUR = {True: {}, False: {}}      # front?  ->  dict(tw, R, text, brand, model, disc_r, disc_t) of the current job (read by rim_layout and the builders)
+def oem_row(front, size_in):
+    c = OEM.get(args.oem_car or args.car)
+    if not c: return None, None
+    r = c['sizes'].get(str(int(round(size_in))))
+    return c, (r['front' if front else 'rear'] if r else None)
+def size_text(r):
+    t = f"{r['width_mm']}/{r['aspect']} {'ZR' if r.get('zr', True) else 'R'}{r['rim_in']}"
+    if r.get('load_speed'): t += ' ' + r['load_speed']
+    if r.get('xl'): t += ' XL'
+    if r.get('star'): t += ' \u2605'
+    if r.get('extra'): t += ' ' + r['extra']
+    return t
+def setup_fitment():
+    for front in (True, False):
+        size = args.size if (front or not args.size_rear) else args.size_rear
+        c, r = oem_row(front, size)
+        d = dict(tw=0.265 if front else 0.295, R=0.35, text=None, brand=None, model=None, disc_r=0, disc_t=0)
+        if r:
+            d.update(tw=r['width_mm'] / 1000.0, R=r['od_mm'] / 2000.0, text=size_text(r))
+            tyr = c.get('tyre') or {}
+            if tyr.get('brand_text') and r.get('show_brand') and not args.no_brand: d.update(brand=tyr['brand_text'], model=tyr.get('model_text'))
+            bk = (c.get('brakes') or {}).get('front' if front else 'rear') or {}
+            if bk.get('disc_mm'): d['disc_r'] = bk['disc_mm'] / 2000.0
+            if bk.get('thickness_mm'): d['disc_t'] = bk['thickness_mm'] / 1000.0
+        if args.disc_front and front: d['disc_r'] = args.disc_front
+        if args.disc_rear and not front: d['disc_r'] = args.disc_rear
+        CUR[front] = d
+setup_fitment()
 
 # ---- 1. the car scene, exactly as the body renders (render_car.py up to its pass loop)
 RC = os.path.join(ROOT, 'scripts', 'prerender', 'render_car.py')
@@ -93,7 +133,7 @@ def wheel_projection(cam, S0):
     RX, RY = sc.render.resolution_x, sc.render.resolution_y
     out = []
     for idx, (wx, wy, wz, wr, ww) in enumerate(WHEELS):
-        gs = wr / 0.35; sgn = 1 if wx > 0 else -1; tw = 0.265 if idx < 2 else 0.295
+        gs = wr / CUR[idx < 2]['R']; sgn = 1 if wx > 0 else -1; tw = CUR[idx < 2]['tw']
         S = axle_scale(idx < 2, S0)
         def circ(cx, R):
             c0 = wc(sc, cam, Vector((cx, wy, wz))); c1 = wc(sc, cam, Vector((cx, wy, wz + R))); c2 = wc(sc, cam, Vector((cx, wy + R, wz)))
@@ -118,13 +158,13 @@ floor.is_shadow_catcher = False; floor.visible_camera = False   # the body rende
 # ---- 2. dimensions of the live engine (services/wheelKit.ts rimLayout / buildTyre ...), metres, wheel-local, +X = outward
 S = args.size / 20.0
 def rim_layout(front, s):
-    tw = 0.265 if front else 0.295
+    tw = CUR[front]['tw']
     lipOuter = 0.262 * s; faceRadius = 0.24 * s; beadSeat = 0.254 * s
     rimWidth = tw - 0.03; lipX = tw / 2 - 0.012; faceEdgeX = lipX - 0.01
     dish = 0.036 if front else 0.058
     hubFrontX = faceEdgeX - dish; hubBackX = hubFrontX - 0.032 - 2 * 0.003 - 0.001
     return dict(tw=tw, lipOuter=lipOuter, faceRadius=faceRadius, beadSeat=beadSeat, rimWidth=rimWidth, lipX=lipX, faceEdgeX=faceEdgeX,
-                hubBackX=hubBackX, discRadius=(args.disc_front or 0.19) if front else (args.disc_rear or 0.185), discThickness=0.036 if front else 0.028, discX=-0.014 if front else -0.008)
+                hubBackX=hubBackX, discRadius=CUR[front]['disc_r'] or (0.19 if front else 0.185), discThickness=CUR[front]['disc_t'] or (0.036 if front else 0.028), discX=-0.014 if front else -0.008)
 
 def srgb2lin(h):
     return rimmat.srgb_to_lin(h)
@@ -228,25 +268,36 @@ def tread_height():
 def smoothstep(a, b, x):
     t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 
-def sidewall_maps(label):
+def sidewall_maps(spec):
+    """Height + roughness strips of the outer sidewall (repeats twice round the tyre). spec = (size text, brand, model): the size line always;
+    the maker and model names (plain raised lettering, no logo artwork) only when the OEM json allows it (brand is None = size text only)."""
+    label, brand, model = spec
     K = max(1, args.tex_scale)
     W, H = 4096 * K, 256 * K
     im = Image.new('L', (W, H), 0); d = ImageDraw.Draw(im)
-    def font(px, bold=True):
+    def font(px, italic=False, star=False):
         px = int(px * K)
-        for f in ('/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'):
+        names = ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'] if star else (['/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf'] if italic else []) + ['/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf']
+        for f in names:
             if os.path.exists(f): return ImageFont.truetype(f, px)
         return ImageFont.load_default()
-    def write(text, x, y, px, spacing=0.06):
-        ft = font(px); ws = [d.textlength(c, font=ft) * 0.82 + px * K * spacing for c in text]   # narrow-ish
+    def write(text, x, y, px, spacing=0.06, italic=False, shear=0.0, narrow=0.82):
+        """centred text; shear > 0 slants the letters (the real Michelin wordmark is italic)."""
+        layer = Image.new('L', (W, H), 0); dd = ImageDraw.Draw(layer)
+        fts = {c: font(px, italic, c == '\u2605') for c in set(text)}
+        ws = [dd.textlength(c, font=fts[c]) * (1.0 if c == '\u2605' else narrow) + px * K * spacing for c in text]
         cx = x - sum(ws) / 2
         for c, w in zip(text, ws):
-            d.text((cx, y), c, font=ft, fill=255, anchor='lm'); cx += w
+            dd.text((cx, y), c, font=fts[c], fill=255, anchor='lm'); cx += w
+        if shear: layer = layer.transform((W, H), Image.AFFINE, (1, shear, -shear * y, 0, 1, 0), Image.BICUBIC)
+        im.paste(Image.fromarray(np.maximum(np.asarray(im), np.asarray(layer))))
     write(label, W * 0.25, H * 0.56, 92, 0.05)
-    write('RADIAL  TUBELESS', W * 0.62, H * 0.62, 44, 0.12); write('EXTRA LOAD', W * 0.62, H * 0.42, 40, 0.12)
-    write('MAX LOAD 850 KG (1874 LBS)  AT 340 KPA (50 PSI) MAX PRESS', W * 0.86, H * 0.66, 22, 0.06)
-    write('TREADWEAR 300   TRACTION AA   TEMPERATURE A', W * 0.86, H * 0.5, 22, 0.06)
-    write('DOT  XB 4T  3925', W * 0.05, H * 0.5, 28, 0.08)
+    if brand:
+        write(brand, W * 0.52, H * 0.52, 132, 0.09, italic=True, shear=0.22, narrow=0.9)
+        if model: write(model, W * 0.715, H * 0.58, 52, 0.10, italic=True, shear=0.22, narrow=0.9)
+        write('RADIAL  TUBELESS', W * 0.88, H * 0.62, 36, 0.12); write('EXTRA LOAD', W * 0.88, H * 0.42, 34, 0.12)
+        write('TREADWEAR 300   TRACTION AA   TEMPERATURE A', W * 0.93, H * 0.30, 19, 0.06)
+        write('DOT  XB 4T  3925', W * 0.05, H * 0.5, 28, 0.08)
     for x in (W * 0.12, W * 0.47, W * 0.95): d.polygon([(x - 14 * K, H * 0.86), (x + 14 * K, H * 0.86), (x, H * 0.95)], fill=255)
     letters = np.asarray(im).astype(np.float32) / 255
     v = (np.arange(H) / (H - 1))[:, None]
@@ -263,10 +314,11 @@ DISC_CACHE = {}   # drilled friction plate per front/rear: the exact boolean is 
 
 def run_job():
     T0j = time.time(); S0 = args.size / 20.0; S = S0
+    setup_fitment()
     # ---- 3. parts
     FIN = json.load(open(os.path.join(ROOT, 'scripts', 'rim3d', 'finishes.json')))
     fin = FIN[args.finish]
-    cal_arg = args.caliper
+    cal_arg = args.caliper or (((OEM.get(args.oem_car or args.car) or {}).get('caliper_default') or {}).get('hex')) or '#0055b8'
     cal_lin = (1.0,) * 3 if cal_arg == 'white' else ((0.0,) * 3 if cal_arg == 'black' else tuple(srgb2lin(cal_arg)))
 
     MAT = {}
@@ -294,11 +346,12 @@ def run_job():
     bump = nt.nodes.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.9; bump.inputs['Distance'].default_value = 0.004
     nt.links.new(t.outputs['Color'], bump.inputs['Height']); nt.links.new(bump.outputs['Normal'], rb.inputs['Normal'])
     LABELS = {}
-    def sidewall_material(label):
+    def sidewall_material(spec):
+        label = '|'.join(str(x) for x in spec)
         if label in LABELS: return LABELS[label]
         m, b = new_mat('tyre_sidewall_' + label, lin=(RUB,) * 3, rough=0.5, sheen=0.35, sheen_rough=0.45, sheen_tint='#6a6866')
         if not args.no_text:
-            h, r = sidewall_maps(label)
+            h, r = sidewall_maps(spec)
             nt = m.node_tree
             ti = tex_node(nt, np_image('sw_h_' + label, h.astype(np.float32)), (-2, -1, 1)); tr = tex_node(nt, np_image('sw_r_' + label, r.astype(np.float32)), (-2, -1, 1))
             bp = nt.nodes.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 1.0; bp.inputs['Distance'].default_value = 0.0015
@@ -312,7 +365,11 @@ def run_job():
             nt.links.new(tr.outputs['Color'], b.inputs['Roughness'])
         nn = m.node_tree.nodes.new('ShaderNodeTexNoise'); nn.inputs['Scale'].default_value = 900; nn.inputs['Detail'].default_value = 3
         m.node_tree.links.new(m.node_tree.nodes.new('ShaderNodeTexCoord').outputs['Object'], nn.inputs['Vector'])
-        if args.no_text: bq = m.node_tree.nodes.new('ShaderNodeBump'); bq.inputs['Strength'].default_value = 0.15; bq.inputs['Distance'].default_value = 0.0003; m.node_tree.links.new(nn.outputs['Fac'], bq.inputs['Height']); m.node_tree.links.new(bq.outputs['Normal'], b.inputs['Normal'])
+        # fine rubber grain on every sidewall (after the lettering bump, when there is one)
+        bq = m.node_tree.nodes.new('ShaderNodeBump'); bq.inputs['Strength'].default_value = 0.22; bq.inputs['Distance'].default_value = 0.0004
+        m.node_tree.links.new(nn.outputs['Fac'], bq.inputs['Height'])
+        if not args.no_text: m.node_tree.links.new(bp.outputs['Normal'], bq.inputs['Normal'])
+        m.node_tree.links.new(bq.outputs['Normal'], b.inputs['Normal'])
         LABELS[label] = m
         return m
 
@@ -323,7 +380,8 @@ def run_job():
             out.append((a * p0[0] + b * p1[0] + c * p2[0] + e * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + e * p3[1]))
         return out
 
-    def build_tyre(parent, front, s, R=0.35):
+    def build_tyre(parent, front, s, R=None):
+        R = R or CUR[front]['R']
         L = rim_layout(front, s); half = L['tw'] / 2
         shoulderR = 0.024; crown = 0.004; segs = 192
         treadHalf = half - 0.006
@@ -358,11 +416,20 @@ def run_job():
             pts += [(ribR, sign * (half - 0.0015)), (ribR - 0.004, sign * (half - 0.004))]
             pts += cubic((ribR - 0.004, sign * (half - 0.004)), (ribR - 0.007, sign * (half - 0.008)), (L['lipOuter'] + 0.001, sign * (flangeX - 0.002)), (L['lipOuter'] - 0.003, sign * (flangeX - 0.006)), 6)
             return pts[::-1]
-        label = f"{round(L['tw'] * 1000 / 5) * 5}/{round(((R - 0.254 * s) * 1000 / (round(L['tw'] * 1000 / 5) * 5)) * 20) * 5} ZR{round(20 * s)} {'98' if front else '102'}Y XL"
+        label = CUR[front]['text'] or f"{round(L['tw'] * 1000 / 5) * 5}/{round(((R - 0.254 * s) * 1000 / (round(L['tw'] * 1000 / 5) * 5)) * 20) * 5} ZR{round(20 * s)} {'98' if front else '102'}Y XL"
         objs = []
-        o = mesh_obj('tyre_tread', lathe_bm(tread, segs), MAT['tread'], parent); smooth_by_angle(o, 40); objs.append(o)
-        o = mesh_obj('tyre_side_out', lathe_bm(sidewall(1), segs), sidewall_material(label), parent); smooth_by_angle(o, 50); objs.append(o)
-        o = mesh_obj('tyre_side_in', lathe_bm(sidewall(-1), segs), MAT['sidewall_in'], parent); smooth_by_angle(o, 50); objs.append(o)
+        def squash(bm):
+            """contact-patch deflection: the tyre's bottom (wheel-local -y) is pressed in a little, smoothly, strongest at the tread, none at the bead"""
+            if args.squash <= 0: return bm
+            for v in bm.verts:
+                y, z = v.co.y, v.co.z; r = math.hypot(y, z)
+                if r < 1e-6: continue
+                th = math.atan2(z, -y); lift = args.squash * math.exp(-(th / 0.17) ** 2) * max(0.0, (r - L['beadSeat']) / (R - L['beadSeat'])) ** 4
+                v.co.y = y * (r - lift) / r; v.co.z = z * (r - lift) / r
+            return bm
+        o = mesh_obj('tyre_tread', squash(lathe_bm(tread, segs)), MAT['tread'], parent); smooth_by_angle(o, 40); objs.append(o)
+        o = mesh_obj('tyre_side_out', squash(lathe_bm(sidewall(1), segs)), sidewall_material((label, CUR[front]['brand'], CUR[front]['model'])), parent); smooth_by_angle(o, 50); objs.append(o)
+        o = mesh_obj('tyre_side_in', squash(lathe_bm(sidewall(-1), segs)), MAT['sidewall_in'], parent); smooth_by_angle(o, 50); objs.append(o)
         return objs, label
 
     def kidney_pts(r0, r1, b0, b1, n=24):
@@ -395,7 +462,7 @@ def run_job():
 
     def build_caliper(parent, front, is_right, s):
         L = rim_layout(front, s); Rd = L['discRadius']; rIn = Rd - 0.066; rOut = Rd + 0.024
-        span = math.radians(84 if front else 70); halfW = L['discThickness'] / 2 + (0.038 if front else 0.032)
+        span = math.radians(98 if front else 70); halfW = L['discThickness'] / 2 + (0.044 if front else 0.032)
         a0, a1 = math.pi / 2 - span / 2, math.pi / 2 + span / 2
         at = lambda f: a0 + (a1 - a0) * f
         # shape plane (sx, sy) -> wheel-local (x = extrusion, y = sy, z = -sx)  (the engine's rotateY(pi/2))
@@ -406,9 +473,15 @@ def run_job():
         bev = 0.007
         o = mesh_obj('cal_body', prism_xyz(kidney_pts(rIn, rOut, a0, a1), -halfW, halfW, to3), MAT['caliper'], root); bevel(o, bev, 4); objs.append(o)
         o = mesh_obj('cal_face', prism_xyz(kidney_pts(rIn + 0.011, rOut - 0.012, a0 + 0.05, a1 - 0.05), halfW - 0.001, halfW + 0.003, to3), MAT['caliper'], root); bevel(o, 0.0025, 3); objs.append(o)
-        # decal plate with the white M stripes
+        if front:   # the six-piston monoblock's piston-pair dividers: two raised ribs across the face
+            for f in (0.36, 0.64):
+                a_ = at(f); w_ = 0.0042; r_a, r_b = rIn + 0.014, rOut - 0.015
+                rib = [(r_a * math.cos(a_) - w_ * math.sin(a_), r_a * math.sin(a_) + w_ * math.cos(a_)), (r_b * math.cos(a_) - w_ * math.sin(a_), r_b * math.sin(a_) + w_ * math.cos(a_)),
+                       (r_b * math.cos(a_) + w_ * math.sin(a_), r_b * math.sin(a_) - w_ * math.cos(a_)), (r_a * math.cos(a_) + w_ * math.sin(a_), r_a * math.sin(a_) - w_ * math.cos(a_))]
+                o = mesh_obj('cal_rib', prism_xyz(rib, halfW + 0.001, halfW + 0.0062, to3), MAT['caliper'], root); bevel(o, 0.0014, 2); objs.append(o)
+        # decal plate (plain lettering)
         dp = kidney_pts(rIn + 0.016, rOut - 0.017, at(0.12), at(0.88))
-        bm = bmesh.new(); vs = [bm.verts.new(to3(x, y, halfW + 0.0052)) for x, y in dp]
+        bm = bmesh.new(); vs = [bm.verts.new(to3(x, y, halfW + 0.0068)) for x, y in dp]
         try: bm.faces.new(vs[::-1])
         except ValueError: pass
         r0, r1, b0, b1 = rIn + 0.016, rOut - 0.017, at(0.12), at(0.88)
@@ -462,14 +535,17 @@ def run_job():
         return root, objs
 
     def decal_image():
-        # white italic M with the three BMW M stripes, on transparent (ported in spirit from caliperDecalTexture)
-        W, H = 1024, 256
+        # plain white lettering (default 'FORGEDSA') on transparent: no logo artwork (no BMW M stripes / roundel)
+        W, H = 2048, 256
         im = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-        for i, c in enumerate(((0x81, 0xc4, 0xff), (0x1c, 0x69, 0xd4), (0xe7, 0x22, 0x2a))):
-            d.polygon([(70 + i * 46 + 70, 40), (70 + i * 46 + 105, 40), (70 + i * 46 + 35, 216), (70 + i * 46, 216)], fill=(*c, 255))
-        ft = ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', 190)
-        d.text((420, 128), 'M', font=ft, fill=(255, 255, 255, 255), anchor='lm')
-        d.text((620, 150), 'BMW', font=ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', 90), fill=(255, 255, 255, 255), anchor='lm')
+        txt = args.caliper_text.upper()
+        if txt:
+            px = 200
+            while px > 40:
+                ft = ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', px)
+                if d.textlength(txt, font=ft) <= W * 0.5: break
+                px -= 6
+            d.text((W / 2, H / 2), txt, font=ft, fill=(255, 255, 255, 255), anchor='mm')
         arr = np.asarray(im).astype(np.float32) / 255
         arr = arr[::-1]    # texture row 0 = v 0
         imb = bpy.data.images.new('decal', W, H, alpha=True)
@@ -481,7 +557,7 @@ def run_job():
         objs = []
         # disc material: cast iron with concentric machining (object-space radius -> sin bump), radial anisotropy
         dm = bpy.data.materials.new('brake_disc'); dm.use_nodes = True; nt = dm.node_tree; b = nt.nodes['Principled BSDF']
-        b.inputs['Base Color'].default_value = (*(np.array(srgb2lin('#a19f9b')) * 0.55), 1); b.inputs['Metallic'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.42
+        b.inputs['Base Color'].default_value = (*(np.array(srgb2lin('#a19f9b')) * 0.85), 1); b.inputs['Metallic'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.36
         b.inputs['Anisotropic'].default_value = 0.8
         tg = nt.nodes.new('ShaderNodeTangent'); tg.direction_type = 'RADIAL'; tg.axis = 'X'; nt.links.new(tg.outputs['Tangent'], b.inputs['Tangent'])
         tc = nt.nodes.new('ShaderNodeTexCoord'); sep = nt.nodes.new('ShaderNodeSeparateXYZ'); nt.links.new(tc.outputs['Object'], sep.inputs[0])
@@ -501,7 +577,7 @@ def run_job():
         s2 = mathn('SINE'); nt.links.new(w2.outputs[0], s2.inputs[0])
         hh = mathn('MULTIPLY_ADD', None, 0.3); nt.links.new(s1.outputs[0], hh.inputs[0]); hh.inputs[2].default_value = 0.5
         h2 = mathn('MULTIPLY_ADD', None, 0.2); nt.links.new(s2.outputs[0], h2.inputs[0]); nt.links.new(hh.outputs[0], h2.inputs[2])
-        bp = nt.nodes.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 0.35; bp.inputs['Distance'].default_value = 0.0006
+        bp = nt.nodes.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 0.14; bp.inputs['Distance'].default_value = 0.0004
         nt.links.new(h2.outputs[0], bp.inputs['Height']); nt.links.new(bp.outputs['Normal'], b.inputs['Normal'])
         # one friction plate: ring with three staggered rows of drillings, then duplicated for the inner plate
         if (front, Rd) in DISC_CACHE:
@@ -524,10 +600,10 @@ def run_job():
             pl = mesh_obj('disc_plate', bm, dm, parent, loc=(L['discX'] + t / 2 - plate, 0, 0), smooth=False)
             # drillings: boolean with a cutter of small cylinders
             cb = bmesh.new()
-            for ri, f in enumerate((0.73, 0.82, 0.91)):
-                for k in range(24):
-                    a = ((k + ri * 0.33) / 24) * 2 * math.pi + ri * 0.08; r = Rd * f
-                    tmp = bmesh.new(); bmesh.ops.create_cone(tmp, cap_ends=True, segments=14, radius1=0.0034, radius2=0.0034, depth=plate * 3)
+            for ri, f in enumerate((0.75, 0.84, 0.93)):
+                for k in range(20):
+                    a = ((k + ri * 0.33) / 20) * 2 * math.pi + ri * 0.08; r = Rd * f
+                    tmp = bmesh.new(); bmesh.ops.create_cone(tmp, cap_ends=True, segments=14, radius1=0.0042, radius2=0.0042, depth=plate * 3)
                     for v in tmp.verts: v.co = Vector((v.co.z + plate / 2, r * math.cos(a) + v.co.x, r * math.sin(a) + v.co.y))
                     vm = {}
                     for v in tmp.verts: vm[v] = cb.verts.new(v.co)
@@ -607,8 +683,19 @@ def run_job():
         if o.name.startswith('face'):   # as turntable.py --resmooth --weighted (large flat traced face: no streaky reflections)
             for x in bpy.context.selected_objects: x.select_set(False)
             bpy.context.view_layer.objects.active = o; o.select_set(True)
-            bpy.ops.mesh.customdata_custom_splitnormals_clear(); bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30)); o.select_set(False)
-            wn = o.modifiers.new('wn', 'WEIGHTED_NORMAL'); wn.mode = 'FACE_AREA'; wn.keep_sharp = True
+            if args.face_smooth:
+                sm = o.modifiers.new('fsm', 'SMOOTH'); sm.factor = 0.5; sm.iterations = args.face_smooth
+                bpy.ops.object.modifier_apply(modifier=sm.name)
+            if args.face_bevel:
+                bv = o.modifiers.new('fbev', 'BEVEL'); bv.width = args.face_bevel; bv.segments = 2; bv.limit_method = 'ANGLE'; bv.angle_limit = math.radians(40); bv.harden_normals = False
+                bpy.ops.object.modifier_apply(modifier=bv.name)
+            if args.face_shade == 'flat':
+                bpy.ops.object.shade_flat()
+            else:
+                bpy.ops.mesh.customdata_custom_splitnormals_clear(); bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30))
+            o.select_set(False)
+            if args.face_shade == 'weighted':
+                wn = o.modifiers.new('wn', 'WEIGHTED_NORMAL'); wn.mode = 'FACE_AREA'; wn.keep_sharp = True
         o.data.materials.clear(); o.data.materials.append(part_material(o))
 
     def mount_rim(parent, front, s, spin_deg):
@@ -633,7 +720,7 @@ def run_job():
     labels = {}
     tyre_cache = {}
     for idx, (wx, wy, wz, wr, ww) in enumerate(WHEELS):
-        front = idx < 2; is_right = idx % 2 == 1; gs = wr / 0.35
+        front = idx < 2; is_right = idx % 2 == 1; gs = wr / CUR[front]['R']
         S = axle_scale(front, S0)
         root = bpy.data.objects.new(f'wheel{idx}', None); sc.collection.objects.link(root)
         root.location = (wx, wy, wz); root.rotation_euler = (math.pi / 2, 0, 0)            # engine Y-up frame -> Blender Z-up
