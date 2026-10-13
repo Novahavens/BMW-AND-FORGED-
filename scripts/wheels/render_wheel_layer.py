@@ -680,7 +680,9 @@ def run_job():
         return m_barrel if o.name.startswith('barrel') else m_face
     for o in rim_tpl:
         for p in o.data.polygons: p.use_smooth = True
-        if o.name.startswith('face'):   # as turntable.py --resmooth --weighted (large flat traced face: no streaky reflections)
+        if o.name.startswith('face_sculpt'):   # sculpted face (build_rim.py spoke_profile): real chamfers and crown, own smooth shading: no smoothing, no extra bevel
+            pass
+        elif o.name.startswith('face'):   # as turntable.py --resmooth --weighted (large flat traced face: no streaky reflections)
             for x in bpy.context.selected_objects: x.select_set(False)
             bpy.context.view_layer.objects.active = o; o.select_set(True)
             if args.face_smooth:
