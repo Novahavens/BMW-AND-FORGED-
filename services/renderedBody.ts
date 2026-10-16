@@ -32,7 +32,7 @@ const toSrgb = new Uint8ClampedArray(4096).map((_, i) => {
 });
 
 /** The studio's exposure, applied to the linear colour before NeutralToneMapping (the bodies were rendered flat for it). */
-export const BODY_EXPOSURE = 1.6;
+export const BODY_EXPOSURE = 1.25; // was 1.6 with the brighter, hazier studio: deeper paint now the reflections are dark
 /** toLin with the exposure folded in (the mix is linear, so scaling both bases scales the result). */
 const toLinExposed = toLin.map((v) => v * BODY_EXPOSURE);
 /** toSrgb padded to 8192 entries (the tone-mapped value can reach 1.0 and a bit over, so no clamp is needed per channel). */
@@ -53,13 +53,36 @@ const LUT = 4095;
  * The loop runs over ~1.3 M pixels, so it is plain scalar maths: no allocations, one branch for the
  * rare bright pixels.
  */
-export function recolourInto(W: Uint8ClampedArray, B: Uint8ClampedArray, O: Uint8ClampedArray, r: number, g: number, bl: number) {
+export function recolourInto(
+  W: Uint8ClampedArray,
+  B: Uint8ClampedArray,
+  O: Uint8ClampedArray,
+  r: number,
+  g: number,
+  bl: number,
+  /** Metallic paints: the white-metal frame and the paint's flake colour and share (see flakeLook). */
+  F?: Uint8ClampedArray,
+  flake?: { r: number; g: number; b: number; share: number }
+) {
   const tl = toLinExposed, ts = toSrgbWide;
+  // pigment (diffuse) and flake (coloured metal specular) layers under the same clear coat:
+  //   B + (W - B) x pigment x (1 - share) + (F - B) x flake x share
+  const m = F && flake ? flake.share : 0;
+  const dr = r * (1 - m), dg = g * (1 - m), db = bl * (1 - m);
+  const fr = m ? flake!.r * m : 0, fg = m ? flake!.g * m : 0, fb = m ? flake!.b * m : 0;
   for (let i = 0; i < W.length; i += 4) {
     const br = tl[B[i]], bg = tl[B[i + 1]], bb = tl[B[i + 2]];
-    let cr = br + (tl[W[i]] - br) * r;
-    let cg = bg + (tl[W[i + 1]] - bg) * g;
-    let cb = bb + (tl[W[i + 2]] - bb) * bl;
+    let cr = br + (tl[W[i]] - br) * dr;
+    let cg = bg + (tl[W[i + 1]] - bg) * dg;
+    let cb = bb + (tl[W[i + 2]] - bb) * db;
+    if (m) {
+      cr += (tl[F![i]] - br) * fr;
+      cg += (tl[F![i + 1]] - bg) * fg;
+      cb += (tl[F![i + 2]] - bb) * fb;
+      if (cr < 0) cr = 0;
+      if (cg < 0) cg = 0;
+      if (cb < 0) cb = 0;
+    }
     // the toe: off = x - 6.25 x^2 below x = 0.08 (x = the darkest channel) and 0.04 above, i.e. that curve at min(x, 0.08)
     let x = cr < cg ? cr : cg;
     if (cb < x) x = cb;
@@ -90,7 +113,7 @@ export function recolourInto(W: Uint8ClampedArray, B: Uint8ClampedArray, O: Uint
  * Decoded base frames, most recently used last. About 5 MB each, so only one car and paint kind's
  * worth (every view, white and black base) is kept: they used to pile up for every car visited.
  */
-const IMAGES_MAX = RENDER_VIEWS.length * 2;
+const IMAGES_MAX = RENDER_VIEWS.length * 3; // white, black and flake frames
 const images = new Map<string, Promise<ImageData>>();
 export function pixels(url: string): Promise<ImageData> {
   let p = images.get(url);
@@ -134,6 +157,20 @@ function rememberRecoloured(key: string, img: ImageData) {
   while (recoloured.size > RECOLOURED_MAX) recoloured.delete(recoloured.keys().next().value!);
 }
 
+/**
+ * How much of a paint is metallic flake, and the flake's colour: the flake reflects a brighter, purer version of
+ * the paint's colour (that is what makes a metallic glow where it faces the light and fall away to near black at
+ * the edges). Solid (Uni) paints have none; Frozen paints use the matte frames and get none either.
+ */
+export const flakeLook = (paint: PaintColor) => {
+  const share = paint.type === 'Metallic' ? 0.5 : paint.type === 'Pearl' ? 0.4 : 0;
+  if (!share) return null;
+  const [r, g, b] = hexLin(paint.hex);
+  // a touch brighter than the pigment, same hue; near-black paints keep a faint neutral sparkle
+  const lift = (c: number) => Math.min(1, c * 1.25 + 0.012);
+  return { r: lift(r), g: lift(g), b: lift(b), share };
+};
+
 const hexLin = (hex: string) => {
   const h = hex.replace('#', '');
   return [0, 2, 4].map((i) => toLin[parseInt(h.slice(i, i + 2), 16) || 0]);
@@ -157,10 +194,13 @@ export function recolouredBody(carId: string, view: CameraViewPreset, paint: Pai
   const key = `${base}|${paint.hex}`;
   const seen = recolouredNow(carId, view, paint);
   if (seen) return Promise.resolve(seen);
-  return Promise.all([pixels(`${base}_w.webp`), pixels(`${base}_b.webp`)]).then(([w, b]) => {
+  const flake = base.endsWith('/gloss') ? flakeLook(paint) : null;
+  const flakeFrame = flake ? pixels(`${base.replace(/gloss$/, 'flake')}_w.webp`).catch(() => null) : Promise.resolve(null);
+  return Promise.all([pixels(`${base}_w.webp`), pixels(`${base}_b.webp`), flakeFrame]).then(([w, b, f]) => {
     const out = new ImageData(w.width, w.height);
     const [r, g, bl] = hexLin(paint.hex);
-    recolourInto(w.data, b.data, out.data, r, g, bl);
+    // frames rendered before the flake layer existed have no flake_w: those paints stay a plain tint
+    recolourInto(w.data, b.data, out.data, r, g, bl, f && f.width === w.width ? f.data : undefined, flake ?? undefined);
     rememberRecoloured(key, out);
     return out;
   });
@@ -170,6 +210,7 @@ export function recolouredBody(carId: string, view: CameraViewPreset, paint: Pai
 export const warmBodies = (carId: string, paint: PaintColor) => {
   const kind = paint.type === 'Frozen' ? 'matte' : 'gloss';
   RENDER_VIEWS.forEach((v) => ['_w', '_b'].forEach((s) => pixels(`/renders/${carId}/${v}/${kind}${s}.webp`).catch(() => {})));
+  if (flakeLook(paint) && kind === 'gloss') RENDER_VIEWS.forEach((v) => pixels(`/renders/${carId}/${v}/flake_w.webp`).catch(() => {}));
 };
 
 // ---------------------------------------------------------------------------------------------

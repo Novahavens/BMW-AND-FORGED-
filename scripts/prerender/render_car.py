@@ -83,16 +83,19 @@ LAMP_MATS = {  # source part name in the mesh name: Principled inputs
 # units (area-light power = radiance x area x pi), so the numbers mean the same whatever the car size.
 # A white paint pass sees diffuse light = albedo x irradiance / pi, so rad values are chosen to keep that
 # under ~0.85 on the body, while a 4-10% clear-coat reflection of a bright strip still reaches ~1 (crisp lines).
+# 2026-10-07: the big reflective panels (overhead gradient, far-side wall) and the floor were turned right down. Every panel
+# used to mirror them, which laid a grey haze over the paint (black read as dark grey, colours as pale "sheet metal");
+# now the paint stays deep and only the narrow strips draw highlight lines, as in a car studio.
 DARK = dict(
     exposure=0.0,            # view exposure, stops ('Standard' view transform stays linear)
-    world_zenith=0.004, world_horizon=0.03,   # near-black room with a faint horizon glow (lower-body reflections)
+    world_zenith=0.004, world_horizon=0.008,   # near-black room with a faint horizon glow (lower-body reflections)
     top_rad=2.1, top_w=1.0, top_l=0.75, top_h=3.0,   # big soft overhead, DIFFUSE only: width x length (xL), height above roof (m)
-    topg_lo=0.25, topg_hi=1.1, topg_dir=1,   # overhead reflection panel (glossy only): radiance rear->front gradient lo..hi (dir -1 flips)
+    topg_lo=0.0, topg_hi=0.12, topg_dir=1,   # overhead reflection panel (glossy only): radiance rear->front gradient lo..hi (dir -1 flips)
     strip_rad=3.0, strip_w=0.05, strip_l=2.4, strip_d=0.5, strip_h=1.0,   # high camera-side strip: width (xL), length (xL), offset (xL), height above roof (m)
     sh_rad=6.0, sh_w=0.16, sh_l=2.6, sh_x=1.0, sh_h=1.5, sh_both=1,   # ONE long thin bright shoulder strip along the car: width (m), length (xL), lateral (m), height above roof (m), both sides
     low_rad=4.0, low_w=0.05, low_d=0.7, low_h=0.35,   # low camera-side strip (sills / lower door): height above ground (m)
     rim_rad=6.0, rim_w=0.07, rim_l=0.8, rim_d=0.9, rim_h=1.8,    # end rim strips, high behind/in front, aimed at roof/bonnet
-    panel_rad_top=1.3, panel_rad_bottom=0.15, panel_d=0.75, panel_len=1.3, panel_h=2.4,   # far-side gradient wall (emissive, reflection-only): doors/flanks reflect a soft light-to-dark gradient; d, len in xL, h in metres
+    panel_rad_top=0.12, panel_rad_bottom=0.0, panel_d=0.75, panel_len=1.3, panel_h=2.4,   # far-side gradient wall (emissive, reflection-only): doors/flanks reflect a soft light-to-dark gradient; d, len in xL, h in metres
     fill_rad=0.9, fill_d=0.75, fill_h=1.2,            # camera-side soft diffuse-only fill (flanks, lower body): radiance, offset (xL), height (m)
     end_rad=1.6, end_d=0.95,                          # soft diffuse-only fills ahead of / behind the car (grille, bumper, tail)
     cabin_rad=0.8,           # dim diffuse light inside the cabin so the interior reads through the glass
@@ -101,7 +104,7 @@ DARK = dict(
     glass_tint=0.22, glass_opaque=0, glass_rough=0.07, glass_ior=1.25,   # glass_rough / glass_ior: a little roughness and a lower IOR turn the strip reflections into soft dim ones
     coat_rough=0.05,         # paint clear-coat roughness: ~0.05 softens the bumpy source mesh's mirror reflections
     smooth_body=2,           # Corrective Smooth passes on the paint meshes before subdivision (0 = off; skipped for dense / no_subdiv meshes)   # glazing: base-colour tint of the transmissive glass; glass_opaque=1 = old flat-black fallback
-    floor_albedo=0.08,       # the (invisible) floor still shows in reflections
+    floor_albedo=0.03,       # the (invisible) floor still shows in reflections
 )
 fix = CAR_FIXES.get(a.car or os.path.basename(os.path.normpath(a.out)), {})
 DARK.update(fix.get('dark', {}))   # per-car studio tweaks (fix['dark'] = {'sh_rad': 4.5}); --dark-set still wins
@@ -383,6 +386,7 @@ sc.view_settings.view_transform = 'Standard'  # linear-safe: the browser mixes b
 sc.view_settings.exposure = -1.6 if a.studio == 'default' else DARK['exposure']
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
 
+FLAKE_ROUGH = 0.38   # metallic flake layer: a glossy-but-blurred metal reflection under the clear coat
 PASSES = {  # name: (base value, metallic, roughness, coat)
     'gloss_w': (1.0, 0.0, 0.30, 1.0), 'gloss_b': (0.0, 0.0, 0.30, 1.0),
     'matte_w': (1.0, 0.0, 0.55, 0.0), 'matte_b': (0.0, 0.0, 0.55, 0.0),
@@ -436,7 +440,10 @@ def setup_derive():
     return fo
 
 if DERIVE:
-    SETS = {'gloss': (0.30, 1.0), 'matte': (0.55, 0.0)}
+    # flake: the same coat over a white METAL base. The browser adds (flake_w - gloss_b) x paint colour for metallic
+    # paints, which gives them coloured, angle-dependent specular (bright where the panel faces a light, dark as it
+    # turns away) instead of the flat look of a diffuse-only tint. Only its W is used.
+    SETS = {'gloss': (0.30, 1.0, 0.0), 'matte': (0.55, 0.0, 0.0), 'flake': (FLAKE_ROUGH, 1.0, 1.0)}
     fo = setup_derive()
 views = a.views.split(',') if a.views else list(cams)
 base_energy = {o.name: o.data.energy for o in sc.objects if o.type == 'LIGHT'}
@@ -448,9 +455,9 @@ for v in views:
             o.data.energy = base_energy[o.name] * g
     os.makedirs(os.path.join(a.out, v), exist_ok=True)
     if DERIVE:
-        for sname, (rough, coat) in SETS.items():
+        for sname, (rough, coat, metal) in SETS.items():
             if a.passes and not any(x.startswith(sname) for x in a.passes.split(',')): continue
-            pb.inputs['Base Color'].default_value = (1, 1, 1, 1); pb.inputs['Metallic'].default_value = 0.0
+            pb.inputs['Base Color'].default_value = (1, 1, 1, 1); pb.inputs['Metallic'].default_value = metal
             pb.inputs['Roughness'].default_value = rough; pb.inputs['Coat Weight'].default_value = coat
             fo.directory = os.path.join(a.out, v); fo.file_name = ''
             for it, nm in zip(fo.file_output_items, ('W', 'B')): it.name = f'{sname}_{nm.lower()}'
