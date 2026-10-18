@@ -1,5 +1,7 @@
 # Checkpoint: photoreal cars and rims
 
+> **Process and checklists:** the repeatable workflow for photoreal car and wheel renders is in `docs/RENDER_PLAYBOOK.md` (stages, gates, commands, troubleshooting) and `docs/RENDER_CHECKLISTS.md` (tick-boxes). This checkpoint is older (2026-10-06); the playbook's section 7 has the current status.
+
 **Last updated:** 2026-10-06 · **Branch:** `ccr-a49729da-y3hwoq` · **PR:** #9 (draft) · **To continue:** the
 `forgedsa-resume` skill (`.claude/skills/forgedsa-resume/SKILL.md`) restores the tools, and this file says what is next.
 

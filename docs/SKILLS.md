@@ -28,6 +28,8 @@ exact files, commands, values and pitfalls for its task.
 | [`forgedsa-deploy-and-release`](../.claude/skills/forgedsa-deploy-and-release/SKILL.md) | checks before pushing, branch policy for experiments, Vercel deploys, PR upkeep |
 | [`forgedsa-secrets-and-safety`](../.claude/skills/forgedsa-secrets-and-safety/SKILL.md) | anything touching keys, webhooks, passwords, customer data or licences |
 
+For the whole render workflow in one place (stages, quality gates, checklists), read [`RENDER_PLAYBOOK.md`](RENDER_PLAYBOOK.md) and [`RENDER_CHECKLISTS.md`](RENDER_CHECKLISTS.md); the skills above are the detail behind each stage.
+
 ## Keeping skills current
 
 - When a process changes, update its skill in the same commit as the code: new files, new
