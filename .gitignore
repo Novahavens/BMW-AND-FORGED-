@@ -28,3 +28,9 @@ dist-ssr
 scripts/_*.mjs
 .prerender/
 __pycache__/
+
+# Secrets and local audit output (launchworthy)
+.env
+.env.*
+!.env.example
+tmp/
