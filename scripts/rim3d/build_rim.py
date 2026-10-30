@@ -22,6 +22,8 @@ Extra optional keys used here only:
   "cap": {"text": "FSA"}  engine-style centre cap: dark dome, thin gold ring, gold lettering (separate meshes cap / capring / captext)
   "dish_curve": "parabola"  traced faces: sink = dish * (1 - rho^2), rho = r / 0.916, exactly the engine's buildSpokeFace; with "subdivide": 0.03
                           (max edge in R) so the dish bends smoothly (engine-matched: face_front 0.408, face_thick 0.13, dish 0.137)
+  "spoke_profile": {...}  traced faces only: sculpted spokes (chamfered, filleted edges, crown / concave face, taper, window ledge) instead of the
+                          flat slab; see scripts/rim3d/sculpt_face.py for every key. Absent = the old flat slab, unchanged.
   "bevel": 0.012          edge rounding; "channel": 0.45  milled channel along each bar (fraction
   of its width, bars only), "channel_depth": 0.025
 Output: axle along X, face toward +X (what CarConfiguratorEngine.mountRimModel expects with no
@@ -47,6 +49,7 @@ FF = spec.get('face_front', 0.24); FT = spec.get('face_thick', 0.10)
 DISH = spec.get('dish', 0.0 if a.shapes else 0.10)
 LIP = spec.get('lip', 'mono'); NUTS = spec.get('nuts', False); CAP = spec.get('cap'); PARAB = spec.get('dish_curve') == 'parabola'; SUBDIV = spec.get('subdivide', 0)
 NB = spec.get('bolts', 5); PCD = spec.get('pcd', 0.20); BR = spec.get('bolt_r', 0.035); BORE = spec.get('bore', 0.10)
+PROFILE = spec.get('spoke_profile') if a.shapes else None
 FACE_R = 0.916      # spokes meet the lip here (make-bar-face convention)
 WALL_IN = 0.90      # inner barrel wall radius
 LIP_FRONT = 0.446   # template: lip front, barrel back (fractions of R)
@@ -96,23 +99,43 @@ if a.shapes:
     # windows end well inside a wide step lip (FSA-09): the face then fills the lip instead of
     # leaving a wide flat flange; anything past the face disc is clipped as usual
     SC *= spec.get('face_scale', 1.0)
-    cu = bpy.data.curves.new('face', 'CURVE'); cu.dimensions = '2D'; cu.fill_mode = 'BOTH'
-    cu.extrude = FT / 2
-    for sh in traced['shapes']:
-        for loop in [sh['outer']] + sh['holes']:
-            sp = cu.splines.new('POLY'); sp.points.add(len(loop) - 1); sp.use_cyclic_u = True
-            for pt, (px, py) in zip(sp.points, loop):
-                pt.co = (px * SC, py * SC, 0, 1)
-    ob = bpy.data.objects.new('face', cu); sc.collection.objects.link(ob)
-    bpy.context.view_layer.objects.active = ob; ob.select_set(True)
-    bpy.ops.object.convert(target='MESH')
-    face = bpy.context.object; face.data.materials.append(mat)
-    # curve plane (x, y, extrude z) -> wheel: face in YZ, extruded along X
-    face.rotation_euler = (0, math.radians(90), 0); face.location = (FF - FT / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    bm = bmesh.new(); bm.from_mesh(face.data)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    bm.to_mesh(face.data); bm.free()
+    if PROFILE is not None:
+        # sculpted face: heightfield of the distance to the outline's edge (scripts/rim3d/sculpt_face.py); already clipped to the face
+        # disc, bore and bolt holes cut, dished and shaded: the flat-slab steps below are skipped
+        import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import sculpt_face
+        def _sink(r):
+            if PARAB:
+                rho = min(1.0, r / 0.916); return DISH * (1 - rho * rho)
+            t = min(1.0, max(0.0, (0.916 - r) / (0.916 - hub_r))); return DISH * (t ** 1.3)
+        cuts = []
+        if BORE > 0: cuts.append((0.0, 0.0, BORE))
+        for i in range(NB):
+            y, z = yz(PCD, i * 360 / NB + rot); cuts.append((-z, y, BR))     # wheel (y, z) = (py, -px)
+        v3, f3, info, nrm = sculpt_face.build(traced, PROFILE, SC, 0.95, FF, FT, _sink, hub_r, cuts)
+        me = bpy.data.meshes.new('face'); me.from_pydata([tuple(map(float, v)) for v in v3], [], f3); me.update()
+        face = bpy.data.objects.new('face', me); sc.collection.objects.link(face); me.materials.append(mat)
+        for p_ in me.polygons: p_.use_smooth = True
+        me.normals_split_custom_set_from_vertices([tuple(map(float, n_)) for n_ in nrm])    # analytic normals from the height function
+        print('sculpt', info)
+    else:
+        cu = bpy.data.curves.new('face', 'CURVE'); cu.dimensions = '2D'; cu.fill_mode = 'BOTH'
+        cu.extrude = FT / 2
+        for sh in traced['shapes']:
+            for loop in [sh['outer']] + sh['holes']:
+                sp = cu.splines.new('POLY'); sp.points.add(len(loop) - 1); sp.use_cyclic_u = True
+                for pt, (px, py) in zip(sp.points, loop):
+                    pt.co = (px * SC, py * SC, 0, 1)
+        ob = bpy.data.objects.new('face', cu); sc.collection.objects.link(ob)
+        bpy.context.view_layer.objects.active = ob; ob.select_set(True)
+        bpy.ops.object.convert(target='MESH')
+        face = bpy.context.object; face.data.materials.append(mat)
+        # curve plane (x, y, extrude z) -> wheel: face in YZ, extruded along X
+        face.rotation_euler = (0, math.radians(90), 0); face.location = (FF - FT / 2, 0, 0)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        bm = bmesh.new(); bm.from_mesh(face.data)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(face.data); bm.free()
 else:
     bars = []
     for b in spec['bars']:
@@ -154,10 +177,11 @@ if not a.shapes:
     boolean(face, new_obj('hub', bm), 'UNION')
 
 # clip to the face disc (r <= 0.95: the plate runs a little into the lip wall)
-bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=a.segments, radius1=0.95, radius2=0.95, depth=1.0)
-bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
-bmesh.ops.translate(bm, verts=bm.verts, vec=(FF - FT / 2, 0, 0))
-boolean(face, new_obj('clip', bm), 'INTERSECT')
+if PROFILE is None:
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=a.segments, radius1=0.95, radius2=0.95, depth=1.0)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__('mathutils').Matrix.Rotation(math.pi / 2, 3, 'Y'))
+    bmesh.ops.translate(bm, verts=bm.verts, vec=(FF - FT / 2, 0, 0))
+    boolean(face, new_obj('clip', bm), 'INTERSECT')
 # centre bore and bolt holes
 def cyl(r, depth, cx, cy, cz, seg=48):
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r, depth=depth)
@@ -166,10 +190,11 @@ def cyl(r, depth, cx, cy, cz, seg=48):
 if not a.shapes and CHANNEL > 0:
     for quad in channels:
         boolean(face, new_obj('channel', prism([(p.x, p.y) for p in quad], x_front - CHANNEL_DEPTH, x_front + 0.05)), 'DIFFERENCE')
-if BORE > 0: boolean(face, cyl(BORE, 2, FF - FT / 2, 0, 0, 64), 'DIFFERENCE')
-for i in range(NB):
-    y, z = yz(PCD, i * 360 / NB + rot)
-    boolean(face, cyl(BR, 2, FF - FT / 2, y, z), 'DIFFERENCE')
+if PROFILE is None:
+    if BORE > 0: boolean(face, cyl(BORE, 2, FF - FT / 2, 0, 0, 64), 'DIFFERENCE')
+    for i in range(NB):
+        y, z = yz(PCD, i * 360 / NB + rot)
+        boolean(face, cyl(BR, 2, FF - FT / 2, y, z), 'DIFFERENCE')
 
 # concave dish: everything inside the face slopes back toward the hub
 def dish_sink(r):
@@ -178,7 +203,7 @@ def dish_sink(r):
         return DISH * (1 - rho * rho)
     t = min(1.0, max(0.0, (FACE_R - r) / (FACE_R - hub_r)))
     return DISH * (t ** 1.3)
-if SUBDIV:  # long triangles bend badly under a dish: split every edge longer than SUBDIV (in R) first
+if SUBDIV and PROFILE is None:  # long triangles bend badly under a dish: split every edge longer than SUBDIV (in R) first
     bm = bmesh.new(); bm.from_mesh(face.data)
     bmesh.ops.triangulate(bm, faces=bm.faces[:])
     for _ in range(8):
@@ -187,21 +212,25 @@ if SUBDIV:  # long triangles bend badly under a dish: split every edge longer th
         bmesh.ops.subdivide_edges(bm, edges=long_edges, cuts=1, use_grid_fill=False)
         bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
     bm.to_mesh(face.data); bm.free()
-me = face.data
-for v in me.vertices:
-    r = math.hypot(v.co.y, v.co.z)
-    v.co.x -= dish_sink(r)
+if PROFILE is None:
+    me = face.data
+    for v in me.vertices:
+        r = math.hypot(v.co.y, v.co.z)
+        v.co.x -= dish_sink(r)
 
-# bevel every edge of the face, then smooth
-bev = face.modifiers.new('bevel', 'BEVEL'); bev.width = a.bevel; bev.segments = 2; bev.limit_method = 'ANGLE'
-bev.angle_limit = math.radians(40); bev.harden_normals = True
-bpy.context.view_layer.objects.active = face; bpy.ops.object.modifier_apply(modifier='bevel')
-# flat front, rounded edges: smooth only across edges under 30 degrees (the bevel's own steps),
-# so the spoke sides never blend into the face plate
-bpy.ops.object.select_all(action='DESELECT'); face.select_set(True)
-bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30))
-face.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
-face.name = 'face'
+    # bevel every edge of the face, then smooth
+    bev = face.modifiers.new('bevel', 'BEVEL'); bev.width = a.bevel; bev.segments = 2; bev.limit_method = 'ANGLE'
+    bev.angle_limit = math.radians(40); bev.harden_normals = True
+    bpy.context.view_layer.objects.active = face; bpy.ops.object.modifier_apply(modifier='bevel')
+    # flat front, rounded edges: smooth only across edges under 30 degrees (the bevel's own steps),
+    # so the spoke sides never blend into the face plate
+    bpy.ops.object.select_all(action='DESELECT'); face.select_set(True)
+    bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30))
+    face.modifiers.new('wn', 'WEIGHTED_NORMAL').keep_sharp = True
+    face.name = 'face'
+else:
+    # sculpted: smooth shading with the analytic vertex normals set above
+    face.name = 'face_sculpt'
 
 # ---- barrel + lip: revolve a closed profile (r, x) around X
 prof = [(WALL_IN, BACK + 0.07), (WALL_IN, FF - 0.02), (0.93, 0.30), (0.955, 0.40), (0.975, LIP_FRONT),
@@ -241,7 +270,8 @@ def revolve(prof, seg, name, cy=0.0, cz=0.0, smooth=True):
     for p in ob.data.polygons: p.use_smooth = smooth
     return ob
 
-def hub_x(r): return FF - dish_sink(r)   # front of the dished face at radius r
+PAD_H = PROFILE.get('hub_pad_mm', 0.0) / 262.0 if PROFILE else 0.0      # sculpted faces may have a raised hub pad (lug nuts and cap sit on it)
+def hub_x(r): return FF - dish_sink(r) + (PAD_H if PROFILE and r < PROFILE.get('hub_pad_r', 0.245) else 0.0)   # front of the dished face (and hub pad) at radius r
 
 if CAP is None:
     # old style: a plain disc in the bore, a little behind the dished hub face

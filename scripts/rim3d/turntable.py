@@ -21,6 +21,7 @@ ap.add_argument('--samples', type=int, default=16)
 ap.add_argument('--finishes', default=os.path.join(os.path.dirname(__file__), 'finishes.json'))
 ap.add_argument('--only', default='')
 ap.add_argument('--lens', type=float, default=70)
+ap.add_argument('--only-frames', default='', help='render only these frame numbers, e.g. 0,9,18 (a QA check of a changed rim or finish)')
 ap.add_argument('--threads', type=int, default=0, help='CPU threads for Cycles (0 = all); on a shared box pass 3')
 ap.add_argument('--resmooth', action='store_true', help='rebuild the face mesh normals by angle (30 deg) instead of '
                 'the GLB custom normals: cures streaky, wavy reflections on large flat traced faces made of long '
@@ -135,6 +136,7 @@ for fid, f in finishes.items():
         o.data.materials.clear(); o.data.materials.append(part_material(o, m, mb))
     d = os.path.join(a.out, fid); os.makedirs(d, exist_ok=True)
     for i in range(a.frames):
+        if a.only_frames and i not in [int(x) for x in a.only_frames.split(',')]: continue
         if os.path.exists(os.path.join(d, f'f{i:02d}.webp')): continue  # resume an interrupted run
         spin.rotation_euler.z = math.radians(-25 + 360 * i / a.frames)  # start a little off face-on
         tmp = os.path.join(d, f'f{i:02d}.png'); sc.render.filepath = tmp

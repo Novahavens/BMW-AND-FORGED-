@@ -23,10 +23,14 @@
   "name": "Black Gloss",
   "hex": "#050607",
   "metalness": 0.7,
-  "roughness": 0.15,
-  "clearcoat": 0.95,
+  "roughness": 0.3,
+  "clearcoat": 0.35,
   "kind": "gloss-paint",
-  "look": "AgX - Very High Contrast"
+  "look": "AgX - Very High Contrast",
+  "paint_roughness": 0.3,
+  "coat": 0.35,
+  "coat_roughness": 0.12,
+  "peel": 0.0
  },
  "silver": {
   "id": "silver",

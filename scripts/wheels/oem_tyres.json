@@ -1,0 +1,1580 @@
+{
+ "_readme": "Per-car OEM tyre + brake data for scripts/wheels/render_wheel_layer.py (research 2026-10-13: scratchpad/oem/oem_specs.md). sizes[<rim inches>] = {front, rear}: the tyre fitted when that rim size is chosen (factory row where BMW offers it, plus-size equivalent within ~1.5% of the factory overall diameter otherwise). od_mm = rim*25.4 + 2*width*aspect/100 (nominal design value). Rows with show_brand=false and cars with brand_text=null render ONLY the size text: brand/model names are drawn only where make AND size are verified. Lettering is plain text, no logos (no Bibendum, no P Zero artwork, no BMW M caliper logo).",
+ "m4_g82": {
+  "name": "BMW M4 Competition (G82)",
+  "factory_rims": {
+   "front": 19,
+   "rear": 20
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport 4 S",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT 4 S",
+   "confidence": "HIGH",
+   "note": "Michelin PS4S star-marked is the one BMW/Michelin publicise for G8x; Pirelli P Zero (PZ4) star is a second BMW-approved OE in the same sizes. Which is fitted on a ZA car: UNVERIFIED"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "100Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 675.1,
+     "sidewall_mm": 96.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "103Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 682.1,
+     "sidewall_mm": 99.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW press: base M3/M4 rear size on 10.5Jx19; PS4S 285/35ZR19 exists (non-star in the Michelin US list)"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "= the factory REAR size; Michelin lists PS4S 285/30ZR20 XL 99Y BMW"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "92Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 670.9,
+     "sidewall_mm": 68.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 275/25ZR21 92Y in the Michelin US list (non-star)"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "96Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 680.9,
+     "sidewall_mm": 73.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW-star PS4S 295/25ZR21 exists (MSPN 38917); wheel-size lists it as OE option"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 672.8,
+     "sidewall_mm": 57.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED; no 22\" size in the PS4S catalogue near the factory diameter"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 676.8,
+     "sidewall_mm": 59.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 380,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented 2-piece M Compound, cross-drilled (drilling UNVERIFIED in BMW text)"
+   },
+   "rear": {
+    "disc_mm": 370,
+    "thickness_mm": 24,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "HIGH",
+   "note": "BMW M GmbH developer FAQ: 380x36 front / 370x24 rear; M Carbon ceramic 400x38 / 380x28"
+  },
+  "caliper_default": {
+   "hex": "#1c69d4",
+   "name": "blue",
+   "confidence": "DISPUTED",
+   "note": "BMW global press: standard M Compound calipers are blue (red/black optional); BMW Thailand sheet lists red high-gloss as standard. ZA default UNVERIFIED"
+  }
+ },
+ "m4_cs_g82": {
+  "name": "BMW M4 CS (G82)",
+  "factory_rims": {
+   "front": 19,
+   "rear": 20
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport Cup 2 (inferred)",
+   "brand_text": null,
+   "model_text": null,
+   "confidence": "LOW",
+   "note": "BMW press says only \"track tyres\" in 275/35 ZR19 / 285/30 ZR20; Michelin Pilot Sport Cup 2 (Connect) is INFERRED, not named by BMW, so NO brand text until verified"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "100Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 675.1,
+     "sidewall_mm": 96.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "103Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 682.1,
+     "sidewall_mm": 99.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW press: base M3/M4 rear size on 10.5Jx19; PS4S 285/35ZR19 exists (non-star in the Michelin US list)"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "= the factory REAR size; Michelin lists PS4S 285/30ZR20 XL 99Y BMW"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "92Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 670.9,
+     "sidewall_mm": 68.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 275/25ZR21 92Y in the Michelin US list (non-star)"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "96Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 680.9,
+     "sidewall_mm": 73.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW-star PS4S 295/25ZR21 exists (MSPN 38917); wheel-size lists it as OE option"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 672.8,
+     "sidewall_mm": 57.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED; no 22\" size in the PS4S catalogue near the factory diameter"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 676.8,
+     "sidewall_mm": 59.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 380,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented 2-piece M Compound, cross-drilled (drilling UNVERIFIED in BMW text)"
+   },
+   "rear": {
+    "disc_mm": 370,
+    "thickness_mm": 24,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "HIGH",
+   "note": "BMW M GmbH developer FAQ: 380x36 front / 370x24 rear; M Carbon ceramic 400x38 / 380x28"
+  },
+  "caliper_default": {
+   "hex": "#c8102e",
+   "name": "red",
+   "confidence": "MEDIUM",
+   "note": "BMW press: M4 CS calipers red or black as standard"
+  }
+ },
+ "m3_g80": {
+  "name": "BMW M3 Competition (G80)",
+  "factory_rims": {
+   "front": 19,
+   "rear": 20
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport 4 S",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT 4 S",
+   "confidence": "HIGH",
+   "note": "as M4 Competition (same sizes; Pirelli P Zero * is the alternate OE)"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "100Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 675.1,
+     "sidewall_mm": 96.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "103Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 682.1,
+     "sidewall_mm": 99.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW press: base M3/M4 rear size on 10.5Jx19; PS4S 285/35ZR19 exists (non-star in the Michelin US list)"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "= the factory REAR size; Michelin lists PS4S 285/30ZR20 XL 99Y BMW"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "92Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 670.9,
+     "sidewall_mm": 68.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 275/25ZR21 92Y in the Michelin US list (non-star)"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "96Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 680.9,
+     "sidewall_mm": 73.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW-star PS4S 295/25ZR21 exists (MSPN 38917); wheel-size lists it as OE option"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 672.8,
+     "sidewall_mm": 57.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED; no 22\" size in the PS4S catalogue near the factory diameter"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 676.8,
+     "sidewall_mm": 59.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 380,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented 2-piece M Compound, cross-drilled (drilling UNVERIFIED in BMW text)"
+   },
+   "rear": {
+    "disc_mm": 370,
+    "thickness_mm": 24,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "HIGH",
+   "note": "BMW M GmbH developer FAQ: 380x36 front / 370x24 rear; M Carbon ceramic 400x38 / 380x28"
+  },
+  "caliper_default": {
+   "hex": "#1c69d4",
+   "name": "blue",
+   "confidence": "DISPUTED",
+   "note": "BMW global press: standard M Compound calipers are blue (red/black optional); BMW Thailand sheet lists red high-gloss as standard. ZA default UNVERIFIED"
+  }
+ },
+ "m3_touring_g81": {
+  "name": "BMW M3 Competition Touring (G81)",
+  "factory_rims": {
+   "front": 19,
+   "rear": 20
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport 4 S",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT 4 S",
+   "confidence": "MEDIUM",
+   "note": "BMW press names the sizes only; make assumed as the M3/M4 Competition"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "100Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 675.1,
+     "sidewall_mm": 96.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "103Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 682.1,
+     "sidewall_mm": 99.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW press: base M3/M4 rear size on 10.5Jx19; PS4S 285/35ZR19 exists (non-star in the Michelin US list)"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "= the factory REAR size; Michelin lists PS4S 285/30ZR20 XL 99Y BMW"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "92Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 670.9,
+     "sidewall_mm": 68.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 275/25ZR21 92Y in the Michelin US list (non-star)"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "96Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 680.9,
+     "sidewall_mm": 73.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW-star PS4S 295/25ZR21 exists (MSPN 38917); wheel-size lists it as OE option"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 672.8,
+     "sidewall_mm": 57.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED; no 22\" size in the PS4S catalogue near the factory diameter"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 676.8,
+     "sidewall_mm": 59.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 380,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented 2-piece M Compound, cross-drilled (drilling UNVERIFIED in BMW text)"
+   },
+   "rear": {
+    "disc_mm": 370,
+    "thickness_mm": 24,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "HIGH",
+   "note": "BMW M GmbH developer FAQ: 380x36 front / 370x24 rear; M Carbon ceramic 400x38 / 380x28"
+  },
+  "caliper_default": {
+   "hex": "#1c69d4",
+   "name": "blue",
+   "confidence": "DISPUTED",
+   "note": "BMW global press: standard M Compound calipers are blue (red/black optional); BMW Thailand sheet lists red high-gloss as standard. ZA default UNVERIFIED"
+  }
+ },
+ "m2_g87": {
+  "name": "BMW M2 (G87)",
+  "factory_rims": {
+   "front": 19,
+   "rear": 20
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport 4 S",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT 4 S",
+   "confidence": "MEDIUM",
+   "note": "Tyrepress (Michelin trade news): PS4S 275/35 ZR19 front, 285/30 ZR20 rear"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "100Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 675.1,
+     "sidewall_mm": 96.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 35,
+     "rim_in": 19,
+     "load_speed": "103Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 682.1,
+     "sidewall_mm": 99.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW press: base M3/M4 rear size on 10.5Jx19; PS4S 285/35ZR19 exists (non-star in the Michelin US list)"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "= the factory REAR size; Michelin lists PS4S 285/30ZR20 XL 99Y BMW"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 20,
+     "load_speed": "99Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 679.0,
+     "sidewall_mm": 85.5,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "92Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 670.9,
+     "sidewall_mm": 68.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 275/25ZR21 92Y in the Michelin US list (non-star)"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 25,
+     "rim_in": 21,
+     "load_speed": "96Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 680.9,
+     "sidewall_mm": 73.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW-star PS4S 295/25ZR21 exists (MSPN 38917); wheel-size lists it as OE option"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 672.8,
+     "sidewall_mm": 57.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED; no 22\" size in the PS4S catalogue near the factory diameter"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 20,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 676.8,
+     "sidewall_mm": 59.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 380,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented 2-piece M Compound"
+   },
+   "rear": {
+    "disc_mm": 370,
+    "thickness_mm": 24,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "MEDIUM",
+   "note": "BMW US press: 15 in / 14.6 in; thickness assumed from the G8x family"
+  },
+  "caliper_default": {
+   "hex": "#1c69d4",
+   "name": "blue",
+   "confidence": "MEDIUM",
+   "note": "BMW US press: blue metallic standard, red optional"
+  }
+ },
+ "m235_f74": {
+  "name": "BMW M235 xDrive Gran Coupe (F74)",
+  "factory_rims": {
+   "front": 18,
+   "rear": 18
+  },
+  "tyre": {
+   "make": null,
+   "model": null,
+   "brand_text": null,
+   "model_text": null,
+   "confidence": "UNVERIFIED",
+   "note": "tyre make and the 19\" sizes are UNVERIFIED: size text only, no brand"
+  },
+  "sizes": {
+   "18": {
+    "front": {
+     "width_mm": 225,
+     "aspect": 45,
+     "rim_in": 18,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 659.7,
+     "sidewall_mm": 101.2,
+     "source": "factory",
+     "confidence": "MEDIUM",
+     "show_brand": false,
+     "note": "BMW US press: base 2 Series Gran Coupe 225/45 R18; M235 xDrive 18\" size itself is UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 225,
+     "aspect": 45,
+     "rim_in": 18,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 659.7,
+     "sidewall_mm": 101.2,
+     "source": "factory",
+     "confidence": "MEDIUM",
+     "show_brand": false
+    }
+   },
+   "19": {
+    "front": {
+     "width_mm": 225,
+     "aspect": 40,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 662.6,
+     "sidewall_mm": 90.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 225,
+     "aspect": 40,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 662.6,
+     "sidewall_mm": 90.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 225,
+     "aspect": 35,
+     "rim_in": 20,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 665.5,
+     "sidewall_mm": 78.8,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 225,
+     "aspect": 35,
+     "rim_in": 20,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 665.5,
+     "sidewall_mm": 78.8,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 225,
+     "aspect": 30,
+     "rim_in": 21,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 668.4,
+     "sidewall_mm": 67.5,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 225,
+     "aspect": 30,
+     "rim_in": 21,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 668.4,
+     "sidewall_mm": 67.5,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 215,
+     "aspect": 25,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 666.3,
+     "sidewall_mm": 53.8,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 215,
+     "aspect": 25,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": false,
+     "star": false,
+     "extra": "",
+     "zr": false,
+     "od_mm": 666.3,
+     "sidewall_mm": 53.8,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 386,
+    "thickness_mm": null,
+    "pistons": 4,
+    "type": "vented, drilled (optional M Compound)"
+   },
+   "rear": {
+    "disc_mm": 330,
+    "thickness_mm": null,
+    "pistons": 1,
+    "type": "vented, 1-piston floating"
+   },
+   "confidence": "MEDIUM",
+   "note": "BMW US press (Brake Report): optional M Compound 15.2 in drilled front / 13.0 in rear; standard M Sport brake diameters UNVERIFIED"
+  },
+  "caliper_default": null
+ },
+ "m5_g90": {
+  "name": "BMW M5 (G90)",
+  "factory_rims": {
+   "front": 20,
+   "rear": 21
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport S 5 HL",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT S 5",
+   "confidence": "MEDIUM",
+   "note": "Michelin US/UK BMW partnership pages: Pilot Sport S 5 HL star-marked, front 285/40 ZR20 111Y XL, rear 295/35 ZR21 110Y XL (Michelin page lists the rear as R20: typo vs BMW press)"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 45,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 739.1,
+     "sidewall_mm": 128.2,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 45,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 739.1,
+     "sidewall_mm": 128.2,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 40,
+     "rim_in": 20,
+     "load_speed": "111Y",
+     "xl": true,
+     "star": true,
+     "extra": "HL",
+     "zr": true,
+     "od_mm": 736.0,
+     "sidewall_mm": 114.0,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 40,
+     "rim_in": 20,
+     "load_speed": "111Y",
+     "xl": true,
+     "star": true,
+     "extra": "HL",
+     "zr": true,
+     "od_mm": 736.0,
+     "sidewall_mm": 114.0,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW winter spec has 285/40R20 111V XL on the rear of the 20\" set"
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 295,
+     "aspect": 35,
+     "rim_in": 21,
+     "load_speed": "110Y",
+     "xl": true,
+     "star": true,
+     "extra": "HL",
+     "zr": true,
+     "od_mm": 739.9,
+     "sidewall_mm": 103.2,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "= the factory REAR size"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 35,
+     "rim_in": 21,
+     "load_speed": "110Y",
+     "xl": true,
+     "star": true,
+     "extra": "HL",
+     "zr": true,
+     "od_mm": 739.9,
+     "sidewall_mm": 103.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 295,
+     "aspect": 30,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 735.8,
+     "sidewall_mm": 88.5,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 315,
+     "aspect": 30,
+     "rim_in": 22,
+     "load_speed": "107Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 747.8,
+     "sidewall_mm": 94.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": false,
+     "note": "= X5M rear size (PS4S 315/30ZR22 BMW exists); 22\" for the M5 not verified, so no brand text"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 410,
+    "thickness_mm": null,
+    "pistons": 6,
+    "type": "vented, drilled, steel M Compound"
+   },
+   "rear": {
+    "disc_mm": 398,
+    "thickness_mm": null,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "LOW",
+   "note": "only one retrofit vendor (StopFlex) states 410 front / 398 rear steel; the F90 M5 was 395 mm; thickness UNVERIFIED"
+  },
+  "caliper_default": {
+   "hex": "#c8102e",
+   "name": "red",
+   "confidence": "UNVERIFIED",
+   "note": "no BMW text found for G90 caliper colours; the BMW ZA configurator screenshot supplied by the owner shows red"
+  }
+ },
+ "m8_f92": {
+  "name": "BMW M8 Competition Coupe (F92)",
+  "factory_rims": {
+   "front": 20,
+   "rear": 20
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport 4 S",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT 4 S",
+   "confidence": "MEDIUM",
+   "note": "Michelin lists BMW-star PS4S in exactly 275/35ZR20 and 285/35ZR20; BMW press does not name the make"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 40,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 702.6,
+     "sidewall_mm": 110.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 40,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 710.6,
+     "sidewall_mm": 114.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "availability UNVERIFIED"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 35,
+     "rim_in": 20,
+     "load_speed": "102Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 700.5,
+     "sidewall_mm": 96.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 35,
+     "rim_in": 20,
+     "load_speed": "104Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 707.5,
+     "sidewall_mm": 99.8,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 275,
+     "aspect": 30,
+     "rim_in": 21,
+     "load_speed": "98Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 698.4,
+     "sidewall_mm": 82.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 275/30ZR21 98Y in the Michelin US list"
+    },
+    "rear": {
+     "width_mm": 285,
+     "aspect": 30,
+     "rim_in": 21,
+     "load_speed": "100Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 704.4,
+     "sidewall_mm": 85.5,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S 285/30ZR21 100Y in the Michelin US list"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 25,
+     "rim_in": 22,
+     "load_speed": "95Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 701.3,
+     "sidewall_mm": 71.2,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S in the Michelin US list"
+    },
+    "rear": {
+     "width_mm": 295,
+     "aspect": 25,
+     "rim_in": 22,
+     "load_speed": "97Y",
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 706.3,
+     "sidewall_mm": 73.8,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "PS4S in the Michelin US list"
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 395,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented, 2-piece M Compound, cross-drilled"
+   },
+   "rear": {
+    "disc_mm": 380,
+    "thickness_mm": 28,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "MEDIUM",
+   "note": "Bimmerpost F92 + Pelican Parts OE catalogue; M Carbon ceramic 400x38 front"
+  },
+  "caliper_default": null
+ },
+ "x5m_f95": {
+  "name": "BMW X5 M Competition (F95)",
+  "factory_rims": {
+   "front": 21,
+   "rear": 22
+  },
+  "tyre": {
+   "make": "Michelin",
+   "model": "Pilot Sport 4 S",
+   "brand_text": "MICHELIN",
+   "model_text": "PILOT SPORT 4 S",
+   "confidence": "MEDIUM",
+   "note": "Michelin lists BMW-star PS4S 295/35ZR21 107Y and 315/30ZR22 107Y; BMW press does not name the make"
+  },
+  "sizes": {
+   "19": {
+    "front": {
+     "width_mm": 285,
+     "aspect": 45,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 739.1,
+     "sidewall_mm": 128.2,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "UNVERIFIED, rare for an SUV"
+    },
+    "rear": {
+     "width_mm": 325,
+     "aspect": 40,
+     "rim_in": 19,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 742.6,
+     "sidewall_mm": 130.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "UNVERIFIED"
+    }
+   },
+   "20": {
+    "front": {
+     "width_mm": 295,
+     "aspect": 40,
+     "rim_in": 20,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 744.0,
+     "sidewall_mm": 118.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 305,
+     "aspect": 40,
+     "rim_in": 20,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 752.0,
+     "sidewall_mm": 122.0,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "UNVERIFIED"
+    }
+   },
+   "21": {
+    "front": {
+     "width_mm": 295,
+     "aspect": 35,
+     "rim_in": 21,
+     "load_speed": "107Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 739.9,
+     "sidewall_mm": 103.2,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    },
+    "rear": {
+     "width_mm": 315,
+     "aspect": 35,
+     "rim_in": 21,
+     "load_speed": "111Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 753.9,
+     "sidewall_mm": 110.2,
+     "source": "plus-size",
+     "confidence": "MEDIUM",
+     "show_brand": true,
+     "note": "BMW press: X5 M (non-Competition) rear size"
+    }
+   },
+   "22": {
+    "front": {
+     "width_mm": 295,
+     "aspect": 30,
+     "rim_in": 22,
+     "load_speed": null,
+     "xl": true,
+     "star": false,
+     "extra": "",
+     "zr": true,
+     "od_mm": 735.8,
+     "sidewall_mm": 88.5,
+     "source": "plus-size",
+     "confidence": "LOW",
+     "show_brand": false,
+     "note": "295/30ZR22 not in the PS4S list: UNVERIFIED"
+    },
+    "rear": {
+     "width_mm": 315,
+     "aspect": 30,
+     "rim_in": 22,
+     "load_speed": "107Y",
+     "xl": true,
+     "star": true,
+     "extra": "",
+     "zr": true,
+     "od_mm": 747.8,
+     "sidewall_mm": 94.5,
+     "source": "factory",
+     "confidence": "HIGH",
+     "show_brand": true
+    }
+   }
+  },
+  "brakes": {
+   "front": {
+    "disc_mm": 395,
+    "thickness_mm": 36,
+    "pistons": 6,
+    "type": "vented, 2-piece M Compound, drilled"
+   },
+   "rear": {
+    "disc_mm": 380,
+    "thickness_mm": 28,
+    "pistons": 1,
+    "type": "vented, 1-piston floating caliper"
+   },
+   "confidence": "MEDIUM",
+   "note": "BMW USA: ventilated drilled discs; sizes from parts listings"
+  },
+  "caliper_default": null
+ }
+}

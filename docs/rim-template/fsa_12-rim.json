@@ -1,1 +1,1 @@
-{"face_front":0.408,"face_thick":0.13,"dish":0.137,"dish_curve":"parabola","subdivide":0.03,"bolts":0,"bore":0,"nuts":true,"cap":{"text":"FSA"},"lip":"mono"}
+{"face_front":0.408,"face_thick":0.13,"dish":0.137,"dish_curve":"parabola","subdivide":0.03,"bolts":0,"bore":0,"nuts":true,"cap":{"text":"FSA"},"lip":"mono","spoke_profile":{"chamfer_mm":3.6,"chamfer_deg":38,"fillet_mm":0.8,"edge_mm":0.6,"crown_mm":0.8,"taper":0.7,"smooth_mm":2.0,"root_fillet_mm":3.0,"window_step_mm":1.5,"window_step_w_mm":4,"window_step_ramp_mm":2.5,"hub_pad_mm":2.0}}

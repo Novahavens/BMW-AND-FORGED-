@@ -6,7 +6,8 @@
   satin         metallic paint (fine aluminium flake) under a satin clear coat; a soft micro-texture
                 varies the roughness so the sheen reads as powder coat, not dull plastic
   metallic      metallic paint under a gloss clear coat, with flake sparkle
-  brushed       machined aluminium: anisotropic highlights along the brushing, thin clear coat
+  brushed       machined aluminium: subtle anisotropic roughness, the grain running round the hub ("brush": "legacy" = the old straight
+                bump brushing), thin clear coat
 
 Recipes are chosen from the finish's numbers (hex, metalness, roughness, clearcoat) like
 finishKind(), or forced with "kind" in finishes.json. Base colours are sRGB hex.
@@ -59,13 +60,16 @@ def make(f, part='face'):
         n = _noise(nt, 900, 3, 0.6); nt.links.new(tc.outputs['Object'], n.inputs['Vector'])
         nt.links.new(_maprange(nt, n.outputs['Fac'], 0.03, 0.08), b.inputs['Roughness'])
     elif k == 'gloss-paint':
+        # finishes.json may give "paint_roughness" / "coat" / "coat_roughness": a semi-gloss black (the OEM look: soft broad highlights,
+        # reflections still visible but not a mirror) is paint 0.3, a thin clear coat (0.35) with a slightly soft top (0.12);
+        # without them the recipe is the old mirror gloss (0.45 / 1.0 / 0.025)
         b.inputs['Metallic'].default_value = 0.0
-        b.inputs['Roughness'].default_value = 0.45          # the paint film; the shine is the clear coat
-        b.inputs['Coat Weight'].default_value = 1.0; b.inputs['Coat Roughness'].default_value = 0.025
+        b.inputs['Roughness'].default_value = f.get('paint_roughness', 0.45)    # the paint film; the shine is the clear coat
+        b.inputs['Coat Weight'].default_value = f.get('coat', 1.0); b.inputs['Coat Roughness'].default_value = f.get('coat_roughness', 0.025)
         b.inputs['Coat IOR'].default_value = 1.5
         # orange peel: a soft large-scale ripple in the clear coat's normal only
         n = _noise(nt, 60, 2, 0.4); nt.links.new(tc.outputs['Object'], n.inputs['Vector'])
-        nt.links.new(_bump(nt, n.outputs['Fac'], 0.03, 0.0003), b.inputs['Coat Normal'])
+        nt.links.new(_bump(nt, n.outputs['Fac'], f.get('peel', 0.03), 0.0003), b.inputs['Coat Normal'])
     elif k == 'satin':
         # satin metallic powder coat: flake under a rough clear; the micro-texture is what makes
         # satin read as a coating rather than dull metal
@@ -78,13 +82,31 @@ def make(f, part='face'):
     elif k == 'brushed':
         b.inputs['Metallic'].default_value = 1.0
         b.inputs['Roughness'].default_value = f['roughness']
-        b.inputs['Anisotropic'].default_value = 0.9; b.inputs['Anisotropic Rotation'].default_value = 0.25
         b.inputs['Coat Weight'].default_value = min(f['clearcoat'], 0.4); b.inputs['Coat Roughness'].default_value = 0.08
-        # brushing lines: a stretched noise bumps the normal along one direction
-        mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (1, 1, 60)
-        nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
-        n = _noise(nt, 40, 2, 0.5); nt.links.new(mp.outputs['Vector'], n.inputs['Vector'])
-        nt.links.new(_bump(nt, n.outputs['Fac'], 0.25, 0.0002), b.inputs['Normal'])
+        if part == 'face' and f.get('brush', 'radial') == 'radial':
+            # machined / brushed face: subtle anisotropic roughness (stretched, dull highlights along the grain), the grain running round the
+            # hub like a lathe finish: the Tangent node is radial about the rim's axle (object X); fine concentric lines in the roughness
+            tg = nt.nodes.new('ShaderNodeTangent'); tg.direction_type = 'RADIAL'; tg.axis = 'X'
+            nt.links.new(tg.outputs['Tangent'], b.inputs['Tangent'])
+            b.inputs['Anisotropic'].default_value = f.get('anisotropy', 0.45); b.inputs['Anisotropic Rotation'].default_value = 0.0
+            sep = nt.nodes.new('ShaderNodeSeparateXYZ'); nt.links.new(tc.outputs['Object'], sep.inputs['Vector'])
+            # radius in the face plane, from y and z of the object coordinates
+            yy = nt.nodes.new('ShaderNodeVectorMath'); yy.operation = 'LENGTH'
+            comb = nt.nodes.new('ShaderNodeCombineXYZ'); nt.links.new(sep.outputs['Y'], comb.inputs['X']); nt.links.new(sep.outputs['Z'], comb.inputs['Y'])
+            nt.links.new(comb.outputs['Vector'], yy.inputs[0])
+            # concentric grooves: noise along the radius only (a 1-D noise through the radius)
+            nz = _noise(nt, 1, 0, 0.5)
+            rmap = nt.nodes.new('ShaderNodeCombineXYZ'); nt.links.new(yy.outputs['Value'], rmap.inputs['X'])
+            sc_ = nt.nodes.new('ShaderNodeVectorMath'); sc_.operation = 'SCALE'; sc_.inputs['Scale'].default_value = 900.0
+            nt.links.new(rmap.outputs['Vector'], sc_.inputs[0]); nt.links.new(sc_.outputs['Vector'], nz.inputs['Vector'])
+            nt.links.new(_maprange(nt, nz.outputs['Fac'], f['roughness'] - 0.04, f['roughness'] + 0.04), b.inputs['Roughness'])
+        else:
+            b.inputs['Anisotropic'].default_value = 0.9; b.inputs['Anisotropic Rotation'].default_value = 0.25
+            # brushing lines: a stretched noise bumps the normal along one direction
+            mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (1, 1, 60)
+            nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+            n = _noise(nt, 40, 2, 0.5); nt.links.new(mp.outputs['Vector'], n.inputs['Vector'])
+            nt.links.new(_bump(nt, n.outputs['Fac'], 0.25, 0.0002), b.inputs['Normal'])
     else:  # metallic paint
         b.inputs['Metallic'].default_value = f['metalness']
         b.inputs['Roughness'].default_value = f['roughness']

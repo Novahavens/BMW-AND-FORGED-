@@ -1,1 +1,1 @@
-{"face_front":0.408,"face_thick":0.13,"dish":0.137,"dish_curve":"parabola","subdivide":0.03,"bolts":0,"bore":0,"nuts":true,"cap":{"text":"FORGED","size":0.04},"lip":"mono"}
+{"face_front":0.408,"face_thick":0.13,"dish":0.137,"dish_curve":"parabola","subdivide":0.03,"bolts":0,"bore":0,"nuts":true,"cap":{"text":"FORGED","size":0.04},"lip":"mono","spoke_profile":{"chamfer_mm":2.0,"chamfer_deg":42,"fillet_mm":0.6,"edge_mm":0.4,"crown_mm":0.8,"taper":0.65,"smooth_mm":2.0,"root_fillet_mm":4.0,"hub_pad_mm":2.0,"window_step_mm":1.2,"window_step_w_mm":3,"window_step_ramp_mm":2}}

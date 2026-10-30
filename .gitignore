@@ -28,3 +28,4 @@ dist-ssr
 scripts/_*.mjs
 .prerender/
 __pycache__/
+*.whl
