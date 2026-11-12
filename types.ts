@@ -31,6 +31,8 @@ export interface CarModel {
   paintMeshMatch?: string;
   /** Regex for the GLB's own wheels/brakes, hidden so the configurable wheels replace them. */
   hideMeshMatch?: string;
+  /** false = hidden from the showroom and configurator (Supabase filters its rows; the bundled list carries the flag). */
+  active?: boolean;
 }
 
 export interface PaintColor {
@@ -78,6 +80,8 @@ export interface WheelDesign {
   pricePerSet: number;
   /** Set price per rim size, e.g. { '20"': 7800 }. Keys are the sizes offered. */
   priceBySize?: Record<string, number>;
+  /** Set price (USD) for finishes that cost more than the base price, e.g. { polished_face: 4670 }; wins over the size price. */
+  priceByFinish?: Record<string, number>;
   description: string;
   highlights: string[];
   availableVariants: FinishVariantKey[];
@@ -88,8 +92,12 @@ export interface WheelDesign {
   imageExtrude?: boolean;
   /** Uploaded 3D rim (.glb): wins over the image. */
   modelUrl?: string | null;
+  /** Staggered sets: the rear rim's .glb (the front file is used on every corner when absent). */
+  rearModelUrl?: string | null;
   /** Turn the GLB rim around when its face points into the car. */
   modelFlip?: boolean;
+  /** false = not offered (Supabase filters its rows; the bundled list carries the flag so stock changes stay in sync). */
+  active?: boolean;
 }
 
 export interface CaliperColor {
@@ -102,8 +110,9 @@ export interface CaliperColor {
 export type CameraViewPreset =
   | 'showroom'
   | 'hero'
-  | 'frontThreeQuarter' 
-  | 'side' 
+  | 'frontThreeQuarter'
+  | 'front'
+  | 'side'
   | 'frontWheel' 
   | 'rearWheel' 
   | 'rearThreeQuarter' 

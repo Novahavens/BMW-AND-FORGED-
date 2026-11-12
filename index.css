@@ -51,10 +51,62 @@ body {
 /* Text and surface colours are variables so the parts that sit on the white 3D stage (welcome,
    showroom, top bar) can flip to dark-on-light, and dialogs inside them flip back */
 :root, .stage-dark { --ink: 242 238 230; --mute: 156 151 142; --line: 255 255 255; --carbon: 18 18 18; --surface: 26 26 26; }
-.stage-light { --ink: 22 22 26; --mute: 92 92 100; --line: 0 0 0; --carbon: 255 255 255; --surface: 255 255 255; }
 .bg-stage {
-  /* White studio behind the 3D car: a bright seamless backdrop (the car's reflections are a white room too) */
-  background: radial-gradient(120% 85% at 50% 58%, #ffffff 0%, #f1f1f1 55%, #dedede 100%);
+  /* Dark studio behind the 3D car and under every boot screen: the Cycles stills' black backdrop with a warm pool */
+  background:
+    radial-gradient(70% 45% at 50% 64%, rgba(207,159,82,0.07) 0%, rgba(207,159,82,0) 60%),
+    radial-gradient(120% 85% at 50% 58%, #2c2c2c 0%, #1b1b1b 40%, #121212 70%, #0b0b0b 100%);
+}
+/* The rim page's wheel stage: the shared wheel viewer (shared/wheel-viewer, themed here through its --wv-*
+   variables) on the app's dark stage, a warm pool of light under the wheel falling to black. The stand-ins
+   in components/WheelStage.tsx (loading, error, photo) use the same frame. */
+.wheel-stage {
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(60% 40% at 50% 62%, rgba(207, 159, 82, 0.10) 0%, rgba(207, 159, 82, 0) 70%),
+    radial-gradient(120% 90% at 50% 42%, #2a2a2c 0%, #19191a 55%, #0b0b0c 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --wv-bg: transparent;
+  --wv-frame: transparent;
+  --wv-radius: 1.5rem;
+  --wv-ink: rgb(var(--ink));
+  --wv-mute: rgb(var(--mute));
+  --wv-line: rgb(var(--line) / 0.1);
+  --wv-panel: rgb(var(--surface) / 0.85);
+  --wv-chip: rgb(var(--surface) / 0.7);
+  --wv-chip-hover: rgb(var(--surface));
+  --wv-chip-on: rgb(var(--ink));
+  --wv-chip-on-ink: rgb(var(--surface));
+  --wv-accent: #ff5a00;
+  --wv-veil: rgba(11, 11, 12, 0.92);
+}
+/* Welcome stage: the Cycles hero stills (16:9, black backdrop, a pool of light under the car).
+   Portrait: the car sits above the text, wider than the screen so it fills it. Landscape: the car sits
+   right of the text. The floor fades out at the sides and bottom so the frame never shows. */
+.hero-shot {
+  --w: min(128vw, 104dvh);
+  position: absolute;
+  width: var(--w);
+  max-width: none;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  left: calc(50vw - var(--w) / 2);
+  top: calc(28dvh - var(--w) * 0.28125);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 9%, #000 72%, transparent 99%), linear-gradient(to right, transparent 0%, #000 11%, #000 89%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 9%, #000 72%, transparent 99%), linear-gradient(to right, transparent 0%, #000 11%, #000 89%, transparent 100%);
+  mask-composite: intersect;
+}
+.hero-controls { position: absolute; left: 0; right: 0; top: calc(28dvh + min(128vw, 104dvh) * 0.17); }
+@media (orientation: landscape) {
+  .hero-shot { --w: min(80vw, 142dvh); left: calc(62vw - var(--w) / 2); top: calc(46dvh - var(--w) * 0.28125); }
+  .hero-controls { top: auto; left: auto; right: 3rem; bottom: 3.5rem; }
+}
+@media (orientation: landscape) and (max-height: 519px) {
+  /* phone on its side: the car moves further right so the title never covers it */
+  .hero-shot { --w: min(62vw, 142dvh); left: calc(66vw - var(--w) / 2); }
+  .hero-controls { right: 1.25rem; bottom: 1rem; }
 }
 .text-gold-metal {
   background: linear-gradient(180deg, #E8C37D 0%, #CF9F52 55%, #9c7433 100%);

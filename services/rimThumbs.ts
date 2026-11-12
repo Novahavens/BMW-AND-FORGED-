@@ -4,6 +4,8 @@
  */
 
 import { useEffect, useState } from 'react';
+import RENDERED from '../data/rimThumbs.json';
+
 
 /**
  * Small copies of the rim photos for lists and chips. The originals are 2048 px PNGs (1-2 MB);
@@ -59,4 +61,19 @@ export function useRimThumb(url?: string | null): string | null {
     };
   }, [url]);
   return url ? src : null;
+}
+
+/**
+ * Thumbnails rendered from each rim's own 3D file, one per finish (scripts/render/rim-thumbs.cjs, then
+ * rim-thumbs-pack.py, which writes data/rimThumbs.json). They show the barrel through the spokes and the real
+ * finish, so they are preferred over the tinted photo. A finish made later in /admin has none until it is
+ * rendered, and falls back to the photo.
+ */
+
+const rendered = RENDERED as Record<string, string[]>;
+
+export function renderedRimThumb(wheelId: string, finishId?: string | null): string | null {
+  const list = rendered[wheelId];
+  if (!list || !finishId || !list.includes(finishId)) return null;
+  return `/rim-thumbs/${wheelId}/${finishId}.webp`;
 }

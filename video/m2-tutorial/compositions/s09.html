@@ -1,0 +1,111 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; }
+    #root .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .ring { position: absolute; border: 4px solid #CF9F52; border-radius: 14px; opacity: 0; box-shadow: 0 0 0 2px rgba(11,11,12,.55); box-sizing: border-box; }
+    #root .click { position: absolute; width: 120px; height: 120px; border: 4px solid #CF9F52; border-radius: 50%; opacity: 0; }
+    #root .cur { position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.5)); }
+    #root .card-host { position: absolute; width: 700px; }
+    #root .card { background: #0b0b0c; border-left: 10px solid #CF9F52; border-radius: 6px; padding: 26px 34px 30px 30px; box-shadow: 0 24px 60px rgba(0,0,0,.45); font-family: 'Satoshi', sans-serif; }
+    #root .eye { color: #CF9F52; font-weight: 700; font-size: 28px; letter-spacing: .16em; }
+    #root .line { margin-top: 10px; color: #fff; font-weight: 900; font-size: 58px; line-height: 1.04; letter-spacing: -.015em; }
+  </style>
+  <div id="root" data-composition-id="s09" data-width="1920" data-height="1080">
+    <div id="s09-cam" class="clip" data-start="0" data-duration="16.22" data-track-index="0"><div id="s09-cami" class="cam"><img id="s09-img-0" class="shot" src="assets/shots/15-cam-front.png" alt="" style="opacity:1"><img id="s09-img-1" class="shot" src="assets/shots/11-cam-side.png" alt="" style="opacity:0"><img id="s09-img-2" class="shot" src="assets/shots/12-cam-rear.png" alt="" style="opacity:0"><img id="s09-img-3" class="shot" src="assets/shots/13-cam-wheel.png" alt="" style="opacity:0"><img id="s09-img-4" class="shot" src="assets/shots/14-cam-top.png" alt="" style="opacity:0"><img id="s09-img-5" class="shot" src="assets/shots/16-turntable.png" alt="" style="opacity:0"><img id="s09-img-6" class="shot" src="assets/shots/03-configure-overview.png" alt="" style="opacity:0"><div id="s09-ring-0" class="ring" style="left:596px;top:992px;width:86px;height:64px"></div><div id="s09-click-0" class="click" style="left:579px;top:964px"></div><div id="s09-ring-1" class="ring" style="left:660px;top:992px;width:90px;height:64px"></div><div id="s09-click-1" class="click" style="left:645px;top:964px"></div><div id="s09-ring-2" class="ring" style="left:728px;top:992px;width:101px;height:64px"></div><div id="s09-click-2" class="click" style="left:719px;top:964px"></div><div id="s09-ring-3" class="ring" style="left:806px;top:992px;width:82px;height:64px"></div><div id="s09-click-3" class="click" style="left:787px;top:964px"></div><div id="s09-ring-4" class="ring" style="left:877px;top:992px;width:64px;height:64px"></div><div id="s09-click-4" class="click" style="left:849px;top:964px"></div><div id="s09-ring-5" class="ring" style="left:1848px;top:16px;width:64px;height:64px"></div><div id="s09-click-5" class="click" style="left:1820px;top:-12px"></div><svg id="s09-cur" class="cur" viewBox="0 0 24 24" width="40" height="40"><path d="M3 2 L3 19 L8 14.5 L11.2 21.5 L14 20.3 L10.9 13.4 L17.5 13 Z" fill="#fff" stroke="#0b0b0c" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div><div id="s09-card-0" class="clip card-host" data-start="2.17" data-duration="5.71" data-track-index="2" style="left:72px;top:140px"><div id="s09-cardi-0" class="card"><div class="eye">CAMERA</div><div class="line">Inspect it from every angle</div></div></div><div id="s09-card-4" class="clip card-host" data-start="7.83" data-duration="5.92" data-track-index="2" style="left:72px;top:140px"><div id="s09-cardi-4" class="card"><div class="eye">TURNTABLE</div><div class="line">The car turns by itself</div></div></div><div id="s09-card-5" class="clip card-host" data-start="13.70" data-duration="2.27" data-track-index="2" style="left:72px;top:140px"><div id="s09-cardi-5" class="card"><div class="eye">SUMMARY</div><div class="line">Everything on one page</div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    gsap.set("#s09-cami",{transformOrigin:"960px 640px"});
+    tl.fromTo("#s09-cami",{scale:1},{scale:1.025,duration:16.22,ease:"sine.inOut"},0);
+    gsap.set("#s09-cur",{x:960,y:1140,opacity:0});
+    tl.to("#s09-cur",{x:639,y:1024,opacity:1,duration:0.8,ease:"power3.inOut"},1.92);
+    tl.fromTo("#s09-ring-0",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},2.42);
+    tl.to("#s09-ring-0",{opacity:0,duration:0.25,ease:"power2.in"},3.22);
+    tl.fromTo("#s09-click-0",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},2.72);
+    tl.to("#s09-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},2.70);
+    tl.to("#s09-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},2.80);
+    tl.set("#s09-img-1",{opacity:1},2.84);
+    tl.set("#s09-img-0",{opacity:0},2.84);
+    tl.set("#s09-img-2",{opacity:0},2.84);
+    tl.set("#s09-img-3",{opacity:0},2.84);
+    tl.set("#s09-img-4",{opacity:0},2.84);
+    tl.set("#s09-img-5",{opacity:0},2.84);
+    tl.set("#s09-img-6",{opacity:0},2.84);
+    tl.to("#s09-cur",{x:705,y:1024,opacity:1,duration:0.8,ease:"power3.inOut"},2.82);
+    tl.fromTo("#s09-ring-1",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},3.32);
+    tl.to("#s09-ring-1",{opacity:0,duration:0.25,ease:"power2.in"},4.13);
+    tl.fromTo("#s09-click-1",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},3.62);
+    tl.to("#s09-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},3.60);
+    tl.to("#s09-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},3.70);
+    tl.set("#s09-img-2",{opacity:1},3.74);
+    tl.set("#s09-img-0",{opacity:0},3.74);
+    tl.set("#s09-img-1",{opacity:0},3.74);
+    tl.set("#s09-img-3",{opacity:0},3.74);
+    tl.set("#s09-img-4",{opacity:0},3.74);
+    tl.set("#s09-img-5",{opacity:0},3.74);
+    tl.set("#s09-img-6",{opacity:0},3.74);
+    tl.to("#s09-cur",{x:779,y:1024,opacity:1,duration:0.8,ease:"power3.inOut"},3.72);
+    tl.fromTo("#s09-ring-2",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},4.22);
+    tl.to("#s09-ring-2",{opacity:0,duration:0.25,ease:"power2.in"},5.63);
+    tl.fromTo("#s09-click-2",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},4.52);
+    tl.to("#s09-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},4.50);
+    tl.to("#s09-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},4.60);
+    tl.set("#s09-img-3",{opacity:1},4.64);
+    tl.set("#s09-img-0",{opacity:0},4.64);
+    tl.set("#s09-img-1",{opacity:0},4.64);
+    tl.set("#s09-img-2",{opacity:0},4.64);
+    tl.set("#s09-img-4",{opacity:0},4.64);
+    tl.set("#s09-img-5",{opacity:0},4.64);
+    tl.set("#s09-img-6",{opacity:0},4.64);
+    tl.to("#s09-cur",{x:847,y:1024,opacity:1,duration:0.8,ease:"power3.inOut"},5.83);
+    tl.fromTo("#s09-ring-3",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},6.33);
+    tl.to("#s09-ring-3",{opacity:0,duration:0.25,ease:"power2.in"},7.38);
+    tl.fromTo("#s09-click-3",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},6.63);
+    tl.to("#s09-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},6.61);
+    tl.to("#s09-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},6.71);
+    tl.set("#s09-img-4",{opacity:1},6.75);
+    tl.set("#s09-img-0",{opacity:0},6.75);
+    tl.set("#s09-img-1",{opacity:0},6.75);
+    tl.set("#s09-img-2",{opacity:0},6.75);
+    tl.set("#s09-img-3",{opacity:0},6.75);
+    tl.set("#s09-img-5",{opacity:0},6.75);
+    tl.set("#s09-img-6",{opacity:0},6.75);
+    tl.to("#s09-cur",{x:909,y:1024,opacity:1,duration:0.8,ease:"power3.inOut"},7.58);
+    tl.fromTo("#s09-ring-4",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},8.08);
+    tl.to("#s09-ring-4",{opacity:0,duration:0.25,ease:"power2.in"},9.78);
+    tl.fromTo("#s09-click-4",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},8.38);
+    tl.to("#s09-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},8.36);
+    tl.to("#s09-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},8.46);
+    tl.set("#s09-img-5",{opacity:1},8.50);
+    tl.set("#s09-img-0",{opacity:0},8.50);
+    tl.set("#s09-img-1",{opacity:0},8.50);
+    tl.set("#s09-img-2",{opacity:0},8.50);
+    tl.set("#s09-img-3",{opacity:0},8.50);
+    tl.set("#s09-img-4",{opacity:0},8.50);
+    tl.set("#s09-img-6",{opacity:0},8.50);
+    tl.to("#s09-cur",{x:1880,y:48,opacity:1,duration:0.8,ease:"power3.inOut"},13.45);
+    tl.fromTo("#s09-ring-5",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},13.95);
+    tl.to("#s09-ring-5",{opacity:0,duration:0.25,ease:"power2.in"},15.35);
+    tl.fromTo("#s09-click-5",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},14.25);
+    tl.to("#s09-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},14.23);
+    tl.to("#s09-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},14.33);
+    tl.set("#s09-img-6",{opacity:1},14.37);
+    tl.set("#s09-img-0",{opacity:0},14.37);
+    tl.set("#s09-img-1",{opacity:0},14.37);
+    tl.set("#s09-img-2",{opacity:0},14.37);
+    tl.set("#s09-img-3",{opacity:0},14.37);
+    tl.set("#s09-img-4",{opacity:0},14.37);
+    tl.set("#s09-img-5",{opacity:0},14.37);
+    tl.fromTo("#s09-cardi-0",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},2.22);
+    tl.to("#s09-cardi-0",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},7.64);
+    tl.fromTo("#s09-cardi-4",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},7.88);
+    tl.to("#s09-cardi-4",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},13.51);
+    tl.fromTo("#s09-cardi-5",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},13.75);
+    tl.to("#s09-cardi-5",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},15.73);
+    window.__timelines["s09"] = tl;
+  </script>
+</template>

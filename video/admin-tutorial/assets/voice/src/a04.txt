@@ -1,0 +1,1 @@
+On the left, a list of everything in that tab. Anything marked hidden is switched off for customers but still here, so nothing is lost. Pick an item to edit it, or press New to add one.

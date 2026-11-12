@@ -1,5 +1,9 @@
 # Rim photo → 3D rim: the process
 
+> **Before picking a route, read [`RIM_PHOTO_TO_3D_SPEC.md`](RIM_PHOTO_TO_3D_SPEC.md)** — a Nov 2026
+> researched comparison of this route against manufacturer CAD, multi-image AI reconstruction and
+> photogrammetry, with a decision table and a recommended pilot (FSA-07).
+
 Goal: every FORGEDSA wheel ends up as a **complete 3D rim file (GLB)** that looks like the
 template in [`rim-template/PROFILE.md`](rim-template/PROFILE.md): real spoke depth, bevelled edges, a
 recessed face behind a proper lip, a deep barrel, a polished metal surface.
@@ -89,14 +93,32 @@ aluminium: anisotropic). The turntable studio is a dark surround with softboxes,
 floor hidden from reflections, AgX base contrast at −0.9 EV: chrome and black need dark areas to
 reflect, satin needs broad soft highlights. Comparison: `rim-template/finishes-blender.jpg`.
 
-### The rim detail page: photoreal 360° spin (done)
-The close-up of each rim is not live 3D any more: `scripts/rim3d/turntable.py` renders the rim in
-Blender, standing on its tread, 36 frames round, in every finish (recipes ported from
-`services/wheelFinish.ts`), transparent WebP with a contact shadow, into
-`public/renders/rims/<wheelId>/<finish>/fNN.webp`; `spin-manifest.py` lists them. The page
-(`components/RimDetailPage.tsx` → `RimSpinView.tsx`) drags through the frames and falls back to the
-live engine for rims without a spin. `convert.sh … --spin` does it all. About 18 s per frame on this
-CPU, so ~45 min per wheel; frames are ~40 kB each (about 6 MB per wheel, four finishes).
+### The rim detail page: the wheel studio (since 2026-11-11)
+The rim page (`/rims/<wheelId>`) draws the rim live in the wheel studio ported from the FORGED website:
+`components/RimDetailPage.tsx` → `components/WheelStage.tsx` → `shared/wheel-viewer/WheelStudio.tsx` (a lazy
+chunk), with `shared/wheel-viewer/wheelStudioParts.ts`. A wheel with a `modelUrl` gets the studio; one without
+shows its photo.
+
+- It loads the same rim file the car uses (`public/models/rims/<wheelId>.glb`, plus the `-rear` file of
+  a staggered set), so there is nothing extra to render or publish for the rim page.
+- Finishes are drawn with `services/wheelFinish.ts`, the recipe the car's wheels use, so a finish is the
+  same on the rim page and on the car.
+- Views: Face / 3/4 / Side / Back / Top; Front / Rear for a staggered set (FSA001); finish chips; Show
+  toggles Orbit, Spin wheel, Exploded, Wireframe, Bolts, Cap, and Brake check when the model has brake
+  meshes.
+- The studio sorts meshes into parts by node name (`classifyStudioPart`): the website convention's
+  `Rim_Barrel`, `Rim_Face_Spokes`, `Hardware_Bolts`, `Center_Cap`, `Brake_Rotor`, `Brake_Caliper`, or the
+  short names barrel, face, bolts, cap, rotor, caliper. A mesh it does not recognise is treated as part
+  of the face, so it still follows the finish. Exploded, Bolts and Cap are only offered when the model
+  has the parts for them.
+
+**Legacy: the pre-rendered 360° spin.** Until 2026-11-11 the page played Blender frames:
+`scripts/rim3d/turntable.py` rendered the rim standing on its tread, 36 frames round, in every finish,
+as transparent WebP with a contact shadow, into `public/renders/rims/<wheelId>/<finish>/fNN.webp`,
+`spin-manifest.py` listed them, and `components/RimSpinView.tsx` dragged through them (`convert.sh …
+--spin` did it all, about 45 min per wheel on CPU). `RimSpinView.tsx` and
+`public/renders/rims/manifest.json` are removed, and no spin frames existed for the six stocked wheels.
+The two scripts are still in `scripts/rim3d/`, but nothing in the app uses their output.
 
 ### Lighting match (done)
 `scripts/prerender/studio_hdri.py` renders the Blender studio as `public/env/forgedsa_studio.hdr`;
@@ -105,6 +127,8 @@ in rendered-body mode the engine lights the live wheels with it (`RENDER_ENV_URL
 
 ## Still to do
 
-1. A free-orbit wheel close-up (the pre-rendered view is fixed-camera).
-2. Spoke channel for traced (Route 1) faces: today it is a bar-spec option only.
-3. Lip engraving / logos: not modelled.
+1. Spoke channel for traced (Route 1) faces: today it is a bar-spec option only.
+2. Lip engraving / logos: not modelled.
+
+Done since this list was written: a free-orbit wheel close-up (the wheel studio on the rim page,
+2026-11-11).

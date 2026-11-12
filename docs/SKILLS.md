@@ -16,7 +16,7 @@ exact files, commands, values and pitfalls for its task.
 | [`wheel3d`](../.claude/skills/wheel3d/SKILL.md) | perfecting any new wheel (or one that looks wrong): measure the face, pick the route (photo, options, bar face, AI face mask), render matrix, go live; `/wheel3d` |
 | [`forgedsa-rim-3d-pipeline`](../.claude/skills/forgedsa-rim-3d-pipeline/SKILL.md) | making rims look like the "High poly Rims" template: CAD or photo → complete 3D rim file, engine rules, budget, QA |
 | [`visual-qa`](../.claude/skills/visual-qa/SKILL.md) | proving any visual 3D change is right: measured checks first, a render matrix over every combination, contact sheets, then by eye |
-| [`forgedsa-rim-finishes`](../.claude/skills/forgedsa-rim-finishes/SKILL.md) | how Liquid Metal, Black Gloss, Bronze Matte and Silver are built; adding or tuning a finish |
+| [`forgedsa-rim-finishes`](../.claude/skills/forgedsa-rim-finishes/SKILL.md) | how the finishes are built (the four kinds; the stock sheet's Gold, Hyper Black, Polished Face, Pure Bronze, Black Matte, Silver, Gloss Black, Liquid Metal); adding or tuning a finish |
 | [`forgedsa-catalogue-admin`](../.claude/skills/forgedsa-catalogue-admin/SKILL.md) | prices, sizes, finishes, paints; admin accounts and sign-in problems |
 | [`forgedsa-paint-and-lighting`](../.claude/skills/forgedsa-paint-and-lighting/SKILL.md) | paint looks plastic, blotchy or washed out; tuning the studio |
 | [`forgedsa-photoreal-mode`](../.claude/skills/forgedsa-photoreal-mode/SKILL.md) | path-traced photorealism (proof branch `claude/photoreal-proof`) |

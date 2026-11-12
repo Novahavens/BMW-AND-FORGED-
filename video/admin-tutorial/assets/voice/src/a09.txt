@@ -1,0 +1,1 @@
+Wheels work the same way. Each one has a code, a name, a style, and a rim picture that the configurator turns into 3D spokes.

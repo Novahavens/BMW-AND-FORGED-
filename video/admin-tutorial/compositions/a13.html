@@ -1,0 +1,47 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; }
+    #root .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .ring { position: absolute; border: 4px solid #CF9F52; border-radius: 14px; opacity: 0; box-shadow: 0 0 0 2px rgba(11,11,12,.55); box-sizing: border-box; }
+    #root .click { position: absolute; width: 120px; height: 120px; border: 4px solid #CF9F52; border-radius: 50%; opacity: 0; }
+    #root .cur { position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.5)); }
+    #root .card-host { position: absolute; width: 560px; }
+    #root .card { background: #0b0b0c; border-left: 10px solid #CF9F52; border-radius: 6px; padding: 22px 28px 26px 26px; box-shadow: 0 24px 60px rgba(0,0,0,.45); font-family: 'Satoshi', sans-serif; }
+    #root .eye { color: #CF9F52; font-weight: 700; font-size: 28px; letter-spacing: .16em; }
+    #root .line { margin-top: 10px; color: #fff; font-weight: 900; font-size: 48px; line-height: 1.06; letter-spacing: -.015em; }
+  </style>
+  <div id="root" data-composition-id="a13" data-width="1920" data-height="1080">
+    <div id="a13-cam" class="clip" data-start="0" data-duration="11.61" data-track-index="0"><div id="a13-cami" class="cam"><img id="a13-img-0" class="shot" src="assets/shots/14-wheels-price-edit.png" alt="" style="opacity:1"><img id="a13-img-1" class="shot" src="assets/shots/15-wheels-saved.png" alt="" style="opacity:0"><div id="a13-ring-0" class="ring" style="left:683px;top:329px;width:1026px;height:81px"></div><div id="a13-ring-1" class="ring" style="left:1598px;top:2537px;width:170px;height:78px"></div><div id="a13-click-1" class="click" style="left:1623px;top:2516px"></div><div id="a13-ring-2" class="ring" style="left:120px;top:191px;width:1680px;height:48px"></div><svg id="a13-cur" class="cur" viewBox="0 0 24 24" width="40" height="40"><path d="M3 2 L3 19 L8 14.5 L11.2 21.5 L14 20.3 L10.9 13.4 L17.5 13 Z" fill="#fff" stroke="#0b0b0c" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div><div id="a13-card-0" class="clip card-host" data-start="1.55" data-duration="1.75" data-track-index="2" style="left:72px;top:818px"><div id="a13-cardi-0" class="card"><div class="eye">EDIT A PRICE</div><div class="line">Just type it</div></div></div><div id="a13-card-1" class="clip card-host" data-start="3.25" data-duration="1.75" data-track-index="2" style="left:72px;top:818px"><div id="a13-cardi-1" class="card"><div class="eye">SAVE</div><div class="line">Live on save</div></div></div><div id="a13-card-2" class="clip card-host" data-start="4.95" data-duration="6.41" data-track-index="2" style="left:1288px;top:818px"><div id="a13-cardi-2" class="card"><div class="eye">CONFIRMED</div><div class="line">Saved, and the catalogue reloads</div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    gsap.set("#a13-cami",{transformOrigin:"970px 505px"});
+    tl.fromTo("#a13-cami",{scale:1},{scale:1.025,duration:11.61,ease:"sine.inOut"},0);
+    gsap.set("#a13-cur",{x:960,y:1140,opacity:0});
+    tl.to("#a13-cur",{x:1196,y:370,opacity:1,duration:0.8,ease:"power3.inOut"},1.30);
+    tl.fromTo("#a13-ring-0",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},1.80);
+    tl.to("#a13-ring-0",{opacity:0,duration:0.25,ease:"power2.in"},2.80);
+    tl.to("#a13-cur",{x:1683,y:2576,opacity:1,duration:0.8,ease:"power3.inOut"},3.00);
+    tl.fromTo("#a13-ring-1",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},3.50);
+    tl.to("#a13-ring-1",{opacity:0,duration:0.25,ease:"power2.in"},4.50);
+    tl.fromTo("#a13-click-1",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},3.80);
+    tl.to("#a13-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},3.78);
+    tl.to("#a13-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},3.88);
+    tl.set("#a13-img-1",{opacity:1},3.92);
+    tl.set("#a13-img-0",{opacity:0},3.92);
+    tl.to("#a13-cur",{x:960,y:215,opacity:1,duration:0.8,ease:"power3.inOut"},4.70);
+    tl.fromTo("#a13-ring-2",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},5.20);
+    tl.to("#a13-ring-2",{opacity:0,duration:0.25,ease:"power2.in"},6.60);
+    tl.fromTo("#a13-cardi-0",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},1.60);
+    tl.to("#a13-cardi-0",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},3.06);
+    tl.fromTo("#a13-cardi-1",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},3.30);
+    tl.to("#a13-cardi-1",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},4.76);
+    tl.fromTo("#a13-cardi-2",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},5.00);
+    tl.to("#a13-cardi-2",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},11.12);
+    window.__timelines["a13"] = tl;
+  </script>
+</template>

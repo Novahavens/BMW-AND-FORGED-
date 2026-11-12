@@ -1,0 +1,28 @@
+{
+  "forged_fsa001": [
+    "black_matte"
+  ],
+  "forged_fsa002": [
+    "gold",
+    "hyper_black",
+    "polished_face"
+  ],
+  "forged_fsa004": [
+    "black",
+    "hyper_black",
+    "silver"
+  ],
+  "forged_fsa_03": [
+    "hyper_black",
+    "silver"
+  ],
+  "sixnine_ff1": [
+    "liquid_metal",
+    "silver"
+  ],
+  "sixnine_ff3": [
+    "black",
+    "liquid_metal",
+    "pure_bronze"
+  ]
+}

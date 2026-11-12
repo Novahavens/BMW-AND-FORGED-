@@ -27,7 +27,7 @@ description: Apply or change the FORGEDSA brand across the site, PDF brochure, l
 
 ## Where tokens live (change all of them together)
 
-1. `config/brand.ts`: name, `logoUrl`, colours, contact (placeholders: `info@forgedsa.com`, `+27 00 000 0000`),
+1. `config/brand.ts`: name, `logoUrl`, colours, contact (phone `+27 82 000 0000`, email `forgedsa1@gmail.com`, both the owner's),
    `social` links, regions and rates. Social icon paths are in `config/socialIcons.ts`.
 2. `tailwind.config.cjs` (the Tailwind tokens: `colors`, `boxShadow`, fonts), `index.css` (`@font-face`,
    studio backdrop, motion) and `index.html` (favicons, meta, the no-flash body colour).

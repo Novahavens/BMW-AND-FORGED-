@@ -6,7 +6,7 @@
  *   bunx vite --host 127.0.0.1 --port 5173      # dev server, in another shell
  *   node scripts/render/oncar.cjs <outDir> '<json list of shots>' [rimCacheDir]
  *   PASSES=<dir> (env) composites body passes from <dir>/<view>/ instead of public/renders/<carId>/ (judge passes before they are live)
- *   shot: {"car": 0, "carId": "m4_g82", "wheel": 9, "paint": 16, "finish": "silver", "view": "frontWheel", "size": "20\""}
+ *   shot: {"car": 0, "carId": "m4_cs_g82", "wheel": 2, "paint": 16, "finish": "silver", "view": "frontWheel", "size": "20\""}
  * car / wheel / paint are bundled-catalogue indexes (scripts/render/engine.html). Writes <name>.png.
  */
 const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright');

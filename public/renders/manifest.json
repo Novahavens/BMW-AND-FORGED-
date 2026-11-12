@@ -1,66 +1,43 @@
 {
- "m235_f74": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m2_g87": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m3_g80": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m3_touring_g81": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m4_cs_g82": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m4_g82": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m5_g90": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "m8_f92": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ],
- "rims": [],
- "x5m_f95": [
-  "frontThreeQuarter",
-  "frontWheel",
-  "rearThreeQuarter",
-  "side",
-  "top"
- ]
+ "ix3_m60": {
+  "framesOnly": true,
+  "views": [
+   "front",
+   "frontThreeQuarter",
+   "frontWheel",
+   "rearThreeQuarter",
+   "side",
+   "top"
+  ],
+  "wheels": {
+   "front-left": [
+    -0.8106,
+    0.3735,
+    1.5075,
+    1.0671
+   ],
+   "front-right": [
+    0.8128,
+    0.3735,
+    1.5073,
+    1.0671
+   ],
+   "rear-left": [
+    -0.8106,
+    0.3735,
+    -1.3978,
+    1.0671
+   ],
+   "rear-right": [
+    0.8128,
+    0.3735,
+    -1.3979,
+    1.0671
+   ]
+  },
+  "footprint": [
+   2.406,
+   1.083
+  ]
+ }
 }

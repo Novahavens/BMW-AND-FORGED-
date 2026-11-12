@@ -1,0 +1,38 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; }
+    #root .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .ring { position: absolute; border: 4px solid #CF9F52; border-radius: 14px; opacity: 0; box-shadow: 0 0 0 2px rgba(11,11,12,.55); box-sizing: border-box; }
+    #root .click { position: absolute; width: 120px; height: 120px; border: 4px solid #CF9F52; border-radius: 50%; opacity: 0; }
+    #root .cur { position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.5)); }
+    #root .card-host { position: absolute; width: 700px; }
+    #root .card { background: #0b0b0c; border-left: 10px solid #CF9F52; border-radius: 6px; padding: 26px 34px 30px 30px; box-shadow: 0 24px 60px rgba(0,0,0,.45); font-family: 'Satoshi', sans-serif; }
+    #root .eye { color: #CF9F52; font-weight: 700; font-size: 28px; letter-spacing: .16em; }
+    #root .line { margin-top: 10px; color: #fff; font-weight: 900; font-size: 58px; line-height: 1.04; letter-spacing: -.015em; }
+  </style>
+  <div id="root" data-composition-id="s08" data-width="1920" data-height="1080">
+    <div id="s08-cam" class="clip" data-start="0" data-duration="11.52" data-track-index="0"><div id="s08-cami" class="cam"><img id="s08-img-0" class="shot" src="assets/shots/10-finish-bronze.png" alt="" style="opacity:1"><div id="s08-ring-0" class="ring" style="left:1477px;top:273px;width:427px;height:90px"></div><div id="s08-ring-1" class="ring" style="left:1477px;top:273px;width:427px;height:90px"></div><div id="s08-click-1" class="click" style="left:1631px;top:258px"></div><svg id="s08-cur" class="cur" viewBox="0 0 24 24" width="40" height="40"><path d="M3 2 L3 19 L8 14.5 L11.2 21.5 L14 20.3 L10.9 13.4 L17.5 13 Z" fill="#fff" stroke="#0b0b0c" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div><div id="s08-card-0" class="clip card-host" data-start="0.75" data-duration="10.52" data-track-index="2" style="left:72px;top:140px"><div id="s08-cardi-0" class="card"><div class="eye">FINISH</div><div class="line">Only finishes this wheel comes in</div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    gsap.set("#s08-cami",{transformOrigin:"1145px 505px"});
+    tl.fromTo("#s08-cami",{scale:1},{scale:1.025,duration:11.52,ease:"sine.inOut"},0);
+    gsap.set("#s08-cur",{x:960,y:1140,opacity:0});
+    tl.to("#s08-cur",{x:1691,y:318,opacity:1,duration:0.8,ease:"power3.inOut"},0.50);
+    tl.fromTo("#s08-ring-0",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},1.00);
+    tl.to("#s08-ring-0",{opacity:0,duration:0.25,ease:"power2.in"},2.70);
+    tl.to("#s08-cur",{x:1691,y:318,opacity:1,duration:0.8,ease:"power3.inOut"},6.44);
+    tl.fromTo("#s08-ring-1",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},6.94);
+    tl.to("#s08-ring-1",{opacity:0,duration:0.25,ease:"power2.in"},8.34);
+    tl.fromTo("#s08-click-1",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},7.24);
+    tl.to("#s08-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},7.22);
+    tl.to("#s08-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},7.32);
+    tl.fromTo("#s08-cardi-0",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},0.80);
+    tl.to("#s08-cardi-0",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},11.03);
+    window.__timelines["s08"] = tl;
+  </script>
+</template>

@@ -10,14 +10,24 @@ description: Operate, change or debug the FORGEDSA new-lead email. Every PDF dow
 ```
 browser insert → public.leads ─ AFTER INSERT trigger leads_notify_webhook
   └ private.notify_lead_webhook()  (SECURITY DEFINER, search_path '')
-      · looks up car / paint / wheel / finish by the names stored in leads.configuration
-        (generation, hex, type, image_url, price_usd for the chosen size)
+      · looks up car / paint / wheel / finish by the ids stored in leads.configuration
+        (carId / paintId / wheelId / finishId; falls back to the display names)
+        (generation, hex, type, image_url, price_usd)
+      · price_usd = greatest(price_by_finish[finishId], price_by_size[size] or price_per_set):
+        a dearer finish raises the price, never lowers it (same rule as services/pricing.ts rimPrice)
+      · image_url: stocked wheels store a site-relative path (/rim-images/*.webp); the trigger sends it
+        as an absolute URL on https://forged-configurator.vercel.app, and the Code node prefixes the
+        same origin if a relative path still arrives (either side alone is enough)
       · net.http_post(url from Vault 'lead_webhook_url') — async, exceptions swallowed
         → n8n "FORGEDSA · Lead email (PDF downloads + enquiries)" (id Le68biVptAvswzqq)
            Webhook (POST, responds on receipt) → Code "Build branded email" → Gmail
 ```
 
-- **Migration:** `supabase/migrations/20260928090000_lead_email_webhook.sql`.
+- **Migrations:** the trigger and function were created in
+  `supabase/migrations/20260928090000_lead_email_webhook.sql`; `20261001090000_lead_hardening.sql` added
+  the flood guard and id lookups; the **current function body** is in
+  `20261110153000_wheel_inventory_stock_sheet.sql` (finish price, absolute image URL). To change the
+  function, `create or replace` it in a new migration; do not edit an applied one.
 - **Template:** the n8n Code node. It is copied to `n8n/lead-email.code.js`, which is excluded from
   `tsc` via `tsconfig.json`. Keep the two identical, and add the three header comment lines only
   in the repo copy.

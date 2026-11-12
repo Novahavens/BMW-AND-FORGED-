@@ -8,8 +8,12 @@
  *
  * Devices: small / normal / large phones, phones in landscape, small / large tablets (portrait and
  * landscape, incl. iPad 11" 834x1194 and iPad 13" 1366x1024), laptop, desktop, full HD, 4K. Pages:
- * welcome, showroom, configurator (overview, paint, wheels, size, finish), summary, the wheels
- * gallery, a rim page with a 360° spin (forged_fsa_12), terms, delivery.
+ * welcome, configurator (overview, paint, wheels, size, finish), summary, the wheels
+ * gallery, a rim page (forged_fsa_12), terms, delivery.
+ *
+ * Not updated yet: the rim page is the wheel studio now (shared/wheel-viewer/WheelStudio.tsx), but the `rim`
+ * step below still waits for a frame of the pre-rendered spin (public/renders/rims/, removed), so
+ * that page fails with a timeout on every device until its wait is rewritten.
  *
  * Checks per page and device (all must be empty):
  * - overflow:  the page scrolls sideways, or an element pokes out of the viewport
@@ -17,8 +21,8 @@
  *              overflow hidden) or whose box lies partly outside the viewport
  * - tap:       a visible button or link smaller than 40 x 40 CSS px on a touch device (44 is the
  *              guideline; 40 allows the dense steppers)
- * - covered:   the primary action ("Build", "View your ...", "Enter") is not fully visible and
- *              unobstructed
+ * - covered:   the primary action ("Enter", "View your ...", "Download ...", "Send enquiry") is not
+ *              fully visible and unobstructed
  * - text:      body text below 11 px
  * - empty:     the page shows no text (still on its loading screen: every other check would pass)
  * - network:   a request failed TLS (ERR_CERT_*): the app fell back to its bundled catalogue
@@ -46,7 +50,7 @@ const DEVICES = {
   'uhd-2560x1440': { width: 2560, height: 1440 }
 };
 
-const PAGES = ['welcome', 'showroom', 'configure', 'paint', 'wheels', 'size', 'finish', 'summary', 'forged', 'rim', 'terms', 'delivery'];
+const PAGES = ['welcome', 'configure', 'paint', 'wheels', 'size', 'finish', 'summary', 'forged', 'rim', 'terms', 'delivery'];
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -149,7 +153,6 @@ const PAGES = ['welcome', 'showroom', 'configure', 'paint', 'wheels', 'size', 'f
       await p.waitForFunction(() => { const l = document.querySelector('[aria-label="Loading"]'); return !l || getComputedStyle(l).opacity === '0'; }, null, { timeout: 240000 });
     };
     await record('welcome', async () => { await go('/'); await ready(/^enter/i); });
-    await record('showroom', async () => { await go('/models'); await ready(/^build$/i); });
     await record('configure', async () => { await go('/configure'); await ready(/^front$/i); });
     // each configurator page also works on its own (a page filter skips the ones before it); a busy
     // SwiftShader main thread can hold a step click past Playwright's default 30 s

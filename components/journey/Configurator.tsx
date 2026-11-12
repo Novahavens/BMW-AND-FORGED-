@@ -19,11 +19,12 @@ import {
 } from 'lucide-react';
 import { BRAND, Region, formatMoney } from '../../config/brand';
 import { CameraViewPreset, CarModel, PaintColor, WheelDesign, WheelFinish } from '../../types';
-import { rimFromPrice, rimPrice, rimSizes } from '../../services/pricing';
+import { finishSurcharge, rimFromPrice, rimPrice, rimSizes } from '../../services/pricing';
 import { PAINT_FAMILIES, PaintFamily, paintFamily } from '../../services/journeyService';
-import { Button, Eyebrow, FinishChip, IconButton, Modal, PaintChip, RimThumb, cx } from './ui';
+import { Button, Eyebrow, FinishChip, IconButton, Modal, PaintChip, RimThumb, cx, wheelEyebrow } from './ui';
 import { RimFaceSvg } from './RimFaceSvg';
-import { shortModelName } from './Showroom';
+import { shortModelName } from './carNames';
+import { ViewerPanel } from './ViewerPanel';
 
 export type ConfigStep = 'overview' | 'paint' | 'wheels' | 'size' | 'finish';
 const STEPS: { id: Exclude<ConfigStep, 'overview'>; label: string }[] = [
@@ -43,6 +44,9 @@ const VIEWS: { id: CameraViewPreset; label: string }[] = [
 
 export interface ConfiguratorProps {
   car: CarModel;
+  /** Every car the visitor may switch to from the panel (the viewer's Car chips); omitted = no chips. */
+  cars?: CarModel[];
+  onSelectCar?: (car: CarModel) => void;
   paints: PaintColor[];
   wheels: WheelDesign[];
   finishes: Record<string, WheelFinish>;
@@ -56,7 +60,8 @@ export interface ConfiguratorProps {
   cameraView: CameraViewPreset;
   autoRotate: boolean;
   onCamera: (view: CameraViewPreset) => void;
-  onToggleRotate: () => void;
+  /** Absent for a frames-only car (its body is fixed images: no turntable). */
+  onToggleRotate?: () => void;
   onPaint: (paint: PaintColor) => void;
   onWheel: (wheel: WheelDesign) => void;
   onSize: (size: string) => void;
@@ -67,14 +72,48 @@ export interface ConfiguratorProps {
   onOpenMore: () => void;
 }
 
+/**
+ * The configurator screen. The controls are the stepped drawer (StepDrawer below: Overview, Paint, Wheels, Size,
+ * Finish; a bottom sheet on phones, a side panel on wider screens), which the owner chose over the vehicle spec
+ * viewer's glass panel (Nov 2026). ViewerPanel is kept behind the `?panel=viewer` comparison switch only.
+ */
 export const Configurator: React.FC<ConfiguratorProps> = (p) => {
   const [infoWheel, setInfoWheel] = useState<WheelDesign | null>(null);
-  const price = rimPrice(p.wheel, p.size);
+  const viewerPanel = typeof window !== 'undefined' && /[?&]panel=viewer/.test(window.location.search);
+  if (!viewerPanel) return <StepDrawer {...p} />;
+  const infoFinish = sheetFinish(infoWheel, p.wheel, p.finish);
+  return (
+    <>
+      <ViewerPanel {...p} onInfo={setInfoWheel} />
+      <WheelInfoModal
+        wheel={infoWheel}
+        region={p.region}
+        finishes={p.finishes}
+        finishId={infoFinish?.id}
+        finishName={infoFinish?.name}
+        onClose={() => setInfoWheel(null)}
+        onOpen360={p.onOpen360}
+      />
+    </>
+  );
+};
+
+/**
+ * The finish the wheel detail sheet prices its sizes in: the selected finish, so the sheet agrees with the
+ * panel's price. A sheet opened for another wheel only takes that finish when the wheel offers it.
+ */
+const sheetFinish = (wheel: WheelDesign | null, selected: WheelDesign, finish: WheelFinish): WheelFinish | undefined =>
+  wheel && (wheel.id === selected.id || wheel.availableVariants.includes(finish.id)) ? finish : undefined;
+
+const StepDrawer: React.FC<ConfiguratorProps> = (p) => {
+  const [infoWheel, setInfoWheel] = useState<WheelDesign | null>(null);
+  const infoFinish = sheetFinish(infoWheel, p.wheel, p.finish);
+  const price = rimPrice(p.wheel, p.size, p.finish.id);
   const stepIndex = STEPS.findIndex((s) => s.id === p.step);
 
   return (
     <>
-      {/* Top-left: back to the showroom */}
+      {/* Top-left: back to the welcome carousel, where the cars are chosen */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 animate-fade">
         <Button variant="light" size="sm" onClick={p.onChangeModel} icon={null} className="pl-3">
           <ChevronLeft className="h-4 w-4 -ml-0.5" strokeWidth={1.8} />
@@ -98,10 +137,14 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
               {v.label}
             </button>
           ))}
-          <span className="mx-0.5 sm:mx-1 h-5 w-px bg-line" />
-          <IconButton label={p.autoRotate ? 'Stop turntable' : 'Turntable'} onClick={p.onToggleRotate} active={p.autoRotate} className="h-10 w-10 shrink-0">
-            {p.autoRotate ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
-          </IconButton>
+          {p.onToggleRotate && (
+            <>
+              <span className="mx-0.5 sm:mx-1 h-5 w-px bg-line" />
+              <IconButton label={p.autoRotate ? 'Stop turntable' : 'Turntable'} onClick={p.onToggleRotate} active={p.autoRotate} className="h-10 w-10 shrink-0">
+                {p.autoRotate ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
+              </IconButton>
+            </>
+          )}
         </div>
       </div>
 
@@ -190,7 +233,15 @@ export const Configurator: React.FC<ConfiguratorProps> = (p) => {
         </div>
       </aside>
 
-      <WheelInfoModal wheel={infoWheel} region={p.region} finishes={p.finishes} onClose={() => setInfoWheel(null)} onOpen360={p.onOpen360} />
+      <WheelInfoModal
+        wheel={infoWheel}
+        region={p.region}
+        finishes={p.finishes}
+        finishId={infoFinish?.id}
+        finishName={infoFinish?.name}
+        onClose={() => setInfoWheel(null)}
+        onOpen360={p.onOpen360}
+      />
     </>
   );
 };
@@ -236,7 +287,7 @@ const Overview: React.FC<ConfiguratorProps> = (p) => {
       step: 'size',
       label: 'Wheel size',
       value: p.size,
-      detail: formatMoney(rimPrice(p.wheel, p.size), p.region),
+      detail: formatMoney(rimPrice(p.wheel, p.size, p.finish.id), p.region),
       visual: <span className="font-display text-[13px] font-extrabold">{p.size}</span>
     },
     { step: 'finish', label: 'Wheel finish', value: p.finish.name, detail: p.finish.colorName, visual: <FinishChip finish={p.finish} size={36} /> }
@@ -321,7 +372,7 @@ const WheelStep: React.FC<ConfiguratorProps & { onInfo: (w: WheelDesign) => void
       </div>
       <div className="flex items-end justify-between gap-3 px-5 pb-5">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-bronze">{p.wheel.code}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-bronze">{wheelEyebrow(p.wheel)}</div>
           <div className="mt-1 truncate text-[16px] font-bold">{p.wheel.name}</div>
           <div className="truncate text-[12px] text-mute">
             {p.size} · {p.finish.name}
@@ -401,7 +452,7 @@ const SizeStep: React.FC<ConfiguratorProps> = (p) => {
               )}
             >
               <div className="font-display text-[24px] font-extrabold tracking-[-0.02em]">{s}</div>
-              <div className={cx('mt-1 text-[12px] tabular-nums', active ? 'text-carbon/70' : 'text-mute')}>{formatMoney(rimPrice(p.wheel, s), p.region)}</div>
+              <div className={cx('mt-1 text-[12px] tabular-nums', active ? 'text-carbon/70' : 'text-mute')}>{formatMoney(rimPrice(p.wheel, s, p.finish.id), p.region)}</div>
             </button>
           );
         })}
@@ -460,68 +511,84 @@ export const WheelInfoModal: React.FC<{
   wheel: WheelDesign | null;
   region: Region;
   finishes: Record<string, WheelFinish>;
+  /** The finish the sizes are priced in (the selected one, so the sheet matches the panel); omitted = base finish. */
+  finishId?: string;
+  finishName?: string;
   onClose: () => void;
   onOpen360: (wheel: WheelDesign) => void;
-}> = ({ wheel, region, finishes, onClose, onOpen360 }) => (
-  <Modal open={!!wheel} onClose={onClose} title={wheel ? `${wheel.code}` : ''} width="max-w-xl">
-    {wheel && (
-      <div>
-        <div className="flex items-center gap-5">
-          <RimThumb wheel={wheel} finish={finishes[wheel.defaultVariant]} size={110} />
-          <div className="min-w-0">
-            <div className="font-display text-[20px] font-extrabold tracking-[-0.015em]">{wheel.name}</div>
-            <div className="mt-1 text-[13px] text-mute">{wheel.subtitle}</div>
-            <div className="mt-2 text-[12px] font-semibold text-bronze">From {formatMoney(rimFromPrice(wheel), region)} per set</div>
-          </div>
-        </div>
-        <p className="mt-6 text-[14px] leading-relaxed text-mute">{wheel.description}</p>
-        <ul className="mt-5 space-y-2">
-          {wheel.highlights.map((h) => (
-            <li key={h} className="flex gap-3 text-[13px] text-ink">
-              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-bronze" />
-              {h}
-            </li>
-          ))}
-        </ul>
-        {(wheel.weightFrontKg > 0 || wheel.weightRearKg > 0) && (
-        <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-line ring-1 ring-line text-center">
-          {[
-            ['Front', `${wheel.weightFrontKg} kg`],
-            ['Rear', `${wheel.weightRearKg} kg`],
-            ['Saving', wheel.weightSavingsKg > 0 ? `${wheel.weightSavingsKg} kg` : '—']
-          ].map(([k, v]) => (
-            <div key={k} className="bg-surface p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</div>
-              <div className="mt-1 font-display text-[16px] font-extrabold">{v}</div>
+}> = ({ wheel, region, finishes, finishId, finishName, onClose, onOpen360 }) => {
+  // What the finish adds over the base finish, per size; one figure when it is the same at every size
+  const extras = wheel && finishId ? rimSizes(wheel).map((s) => finishSurcharge(wheel, s, finishId)).filter((x) => x > 0) : [];
+  const lo = Math.min(...extras);
+  const hi = Math.max(...extras);
+  const extra = extras.length ? (lo === hi ? formatMoney(hi, region) : `${formatMoney(lo, region)} to ${formatMoney(hi, region)}`) : '';
+  const extraFinish = finishName ?? (finishId ? finishes[finishId]?.name : undefined);
+  return (
+    <Modal open={!!wheel} onClose={onClose} title={wheel ? `${wheel.code}` : ''} width="max-w-xl">
+      {wheel && (
+        <div>
+          <div className="flex items-center gap-5">
+            <RimThumb wheel={wheel} finish={finishes[wheel.defaultVariant]} size={110} />
+            <div className="min-w-0">
+              <div className="font-display text-[20px] font-extrabold tracking-[-0.015em]">{wheel.name}</div>
+              <div className="mt-1 text-[13px] text-mute">{wheel.subtitle}</div>
+              <div className="mt-2 text-[12px] font-semibold text-bronze">From {formatMoney(rimFromPrice(wheel), region)} per set</div>
             </div>
-          ))}
-        </div>
-        )}
-        <div className="mt-6">
-          <Eyebrow className="mb-2">Sizes and prices (set of four)</Eyebrow>
-          <div className="flex flex-wrap gap-2">
-            {rimSizes(wheel).map((s) => (
-              <span key={s} className="rounded-full bg-ink/[0.04] px-3 py-1.5 text-[12px]">
-                <b className="font-semibold">{s}</b> <span className="text-mute">{formatMoney(rimPrice(wheel, s), region)}</span>
-              </span>
+          </div>
+          <p className="mt-6 text-[14px] leading-relaxed text-mute">{wheel.description}</p>
+          <ul className="mt-5 space-y-2">
+            {wheel.highlights.map((h) => (
+              <li key={h} className="flex gap-3 text-[13px] text-ink">
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-bronze" />
+                {h}
+              </li>
+            ))}
+          </ul>
+          {(wheel.weightFrontKg > 0 || wheel.weightRearKg > 0) && (
+          <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-line ring-1 ring-line text-center">
+            {[
+              ['Front', `${wheel.weightFrontKg} kg`],
+              ['Rear', `${wheel.weightRearKg} kg`],
+              ['Saving', wheel.weightSavingsKg > 0 ? `${wheel.weightSavingsKg} kg` : '—']
+            ].map(([k, v]) => (
+              <div key={k} className="bg-surface p-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">{k}</div>
+                <div className="mt-1 font-display text-[16px] font-extrabold">{v}</div>
+              </div>
             ))}
           </div>
+          )}
+          <div className="mt-6">
+            <Eyebrow className="mb-2">Sizes and prices (set of four)</Eyebrow>
+            <div className="flex flex-wrap gap-2">
+              {rimSizes(wheel).map((s) => (
+                <span key={s} className="rounded-full bg-ink/[0.04] px-3 py-1.5 text-[12px]">
+                  <b className="font-semibold">{s}</b> <span className="text-mute">{formatMoney(rimPrice(wheel, s, finishId), region)}</span>
+                </span>
+              ))}
+            </div>
+            {extra && extraFinish && (
+              <p className="mt-2 text-[11px] text-mute">
+                Prices shown in {extraFinish} (+{extra})
+              </p>
+            )}
+          </div>
+          <Button
+            className="mt-7 w-full"
+            variant="secondary"
+            onClick={() => {
+              onClose();
+              onOpen360(wheel);
+            }}
+            icon={<Rotate3d className="h-4 w-4" strokeWidth={1.7} />}
+          >
+            View in 360°
+          </Button>
         </div>
-        <Button
-          className="mt-7 w-full"
-          variant="secondary"
-          onClick={() => {
-            onClose();
-            onOpen360(wheel);
-          }}
-          icon={<Rotate3d className="h-4 w-4" strokeWidth={1.7} />}
-        >
-          View in 360°
-        </Button>
-      </div>
-    )}
-  </Modal>
-);
+      )}
+    </Modal>
+  );
+};
 
 // ----------------------------------------------------
 // ··· More options
@@ -534,7 +601,11 @@ export const MoreOptionsModal: React.FC<{
   onRegion: (r: Region) => void;
   onLoadCode: (code: string) => Promise<boolean>;
   onRestart: () => void;
-}> = ({ open, onClose, region, onRegion, onLoadCode, onRestart }) => {
+  /** Opens the account sheet (sign-in, profile, garage). */
+  onOpenAccount?: () => void;
+  /** The site's other pages and the enquiry (the menu the showroom's top bar used to hold). */
+  links?: { label: string; onClick: () => void }[];
+}> = ({ open, onClose, region, onRegion, onLoadCode, onRestart, onOpenAccount, links }) => {
   const [code, setCode] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
   return (
@@ -587,6 +658,44 @@ export const MoreOptionsModal: React.FC<{
         </Button>
       </form>
       {state === 'error' && <p className="mt-2 text-[12px] text-red-600">No configuration found for that code.</p>}
+
+      {onOpenAccount && (
+        <>
+          <Eyebrow className="mt-7 mb-3">Account</Eyebrow>
+          <button
+            aria-label="Account & garage"
+            onClick={() => {
+              onClose();
+              onOpenAccount();
+            }}
+            className="flex w-full items-center justify-between rounded-xl bg-ink/[0.035] px-4 py-3 text-left text-[13px] transition hover:bg-ink/[0.06]"
+          >
+            <span className="font-medium">Account &amp; garage</span>
+            <span className="text-mute">Sign in · saved builds</span>
+          </button>
+        </>
+      )}
+
+      {links && links.length > 0 && (
+        <>
+          <Eyebrow className="mt-7 mb-3">More</Eyebrow>
+          <nav aria-label="More pages" className="grid gap-1.5">
+            {links.map((l) => (
+              <button
+                key={l.label}
+                onClick={() => {
+                  onClose();
+                  l.onClick();
+                }}
+                className="flex w-full items-center justify-between rounded-xl bg-ink/[0.035] px-4 py-3 text-left text-[13px] font-medium transition hover:bg-ink/[0.06]"
+              >
+                {l.label}
+                <ChevronRight className="h-4 w-4 text-mute" strokeWidth={1.8} />
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
 
       <button
         onClick={() => {

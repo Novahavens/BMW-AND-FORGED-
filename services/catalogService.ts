@@ -27,7 +27,8 @@ export type CatalogTable = 'cars' | 'paints' | 'wheels' | 'wheel_finishes' | 'ca
 export const STATIC_CATALOG: Catalog = {
   cars: BMW_MODELS,
   paints: BMW_PAINTS,
-  wheels: WHEEL_DESIGNS,
+  // Supabase hides inactive wheels from customers (RLS); the bundled list carries the same flag.
+  wheels: WHEEL_DESIGNS.filter((w) => w.active !== false),
   finishes: WHEEL_FINISHES,
   calipers: CALIPER_COLORS
 };
@@ -77,6 +78,9 @@ async function selectTable<T>(table: CatalogTable, onlyActive = false): Promise<
 }
 
 export async function fetchCatalog(): Promise<{ catalog: Catalog; source: 'supabase' | 'static' }> {
+  // A preview built with VITE_CATALOG_SOURCE=static shows the bundled catalogue (the migrations may not
+  // be applied to the live database yet). Share codes, leads and the admin still talk to Supabase.
+  if (import.meta.env.VITE_CATALOG_SOURCE === 'static') return { catalog: STATIC_CATALOG, source: 'static' };
   try {
     const [cars, paints, wheels, finishes, calipers] = await Promise.all([
       selectTable<CarModel>('cars', true),

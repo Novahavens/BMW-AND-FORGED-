@@ -1,0 +1,58 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; }
+    #root .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .ring { position: absolute; border: 4px solid #CF9F52; border-radius: 14px; opacity: 0; box-shadow: 0 0 0 2px rgba(11,11,12,.55); box-sizing: border-box; }
+    #root .click { position: absolute; width: 120px; height: 120px; border: 4px solid #CF9F52; border-radius: 50%; opacity: 0; }
+    #root .cur { position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.5)); }
+    #root .card-host { position: absolute; width: 700px; }
+    #root .card { background: #0b0b0c; border-left: 10px solid #CF9F52; border-radius: 6px; padding: 26px 34px 30px 30px; box-shadow: 0 24px 60px rgba(0,0,0,.45); font-family: 'Satoshi', sans-serif; }
+    #root .eye { color: #CF9F52; font-weight: 700; font-size: 28px; letter-spacing: .16em; }
+    #root .line { margin-top: 10px; color: #fff; font-weight: 900; font-size: 58px; line-height: 1.04; letter-spacing: -.015em; }
+  </style>
+  <div id="root" data-composition-id="s11" data-width="1920" data-height="1080">
+    <div id="s11-cam" class="clip" data-start="0" data-duration="17.84" data-track-index="0"><div id="s11-cami" class="cam"><img id="s11-img-0" class="shot" src="assets/shots/19-summary-options.png" alt="" style="opacity:1"><img id="s11-img-1" class="shot" src="assets/shots/21-share-modal.png" alt="" style="opacity:0"><div id="s11-ring-0" class="ring" style="left:1132px;top:248px;width:384px;height:432px"></div><div id="s11-ring-1" class="ring" style="left:1160px;top:403px;width:328px;height:80px"></div><div id="s11-click-1" class="click" style="left:1264px;top:383px"></div><div id="s11-ring-2" class="ring" style="left:1160px;top:471px;width:172px;height:68px"></div><div id="s11-click-2" class="click" style="left:1186px;top:445px"></div><div id="s11-ring-3" class="ring" style="left:1316px;top:471px;width:172px;height:68px"></div><div id="s11-click-3" class="click" style="left:1342px;top:445px"></div><svg id="s11-cur" class="cur" viewBox="0 0 24 24" width="40" height="40"><path d="M3 2 L3 19 L8 14.5 L11.2 21.5 L14 20.3 L10.9 13.4 L17.5 13 Z" fill="#fff" stroke="#0b0b0c" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div><div id="s11-card-1" class="clip card-host" data-start="1.99" data-duration="4.18" data-track-index="2" style="left:72px;top:140px"><div id="s11-cardi-1" class="card"><div class="eye">ENQUIRE</div><div class="line">Sends your build to us</div></div></div><div id="s11-card-2" class="clip card-host" data-start="6.12" data-duration="5.88" data-track-index="2" style="left:72px;top:140px"><div id="s11-cardi-2" class="card"><div class="eye">SHARE</div><div class="line">A code that reopens this exact build</div></div></div><div id="s11-card-3" class="clip card-host" data-start="11.95" data-duration="5.64" data-track-index="2" style="left:72px;top:140px"><div id="s11-cardi-3" class="card"><div class="eye">PDF</div><div class="line">A spec sheet to keep</div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    gsap.set("#s11-cami",{transformOrigin:"1095px 505px"});
+    tl.fromTo("#s11-cami",{scale:1},{scale:1.025,duration:17.84,ease:"sine.inOut"},0);
+    gsap.set("#s11-cur",{x:960,y:1140,opacity:0});
+    tl.to("#s11-cur",{x:1324,y:464,opacity:1,duration:0.8,ease:"power3.inOut"},0.84);
+    tl.fromTo("#s11-ring-0",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},1.34);
+    tl.to("#s11-ring-0",{opacity:0,duration:0.25,ease:"power2.in"},2.15);
+    tl.to("#s11-cur",{x:1324,y:443,opacity:1,duration:0.8,ease:"power3.inOut"},1.74);
+    tl.fromTo("#s11-ring-1",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},2.25);
+    tl.to("#s11-ring-1",{opacity:0,duration:0.25,ease:"power2.in"},3.94);
+    tl.fromTo("#s11-click-1",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},2.54);
+    tl.to("#s11-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},2.52);
+    tl.to("#s11-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},2.63);
+    tl.to("#s11-cur",{x:1246,y:505,opacity:1,duration:0.8,ease:"power3.inOut"},5.87);
+    tl.fromTo("#s11-ring-2",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},6.37);
+    tl.to("#s11-ring-2",{opacity:0,duration:0.25,ease:"power2.in"},8.07);
+    tl.fromTo("#s11-click-2",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},6.67);
+    tl.to("#s11-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},6.65);
+    tl.to("#s11-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},6.75);
+    tl.set("#s11-img-1",{opacity:1},6.79);
+    tl.set("#s11-img-0",{opacity:0},6.79);
+    tl.to("#s11-cur",{x:1402,y:505,opacity:1,duration:0.8,ease:"power3.inOut"},11.70);
+    tl.fromTo("#s11-ring-3",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},12.20);
+    tl.to("#s11-ring-3",{opacity:0,duration:0.25,ease:"power2.in"},13.60);
+    tl.fromTo("#s11-click-3",{opacity:1,scale:0.3},{opacity:0,scale:1,duration:0.4,ease:"power2.out"},12.50);
+    tl.to("#s11-cur",{scale:0.86,duration:0.08,ease:"power1.in",transformOrigin:"3px 2px"},12.48);
+    tl.to("#s11-cur",{scale:1,duration:0.14,ease:"power2.out",transformOrigin:"3px 2px"},12.58);
+    tl.set("#s11-img-0",{opacity:1},12.62);
+    tl.set("#s11-img-1",{opacity:0},12.62);
+    tl.fromTo("#s11-cardi-1",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},2.04);
+    tl.to("#s11-cardi-1",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},5.93);
+    tl.fromTo("#s11-cardi-2",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},6.17);
+    tl.to("#s11-cardi-2",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},11.76);
+    tl.fromTo("#s11-cardi-3",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},12.00);
+    tl.to("#s11-cardi-3",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},17.35);
+    window.__timelines["s11"] = tl;
+  </script>
+</template>

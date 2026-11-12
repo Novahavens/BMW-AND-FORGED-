@@ -28,8 +28,14 @@ complained about. Only a check calibrated on those spokes ("wiggle", below) catc
 setsid nohup npx vite --host 127.0.0.1 --port 5173 > /tmp/vite.log 2>&1 &
 ```
 
-- **Rim cache:** curl every wheel's `imageUrl` into `$RIMS`. The sandbox browser can't reach
-  Supabase storage, so the harnesses route storage requests to the cache.
+- **Rim cache:** curl every hidden photo wheel's `imageUrl` into `$RIMS`. The sandbox browser can't
+  reach Supabase storage, so the harnesses route storage requests to the cache. The six stocked
+  wheels are GLB rims (`modelUrl`, `public/models/rims/`) served by Vite and need no cache.
+- **Ids, not indexes:** `shoot.cjs` shot lists take `"wheel": "<wheelId>"` (an index counts the
+  hidden designs too: `0` is the hidden FSA-01). `car` is an index into `BMW_MODELS` including the
+  hidden cars: the live ones are 1 (M4 CS), 5 (M2 CS), 7 (M5), 8 (M5 Touring). Add `"q": "&look=stage"`
+  to see what /configure draws (`&look=viewer` is the older grey viewer dome, for comparison only).
+- **No GPU:** the cloud container renders with SwiftShader on CPU, about 50 s a shot.
 - **Run renders in the background,** and **don't edit engine files while one runs:** Vite
   hot-reloads, so the shots after an edit use the new code, or a half-written file.
 - Shell `sleep` chains are blocked. Use a background command and wait for its notification.
@@ -41,8 +47,32 @@ node scripts/render/journey.cjs $OUT $RIMS both      # phone (390x844, touch) an
 ```
 
 Any change to the app shell, the engine or the catalogue runs this first. It drives the real app
-(welcome → showroom → build → wheels, size, finish → summary) and writes a log and a screenshot per
-step. Read the log for:
+(welcome → Enter, straight into the configurator on the car on stage → wheels step → three wheels →
+size → finish → summary; there is no showroom) and writes a log and a screenshot per step. It waits
+for the boot overlay by its opacity (the overlay fades to 0 and stays in the page, which Playwright
+does not count as hidden). Supabase writes are stubbed (never create a real lead: each one emails the
+owner).
+
+Its selectors work with both panels: the stepped drawer customers get (`StepDrawer` in
+`components/journey/Configurator.tsx`) and the viewer panel behind `?panel=viewer`
+(`components/journey/ViewerPanel.tsx`):
+- steps: buttons with `aria-label="Step N: Paint|Wheels|Size|Finish"` (the numbered stepper of the
+  drawer, the section headings of the viewer panel;
+  `getByRole('button', { name: /step 2: wheels|^wheels$/i })` and so on);
+- wheel list: `aside [data-section="wheels"] li > button`; finish list:
+  `aside [data-section="finish"] li > button` (the viewer panel), with the fallback
+  `aside ul li > button`, which is what matches in the stepped drawer; size chips: `aside button`
+  whose text matches `/^\d\d"/`;
+- summary: the icon button named "Summary" when it is visible, otherwise the footer CTA
+  "View your <car>" (`/^view your /i`).
+Do not switch these to selectors that miss either panel.
+
+The other journey scripts: `pdf-check.cjs` and `swap-perf.cjs` no longer click Build / Confirm;
+`responsive.cjs` no longer records a showroom page; `car-switch.cjs` drives the viewer panel's car
+chips, so it needs `BASE` to end in `?panel=viewer`. **`e2e.cjs` (every button and link, three
+devices) still walks the showroom and has not been updated.**
+
+Read the log for:
 - **FAILED steps:** a button not found or not clickable within the timeout (a broken step, an
   overlay in the way, a modal that didn't close);
 - **PAGEERROR / console.error** lines (network noise is filtered out);
@@ -62,8 +92,10 @@ loaded 2 MB PNGs twice per row.
 node scripts/render/wheel-qa.cjs $RIMS $OUT [idFilter]     # exit 1 if any wheel fails
 ```
 
-- It builds every photo wheel's mask and outlines exactly as the engine does. It uses the face
-  mask and the options from `services/rimFaces.ts` when a wheel has them.
+- It builds every **photo** wheel's mask and outlines exactly as the engine does, from the cached
+  rim photos. It uses the face mask and the options from `services/rimFaces.ts` when a wheel has them.
+- **Scope (Nov 2026): the hidden photo wheels only.** The six stocked wheels are GLB rims
+  (`modelUrl`) and this check never sees them; judge them on `shoot.cjs` sheets (below).
 - It writes `wheel-qa.json` and one overlay per wheel: outlines in yellow, failing windows in
   magenta.
 
@@ -93,11 +125,22 @@ python3 scripts/render/qa-matrix.py $OUT $RIMS            # A + B + C, ~100 shot
 python3 scripts/render/qa-matrix.py $OUT $RIMS --quick    # A only, ~36 shots
 ```
 
-| Matrix | What | Why |
+**Scope (Nov 2026): obsolete until a new photo wheel is added. The legacy photo wheels and cars it was written for were deleted on 2026-11-11, so its wheel and car indexes below no longer exist; update them before using it.** The script
+still takes `W = range(QA_WHEELS=9)` (wheel indexes 0-8: the hidden photo wheels; none of the six
+stocked wheels, indexes 11-16), the old four finishes (`liquid_metal`, `black`, `bronze`, `silver`),
+and `CARS = {0, 2, 3, 6, 8}` written when those indexes meant M4, M3, M3 Touring, M5, M8. The
+`BMW_MODELS` list has since gained the M4 CS and the prepared cars, so today they are 0 = `m4_g82`
+(hidden), 2 = `m4_convertible_g83` (hidden, no model), 3 = `m3_g80` (hidden), 6 = `m235_f74`
+(hidden), 8 = `m5_touring_g99`. Running it tests no live car and no stock wheel. Before relying on
+it again, repoint `CARS` at 1, 5, 7, 8 (M4 CS, M2 CS, M5, M5 Touring), pass wheel ids, and use the
+stock-sheet finishes (`gold`, `hyper_black`, `polished_face`, `pure_bronze`, `black_matte`,
+`silver`, `black`, `liquid_metal`; not every wheel offers `bronze`).
+
+| Matrix | What (as written) | Why |
 |---|---|---|
-| A: design × finish | every wheel in all four finishes, `frontWheel` close-up, M3 | each finish must read as itself on every design |
-| B: design × car | every wheel on every car (M4, M3, M3 Touring, M5, M8), front three-quarter, finishes rotating | fit, arch shading and clearance differ per car |
-| C: sizes | every wheel at 19" and 22", close-up | the face scales; tyre and caliper clearance change |
+| A: design × finish | every photo wheel in the four old finishes, `frontWheel` close-up, car index 2 | each finish must read as itself on every design |
+| B: design × car | every photo wheel on car indexes 0, 2, 3, 6, 8 (all hidden but the M5 Touring), front three-quarter, finishes rotating | fit, arch shading and clearance differ per car |
+| C: sizes | every photo wheel at 19" and 22", close-up, car index 0 | the face scales; tyre and caliper clearance change |
 
 - It reuses shots already rendered: delete a shot to redo it, or the folder to redo all.
 - It writes `qa-matrix.json`, `sheet-A-design-x-finish.jpg`, `sheet-B-design-x-car.jpg` and
@@ -140,10 +183,21 @@ gloss and colour on a real screen as well.
 
 ## Before saying "done"
 
-- Layer 0 passes at both sizes with no FAILED step, no page errors and no long task ≥ 100 ms
-  after a click.
-- Layer 1 passes on **every** wheel (one engine change touches all photo wheels).
-- The matrix passes. Every sheet has been looked at, and the doubtful shots at full size.
+The current gate (Nov 2026):
+- Layer 0 (`journey.cjs`) passes at both sizes with no FAILED step, no page errors and no long
+  task ≥ 100 ms after a click.
+- `node scripts/render/pdf-check.cjs <out>` saves the two-page brochure (lead and share-code writes
+  stubbed).
+- `shoot.cjs` sheets of the **six stocked wheels by id** (`forged_fsa001`, `forged_fsa002`,
+  `forged_fsa_03`, `forged_fsa004`, `sixnine_ff1`, `sixnine_ff3`) on the live cars (indexes 1, 5, 7, 8)
+  with `"q": "&look=stage"`, in the finishes each wheel offers (`docs/WHEEL_INVENTORY.md`); the
+  reference is `docs/ingest/stock-wheels.jpg`. Every sheet has been looked at, and the doubtful
+  shots at full size.
+- When a rim file or a finish changed: the rim page (`/rims/<id>`) looked at too. It is the wheel
+  studio (`shared/wheel-viewer/WheelStudio.tsx`), which loads the same rim file and finish recipe as the car but
+  is not covered by `shoot.cjs`.
+- Only when a photo wheel is touched: Layer 1 on **every** photo wheel (one engine change touches
+  them all) and the matrix; both cover the hidden photo wheels only.
 - `bun run lint` and `bun run build` pass.
 - A preview deploy has been checked on a real screen, then the sheets sent to the owner.
   Production only when the owner says.

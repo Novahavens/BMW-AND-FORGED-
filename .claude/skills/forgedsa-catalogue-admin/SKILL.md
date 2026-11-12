@@ -48,3 +48,14 @@ Stack: Supabase project `qxlfkfhzpqbxffuqqewg` (Postgres, Auth, Storage).
 
 Test leads trigger real emails (see `forgedsa-lead-email-automation`). Use `qa-test*@forgedsa.com`
 and delete them afterwards.
+
+## Wheels since 2026-11-10: the stock sheet
+
+- The six offered wheels are the owner's stock sheet (`docs/WHEEL_INVENTORY.md`); everything else is hidden
+  (`active = false`), never deleted. `WheelDesign.active` exists in the fallback too (`STATIC_CATALOG` filters).
+- New wheel fields: **Dearer finishes** (`price_by_finish`: set price per finish id that costs more; read by
+  `rimPrice(wheel, size, finishId)`, the summary, PDF and lead email) and **Rear rim 3D model** (`rear_model_url`,
+  staggered sets only).
+- Prices on the sheet are ZAR; store USD = ZAR / 18.2 to the cent (`formatMoney` rounds to R10, so R75 000 ↔ 4120.88).
+- Customer accounts (Google) live beside the admin: `profiles`, `saved_configurations.user_id`, `leads.user_id`
+  (`docs/ACCOUNTS.md`). The admin allowlist is untouched.

@@ -1,0 +1,5 @@
+e90b58e593987d9ada0c10059c1fa0a273066346f1b65a6458a4e7289c4b5070  .token-optimizer.yaml
+84dd5bcfd5284a06a5cba308ff357c005fa3a061629d28093c681752344b8316  .token-optimizer/probe/run-probe.sh
+fdea725bda852adf95ec88e0488c8cf1afaf18f283d6c6875271dbc401e7ef92  .token-optimizer/probe/fixture.json
+8f936d92ebebed203438c696422d5512c4326693edfb72f9c767303c65ca6eee  .claude/agents/platform-bulk-reader.md
+b1645715161cbcc2c2d753754a42a717e38d886bc6729eeec7f62842b385bec7  .token-optimizer/optimize.sh

@@ -27,6 +27,14 @@ description: Change or debug the customer's two-page FORGEDSA PDF spec sheet, ge
   - Page 2: two views, the wheel story, and highlights with gold bullets.
   - Wheel weights print only when greater than 0.
   - "Next steps" has an orange **Open your build online** pill linked to `/?config=CODE`.
+- **Credentials:** the four statements the owner gave (only SIXNINE dealer in South Africa, TÜV certified, 3-year
+  warranty on the finish, lifetime warranty on the wheel, not for neglect) live in `BRAND.credentials`
+  (`config/brand.ts`) and print twice: a four-up strip under the price on page 1 and "Our assurance" cards on page 2.
+  Use the owner's words; do not add periods, exclusions, certificate numbers or standards they have not given.
+- **Page budget:** page 2 reserves `NEXT_H` and `ASSURANCE_H` from the bottom (footer rule at 268 mm), so a long wheel
+  story is clipped rather than run into them. Change those constants with the layout.
+- **Pictures:** `placeImage` clips to rounded corners with a hairline frame. The PDF prints `summaryImages`, the same
+  three stills as the summary page, and waits up to 30 s for them (`stillsForPdf` in `App.tsx`).
 - **Fonts:** Satoshi TTFs (`public/fonts/satoshi-700.ttf`, `-900.ttf`) are embedded. jsPDF can't use
   woff2.
 - **Always pass text through `pdfText()`.** It replaces U+00A0, U+202F, U+2007 and U+2009 with plain

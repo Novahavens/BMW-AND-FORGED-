@@ -1,0 +1,1 @@
+Here's the car's 3D model. Upload a new G L B to replace it, set the rotation so the nose faces the camera, and give it the real car length, so it's scaled correctly.

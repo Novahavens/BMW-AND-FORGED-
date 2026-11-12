@@ -12,6 +12,9 @@ read -ra ALL <<<"$IDS"
 IDX=("$@"); [ ${#IDX[@]} -eq 0 ] && IDX=($(seq 0 $((${#ALL[@]} - 1))))
 for i in "${IDX[@]}"; do
   id=${ALL[$i]}; echo "== $i $id"
+  if node -e "const m=JSON.parse(require('fs').readFileSync('public/renders/manifest.json','utf8'));process.exit(m['$id']&&m['$id'].framesOnly?0:1)" 2>/dev/null; then
+    echo "skipped: $id is frames-only (no GLB in the repo); re-render it with scripts/prerender/frames-only.sh"; continue
+  fi
   node scripts/prerender/export-scene.cjs "$i" "$TMP/$id.glb"
   python3 scripts/prerender/render_car.py "$TMP/$id.glb" "$TMP/$id" --car "$id" --studio "${STUDIO:-default}" --samples "${SAMPLES:-32}" --width "${WIDTH:-1440}" --threads "${THREADS:-0}" | grep '^rendered' || true
   python3 - "$TMP/$id" "public/renders/$id" <<'PY'
@@ -24,10 +27,18 @@ for f in glob.glob(f'{src}/*/*.png'):
     Image.open(f).save(f'{dst}/{v}/' + os.path.basename(f)[:-4] + '.webp', quality=88, method=6)
 PY
 done
-python3 - <<'PY'
+# Only the cars rendered here go into manifest.json: the other entries are kept as they are (a frames-only car's entry
+# carries its wheel layout), and cars that only have summary stills (stills.json) must not be put on the stage
+python3 - <<PY
 import os, json
 root = 'public/renders'
-m = {c: sorted(v for v in os.listdir(f'{root}/{c}') if os.path.exists(f'{root}/{c}/{v}/gloss_w.webp'))
-     for c in sorted(os.listdir(root)) if os.path.isdir(f'{root}/{c}')}
-json.dump(m, open(f'{root}/manifest.json', 'w'), indent=1); print(m)
+ids = '${IDX[*]}'.split()
+all_ids = '${ALL[*]}'.split()
+path = f'{root}/manifest.json'
+m = json.load(open(path)) if os.path.exists(path) else {}
+for i in ids:
+    c = all_ids[int(i)]
+    if isinstance(m.get(c), dict): continue   # frames-only: skipped above
+    m[c] = sorted(v for v in os.listdir(f'{root}/{c}') if os.path.exists(f'{root}/{c}/{v}/gloss_w.webp'))
+json.dump(m, open(path, 'w'), indent=1); print(m)
 PY

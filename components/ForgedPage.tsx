@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, Rotate3d } from 'lucide-react';
 import { BRAND, Region, formatMoney } from '../config/brand';
 import { WheelDesign, WheelFinish } from '../types';
 import { rimFromPrice, rimSizes } from '../services/pricing';
-import { Button, Eyebrow, Logo, RimThumb } from './journey/ui';
+import { Button, Eyebrow, Logo, RimThumb, wheelEyebrow } from './journey/ui';
 import { RimFaceSvg } from './journey/RimFaceSvg';
 import { SiteFooter } from './SiteFooter';
 
@@ -48,7 +48,7 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
             The collection
           </h1>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-mute animate-rise delay-200">
-            {wheels.length} forged designs, each offered in {rimSizes(wheels[0] ?? ({} as WheelDesign)).join(', ') || 'several sizes'} and a choice of hand-applied finishes.
+            {wheels.length} forged designs in stock, offered in {[...new Set<string>(wheels.flatMap((w) => rimSizes(w)))].sort((a, b) => parseFloat(a) - parseFloat(b)).join(', ') || 'several sizes'} and a choice of hand-applied finishes.
           </p>
         </div>
         <div className="flex justify-center animate-rise delay-300">
@@ -84,9 +84,12 @@ export const ForgedPage: React.FC<ForgedPageProps> = ({ wheels, finishes, region
                   <RimFaceSvg wheel={w} finishHex={finish?.hex} size={176} withTyre className="transition-transform duration-700 ease-lux group-hover:rotate-[24deg]" />
                 )}
               </div>
-              <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-bronze">{w.code}</div>
+              <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-bronze">{wheelEyebrow(w)}</div>
               <div className="mt-1 text-[17px] font-bold">{w.name}</div>
-              <div className="mt-0.5 text-[12.5px] text-mute">{w.style}</div>
+              {/* the finishes it is stocked in, by the names on the stock sheet */}
+              <div className="mt-0.5 text-[12.5px] text-mute">
+                {w.availableVariants.map((id) => finishes[id]?.name).filter(Boolean).join(' · ')}
+              </div>
               <div className="mt-3 text-[12.5px] text-mute">
                 From <span className="font-semibold text-ink">{formatMoney(rimFromPrice(w), region)}</span> per set
               </div>

@@ -4,16 +4,18 @@
  */
 
 /**
- * Copy for the Terms & Conditions and Delivery & Fitment pages. Edit the text here; the pages
- * (components/InfoPage.tsx) lay it out.
+ * Copy for the Terms & Conditions, Delivery & Fitment and Model credits pages. Edit the text here;
+ * the pages (components/InfoPage.tsx) lay it out.
  *
  * DRAFT: written as a sensible South African starting point (Consumer Protection Act, POPIA), not
  * legal advice. Have an attorney review it, fill in the [bracketed] details, then set
- * `LEGAL_DRAFT` to false to remove the draft notice from both pages.
+ * `LEGAL_DRAFT` to false to remove the draft notice from the pages.
+ *
+ * CREDITS mirrors public/models/CREDITS.md (the file of record): change both together.
  */
 
 export const LEGAL_DRAFT = true;
-export const PAGES_UPDATED = '27 September 2026';
+export const PAGES_UPDATED = '10 November 2026';
 
 export interface InfoSection {
   title: string;
@@ -24,7 +26,7 @@ export interface InfoSection {
 }
 
 export interface InfoPageContent {
-  path: '/terms' | '/delivery';
+  path: '/terms' | '/delivery' | '/credits';
   eyebrow: string;
   title: string;
   intro: string;
@@ -107,7 +109,7 @@ export const TERMS: InfoPageContent = {
       title: '10. Your information (POPIA)',
       body: [
         'When you send an enquiry or save a configuration we process your name, contact details and the configuration you chose. We use them only to respond to you, prepare your quotation and fulfil your order. We do not sell your information. We store it securely with our service providers and keep it only as long as we need it or the law requires.',
-        'You may ask to see, correct or delete your information at any time by emailing [info@forgedsa.com]. Our Information Officer is [name]. You may also complain to the Information Regulator (inforegulator.org.za).'
+        'You may ask to see, correct or delete your information at any time by emailing [forgedsa1@gmail.com]. Our Information Officer is [name]. You may also complain to the Information Regulator (inforegulator.org.za).'
       ]
     },
     {
@@ -177,13 +179,65 @@ export const DELIVERY: InfoPageContent = {
       points: [
         'Check that the boxes are intact before signing, and note any visible damage on the delivery slip.',
         'Unpack on a soft surface and inspect every wheel and finish.',
-        'Report any damage or discrepancy within 48 hours with photos, to [info@forgedsa.com]. We will arrange a solution.'
+        'Report any damage or discrepancy within 48 hours with photos, to [forgedsa1@gmail.com]. We will arrange a solution.'
       ]
     },
     {
       title: 'Before you fit',
       body: [
         'Test-fit one wheel on each axle before tyres are mounted, especially if your car has upgraded brakes. Forged wheels should be fitted by a qualified technician and the bolts torqued to BMW specification, then re-checked after the first 50–100 km.'
+      ]
+    }
+  ]
+};
+
+/**
+ * Model credits page (/credits). Records the source of everything drawn in the configurator. Mirror of public/models/CREDITS.md.
+ */
+export const CREDITS: InfoPageContent = {
+  path: '/credits',
+  eyebrow: 'Legal',
+  title: 'Model credits',
+  intro:
+    'The cars and wheels in the configurator are 3D visualisations. This page credits the people whose work they are built on and records the licence each model is used under. BMW, M and the model names are trademarks of BMW AG; FORGEDSA is an independent brand and is not affiliated with or endorsed by BMW AG.',
+  sections: [
+    {
+      title: 'FORGEDSA wheels',
+      body: [
+        'The wheel designs are FORGEDSA’s own. The 3D rim files were supplied by FORGEDSA from its website and prepared for the configurator (web compression; the brake parts in the source files are not shown). The 3D artist who modelled them is not recorded in the files; creator credit to be confirmed.'
+      ],
+      points: [
+        'FSA001 (2-piece, staggered 19×9.5 front / 20×11 rear): supplied by FORGEDSA; creator credit to be confirmed.',
+        'FSA002: supplied by FORGEDSA; creator credit to be confirmed.',
+        'FSA003: supplied by FORGEDSA; creator credit to be confirmed.',
+        'FSA004: supplied by FORGEDSA; creator credit to be confirmed.',
+        'FF-1: supplied by FORGEDSA; creator credit to be confirmed.',
+        'FF-3: supplied by FORGEDSA; creator credit to be confirmed.',
+        'Wheel thumbnails: cut-outs of FORGEDSA’s own product photographs; the FSA001 thumbnail is a render of its 3D rim file.'
+      ]
+    },
+    {
+      title: 'BMW cars prepared for FORGEDSA',
+      body: [
+        'The M2 CS (G87), M4 CS (G82), M5 (G90) and M5 Touring (G99) bodies were supplied by FORGEDSA as prepared 3D packages. Their author is not recorded in the files; licence to be confirmed. Original wheels replaced in the configurator.'
+      ],
+      points: [
+        'BMW M2 CS (G87): supplied by FORGEDSA, licence to be confirmed.',
+        'BMW M4 CS (G82): supplied by FORGEDSA, licence to be confirmed.',
+        'BMW M5 (G90): supplied by FORGEDSA, licence to be confirmed.',
+        'BMW M5 Touring (G99): supplied by FORGEDSA, licence to be confirmed.'
+      ]
+    },
+    {
+      title: 'Studio lighting',
+      body: [
+        '"Studio Small 09" HDRI by Poly Haven (polyhaven.com/a/studio_small_09), CC0 (public domain). Used for reflections.'
+      ]
+    },
+    {
+      title: 'Corrections',
+      body: [
+        'If you are the author of one of these models and the credit or licence shown is wrong, or you would like it displayed differently, email [forgedsa1@gmail.com] and we will correct it promptly.'
       ]
     }
   ]

@@ -403,6 +403,48 @@ export function barrelAoMap(): THREE.Texture {
 
 const capCache = new Map<string, THREE.Texture>();
 /**
+ * Number plate face, as drawn by the owner's vehicle viewer: a UK-format plate (white front, yellow
+ * rear, blue band) reading a placeholder word, so no real registration is ever shown.
+ */
+export function plateTexture(rear: boolean, anisotropy = 1, text = 'FORGED'): THREE.Texture {
+  const W = 1040;
+  const H = 222;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#0b0b0b';
+  g.fillRect(0, 0, W, H);
+  g.fillStyle = rear ? '#efb700' : '#f2f2ee';
+  g.fillRect(9, 9, W - 18, H - 18);
+  g.fillStyle = '#1b3f94';
+  g.fillRect(9, 9, 92, H - 18);
+  g.fillStyle = '#f2c500';
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    g.beginPath();
+    g.arc(55 + Math.cos(a) * 26, 82 + Math.sin(a) * 26, 3.6, 0, 6.3);
+    g.fill();
+  }
+  g.fillStyle = '#ffffff';
+  g.font = '700 40px Arial, Helvetica, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('GB', 55, 168);
+  g.save();
+  g.translate((101 + W - 9) / 2, H / 2 + 6);
+  g.scale(0.84, 1);
+  g.fillStyle = '#0b0b0b';
+  g.font = '700 160px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+  g.fillText(text, 0, 0);
+  g.restore();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = anisotropy;
+  return t;
+}
+
+/**
  * Centre cap face: black with a gold lettering in a thin ring (brand gold #CF9F52). The default
  * lettering is the FSA monogram; a design can ask for its own word (RIM_CAP_TEXT in rimFaces.ts),
  * which is set to fill the ring.
@@ -600,7 +642,7 @@ export function createWheelKitMaterials(): WheelKitMaterials {
     // M Compound blue: high-temperature gloss paint under a clear coat
     caliper: new THREE.MeshPhysicalMaterial({
       name: 'caliper_paint',
-      color: 0x0055b8, // M Performance Blue (CALIPER_COLORS m_blue)
+      color: 0xc01824, // M Competition Red (CALIPER_COLORS m_red): the reference renders show red calipers
       metalness: 0,
       roughness: 0.32,
       clearcoat: 1,

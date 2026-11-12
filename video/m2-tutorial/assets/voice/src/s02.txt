@@ -1,0 +1,1 @@
+We'll start on the welcome screen. The arrows flick between the cars we've prepared, and the region picker sets your currency, so every price is in your own money. Found your car? Hit Enter.

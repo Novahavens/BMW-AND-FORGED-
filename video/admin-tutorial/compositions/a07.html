@@ -1,0 +1,42 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; }
+    #root .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .ring { position: absolute; border: 4px solid #CF9F52; border-radius: 14px; opacity: 0; box-shadow: 0 0 0 2px rgba(11,11,12,.55); box-sizing: border-box; }
+    #root .click { position: absolute; width: 120px; height: 120px; border: 4px solid #CF9F52; border-radius: 50%; opacity: 0; }
+    #root .cur { position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.5)); }
+    #root .card-host { position: absolute; width: 560px; }
+    #root .card { background: #0b0b0c; border-left: 10px solid #CF9F52; border-radius: 6px; padding: 22px 28px 26px 26px; box-shadow: 0 24px 60px rgba(0,0,0,.45); font-family: 'Satoshi', sans-serif; }
+    #root .eye { color: #CF9F52; font-weight: 700; font-size: 28px; letter-spacing: .16em; }
+    #root .line { margin-top: 10px; color: #fff; font-weight: 900; font-size: 48px; line-height: 1.06; letter-spacing: -.015em; }
+  </style>
+  <div id="root" data-composition-id="a07" data-width="1920" data-height="1080">
+    <div id="a07-cam" class="clip" data-start="0" data-duration="14.87" data-track-index="0"><div id="a07-cami" class="cam"><img id="a07-img-0" class="shot" src="assets/shots/06-cars-model.png" alt="" style="opacity:1"><div id="a07-ring-0" class="ring" style="left:608px;top:676px;width:1161px;height:209px"></div><div id="a07-ring-1" class="ring" style="left:608px;top:885px;width:1161px;height:142px"></div><div id="a07-ring-2" class="ring" style="left:608px;top:1027px;width:1161px;height:142px"></div><svg id="a07-cur" class="cur" viewBox="0 0 24 24" width="40" height="40"><path d="M3 2 L3 19 L8 14.5 L11.2 21.5 L14 20.3 L10.9 13.4 L17.5 13 Z" fill="#fff" stroke="#0b0b0c" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div><div id="a07-card-0" class="clip card-host" data-start="1.62" data-duration="3.42" data-track-index="2" style="left:72px;top:818px"><div id="a07-cardi-0" class="card"><div class="eye">3D MODEL</div><div class="line">Replace the car in one upload</div></div></div><div id="a07-card-1" class="clip card-host" data-start="4.99" data-duration="5.18" data-track-index="2" style="left:72px;top:818px"><div id="a07-cardi-1" class="card"><div class="eye">ROTATION</div><div class="line">Nose to the camera</div></div></div><div id="a07-card-2" class="clip card-host" data-start="10.12" data-duration="4.50" data-track-index="2" style="left:72px;top:818px"><div id="a07-cardi-2" class="card"><div class="eye">REAL LENGTH</div><div class="line">Scales it true to size</div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    gsap.set("#a07-cami",{transformOrigin:"970px 540px"});
+    tl.fromTo("#a07-cami",{scale:1},{scale:1.025,duration:14.87,ease:"sine.inOut"},0);
+    gsap.set("#a07-cur",{x:960,y:1140,opacity:0});
+    tl.to("#a07-cur",{x:1189,y:781,opacity:1,duration:0.8,ease:"power3.inOut"},1.37);
+    tl.fromTo("#a07-ring-0",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},1.87);
+    tl.to("#a07-ring-0",{opacity:0,duration:0.25,ease:"power2.in"},3.57);
+    tl.to("#a07-cur",{x:1189,y:956,opacity:1,duration:0.8,ease:"power3.inOut"},4.74);
+    tl.fromTo("#a07-ring-1",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},5.24);
+    tl.to("#a07-ring-1",{opacity:0,duration:0.25,ease:"power2.in"},6.94);
+    tl.to("#a07-cur",{x:1189,y:1098,opacity:1,duration:0.8,ease:"power3.inOut"},9.87);
+    tl.fromTo("#a07-ring-2",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},10.37);
+    tl.to("#a07-ring-2",{opacity:0,duration:0.25,ease:"power2.in"},11.77);
+    tl.fromTo("#a07-cardi-0",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},1.67);
+    tl.to("#a07-cardi-0",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},4.80);
+    tl.fromTo("#a07-cardi-1",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},5.04);
+    tl.to("#a07-cardi-1",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},9.93);
+    tl.fromTo("#a07-cardi-2",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},10.17);
+    tl.to("#a07-cardi-2",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},14.38);
+    window.__timelines["a07"] = tl;
+  </script>
+</template>

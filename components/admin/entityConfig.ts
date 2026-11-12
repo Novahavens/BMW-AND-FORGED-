@@ -16,6 +16,7 @@ export type FieldSpec =
   | { key: string; label: string; type: 'paints'; hint?: string }
   | { key: string; label: string; type: 'fitment'; hint?: string }
   | { key: string; label: string; type: 'sizePrices'; hint?: string }
+  | { key: string; label: string; type: 'finishPrices'; hint?: string }
   | { key: string; label: string; type: 'asset'; bucket: string; accept: string; hint?: string };
 
 export interface EntitySpec {
@@ -35,7 +36,7 @@ export const ENTITIES: EntitySpec[] = [
     table: 'cars',
     label: 'Cars',
     fields: [
-      { key: 'id', label: 'ID (slug)', type: 'text', hint: 'Unique, e.g. m4_g82. Cannot be changed after saving.' },
+      { key: 'id', label: 'ID (slug)', type: 'text', hint: 'Unique, e.g. m5_g90. Cannot be changed after saving.' },
       { key: 'name', label: 'Name', type: 'text' },
       { key: 'badge', label: 'Badge', type: 'text' },
       { key: 'generation', label: 'Generation', type: 'text' },
@@ -75,10 +76,12 @@ export const ENTITIES: EntitySpec[] = [
       { key: 'image_extrude', label: 'Build 3D spokes from the image', type: 'bool', hint: 'Untick to show the image flat (e.g. if the background could not be removed cleanly).' },
       { key: 'model_url', label: 'Rim 3D model (.glb) – optional', type: 'asset', bucket: ASSET_BUCKETS.rimModels, accept: '.glb,model/gltf-binary', hint: 'Best quality: your manufacturer\'s CAD file. Upload .glb here; a STEP/STP, IGES, STL or OBJ file is converted to .glb automatically first. Replaces the image on the car. Rim only (no tyre); size and orientation are fitted automatically. Tick "Flip" if the spokes face into the car.' },
       { key: 'model_flip', label: 'Flip 3D rim', type: 'bool', hint: 'Tick if the rim face points into the car.' },
+      { key: 'rear_model_url', label: 'Rear rim 3D model (.glb) – staggered sets only', type: 'asset', bucket: ASSET_BUCKETS.rimModels, accept: '.glb,model/gltf-binary', hint: 'For a staggered set with a different rear rim (e.g. FSA001). Leave empty to use the front file on every corner.' },
       { key: 'spoke_type', label: 'Procedural spokes (no image)', type: 'select', options: ['multi', 'y_spoke', 'directional', 'mesh', 'aerodisc', 'clubsport'] },
       { key: 'spoke_count', label: 'Spoke count', type: 'number', step: 1 },
       { key: 'price_by_size', label: 'Sizes & set prices (USD, 4 wheels)', type: 'sizePrices', hint: 'Only sizes listed here are offered. The size visibly changes the rim on the car.' },
       { key: 'available_variants', label: 'Available finishes', type: 'finishes' },
+      { key: 'price_by_finish', label: 'Dearer finishes (USD set price)', type: 'finishPrices', hint: 'Only for finishes that cost more (e.g. Polished Face, Liquid Metal): the set price becomes this figure when it is above the size price, and never drops below the size price. Blank = same price as the other finishes.' },
       { key: 'default_variant', label: 'Default finish ID', type: 'text' },
       { key: 'weight_front_kg', label: 'Front weight (kg)', type: 'number', step: 0.1 },
       { key: 'weight_rear_kg', label: 'Rear weight (kg)', type: 'number', step: 0.1 },
@@ -88,8 +91,8 @@ export const ENTITIES: EntitySpec[] = [
       ...common
     ],
     defaults: {
-      id: '', code: '', name: '', subtitle: '', style: '', image_url: null, image_extrude: true, model_url: null, model_flip: false, spoke_type: 'multi', spoke_count: 10,
-      price_by_size: { '19"': 0, '20"': 0, '21"': 0, '22"': 0 }, available_variants: ['liquid_metal'], default_variant: 'liquid_metal',
+      id: '', code: '', name: '', subtitle: '', style: '', image_url: null, image_extrude: true, model_url: null, model_flip: false, rear_model_url: null, spoke_type: 'multi', spoke_count: 10,
+      price_by_size: { '19"': 0, '20"': 0, '21"': 0, '22"': 0 }, price_by_finish: {}, available_variants: ['liquid_metal'], default_variant: 'liquid_metal',
       weight_front_kg: 0, weight_rear_kg: 0, weight_savings_kg: 0, description: '', highlights: [],
       sort_order: 99, active: true
     }

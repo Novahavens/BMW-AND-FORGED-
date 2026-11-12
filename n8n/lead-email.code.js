@@ -1,6 +1,6 @@
 // n8n Code node "Build branded email" in the workflow "FORGEDSA · Lead email (PDF downloads + enquiries)".
 // Source of truth is the node in n8n; this copy is kept in the repo for review and restore.
-// Input: the JSON body posted by the Supabase trigger private.notify_lead_webhook() (see supabase/migrations/20260928090000_lead_email_webhook.sql).
+// Input: the JSON body posted by the Supabase trigger private.notify_lead_webhook() (first created in supabase/migrations/20260928090000_lead_email_webhook.sql; current body in 20261110153000_wheel_inventory_stock_sheet.sql).
 const lead = $input.first().json.body || {};
 const SITE = 'https://forged-configurator.vercel.app';
 const REGIONS = {
@@ -53,8 +53,11 @@ const specRows = [
   row('Region', esc(region.label))
 ].join('');
 
-const wheelImg = wheel.image_url
-  ? `<tr><td align="center" style="padding:8px 32px 0;"><img src="${esc(wheel.image_url)}" width="220" alt="${esc(wheel.name || 'Wheel')}" style="display:block;width:220px;max-width:60%;height:auto;border:0;"></td></tr>`
+// Stocked wheels have site-relative image_url values (/rim-images/*.webp); an email has no origin, so prefix the production site.
+// This repo copy is not deployed automatically: the live n8n Code node must be updated by hand to match (update_workflow + publish_workflow).
+const wheelImgSrc = String(wheel.image_url || '').startsWith('/') ? SITE + wheel.image_url : wheel.image_url;
+const wheelImg = wheelImgSrc
+  ? `<tr><td align="center" style="padding:8px 32px 0;"><img src="${esc(wheelImgSrc)}" width="220" alt="${esc(wheel.name || 'Wheel')}" style="display:block;width:220px;max-width:60%;height:auto;border:0;"></td></tr>`
   : '';
 
 const html = `<!doctype html>

@@ -1,0 +1,1 @@
+Open slash admin and sign in with your email and password. Only emails on the dealership's allowlist get through. And if it's your first time, or you've forgotten your password, tap the link underneath, and it emails you a link to set a new one.

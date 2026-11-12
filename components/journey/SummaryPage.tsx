@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { ArrowLeft, Check, Copy, Download, Mail, Share2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, Copy, Download, Mail, Share2, Warehouse } from 'lucide-react';
 import { BRAND, Region, formatMoney } from '../../config/brand';
 import { CarModel, PaintColor, WheelDesign, WheelFinish } from '../../types';
 import { PdfContact, rememberPdfContact, rememberedPdfContact, shareUrl } from '../../services/journeyService';
-import { Button, Eyebrow, FinishChip, Logo, Modal, PaintChip, RimThumb, cx } from './ui';
+import { finishSurcharge, rimPrice } from '../../services/pricing';
+import { Alert, Button, Eyebrow, FinishChip, Logo, Modal, PaintChip, RimThumb, Status, cx } from './ui';
 import { SiteFooter } from '../SiteFooter';
-import { shortModelName } from './Showroom';
+import { shortModelName } from './carNames';
 
 export interface SummaryProps {
   car: CarModel;
@@ -28,6 +29,14 @@ export interface SummaryProps {
   onEnquire: () => void;
   /** Saves the contact as a lead, then builds the PDF. */
   onDownloadPdf: (contact: PdfContact) => Promise<void>;
+  /** Customer accounts: signed in, "Save to garage" names the build and keeps it; signed out, the button
+   * reads "Sign in to save" and opens the sign-in. Omit onSaveToGarage to hide the button. Resolves true
+   * once the build is in the garage, else the message to show the customer. */
+  signedIn?: boolean;
+  onSaveToGarage?: (name: string) => Promise<true | string>;
+  onSignIn?: () => void;
+  /** The signed-in customer's details, offered in the PDF form for the fields still blank. */
+  contactPrefill?: Partial<PdfContact>;
 }
 
 export const SummaryPage: React.FC<SummaryProps> = (p) => {
@@ -65,12 +74,70 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
     }
   };
   const setField = (k: keyof PdfContact) => (e: React.ChangeEvent<HTMLInputElement>) => setContact((c) => ({ ...c, [k]: e.target.value }));
+  // A signed-in customer's profile fills the blanks (what they typed, or remembered here, stays)
+  useEffect(() => {
+    const pre = p.contactPrefill;
+    if (!pre) return;
+    setContact((c) => ({ name: c.name || pre.name || '', email: c.email || pre.email || '', phone: c.phone || pre.phone || '' }));
+  }, [p.contactPrefill]);
 
+  // Save to garage: the build gets a name (default "<badge> · <wheel>") and goes under the customer's account
+  const [garage, setGarage] = useState<'idle' | 'naming' | 'saving' | 'saved'>('idle');
+  const [garageName, setGarageName] = useState('');
+  const [garageError, setGarageError] = useState<string | null>(null);
+  // A new code means another build is on screen (or this one got a fresh code after its saved copy was
+  // deleted), so "Saved" no longer applies... except when the new code is the owned copy our own save just
+  // produced (the parent swaps it in as the save succeeds, in the same render that turns 'saving' into
+  // 'saved'): then the confirmation stays. The refs read the garage state at the time of the change, and
+  // the one before it, without re-running on them.
+  const garageRef = useRef(garage);
+  garageRef.current = garage;
+  const prevGarage = useRef(garage); // the state of the previous commit (updated by the effect below, after this one)
+  useEffect(() => {
+    if (garageRef.current === 'saving') return;
+    if (garageRef.current === 'saved' && prevGarage.current !== 'saved') return;
+    setGarage('idle');
+    setGarageError(null);
+  }, [p.code]);
+  useEffect(() => {
+    prevGarage.current = garage;
+  }, [garage]);
+  const startGarage = () => {
+    if (!p.signedIn) {
+      setShare(false);
+      p.onSignIn?.();
+      return;
+    }
+    setGarageName(`${p.car.badge} · ${p.wheel.name}`);
+    setGarageError(null);
+    setGarage('naming');
+  };
+  const saveToGarage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!p.onSaveToGarage || !p.code) return;
+    setGarage('saving');
+    try {
+      const result = await p.onSaveToGarage(garageName.trim() || `${p.car.badge} · ${p.wheel.name}`);
+      if (result === true) setGarage('saved');
+      else {
+        // the parent says why (not on the server yet, or garages not switched on for this site)
+        setGarage('naming');
+        setGarageError(result || 'The build could not be saved to your garage.');
+      }
+    } catch (err) {
+      setGarage('naming');
+      setGarageError(err instanceof Error && err.message ? err.message : 'The build could not be saved to your garage.');
+    }
+  };
+
+  // The size row carries the base-finish set price and the finish row what the finish adds (the total,
+  // p.price, is finish-inclusive), so the two line items add up to the total card
+  const surcharge = finishSurcharge(p.wheel, p.size, p.finish.id);
   const options = [
     { label: 'Paint', value: p.paint.name, detail: `${p.paint.type} · ${p.paint.code}`, visual: <PaintChip paint={p.paint} size={52} />, price: 'Included' },
     { label: 'Wheel design', value: p.wheel.name, detail: p.wheel.style, visual: <RimThumb wheel={p.wheel} finish={p.finish} size={60} />, price: null },
-    { label: 'Wheel size', value: p.size, detail: 'Set of four', visual: <span className="font-display text-[18px] font-extrabold">{p.size}</span>, price: formatMoney(p.price, p.region) },
-    { label: 'Wheel finish', value: p.finish.name, detail: p.finish.colorName, visual: <FinishChip finish={p.finish} size={52} />, price: 'Included' }
+    { label: 'Wheel size', value: p.size, detail: 'Set of four', visual: <span className="font-display text-[18px] font-extrabold">{p.size}</span>, price: formatMoney(rimPrice(p.wheel, p.size), p.region) },
+    { label: 'Wheel finish', value: p.finish.name, detail: p.finish.colorName, visual: <FinishChip finish={p.finish} size={52} />, price: surcharge > 0 ? `+${formatMoney(surcharge, p.region)}` : 'Included' }
   ];
 
   // Blank specs (cars listed without them) are left out rather than shown as empty rows
@@ -208,7 +275,8 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
                 {pdfBusy ? 'Preparing…' : 'PDF'}
               </button>
             </div>
-            <p className="mt-6 text-[11px] leading-relaxed text-white/50">Visualisation only. Final specification, fitment and price are confirmed with our team.</p>
+            {/* The owner's visualisation notice (it was the showroom's Build confirmation until the showroom went) */}
+            <p className="mt-6 text-[11px] leading-relaxed text-white/50">{BRAND.visualisationNotice}</p>
           </aside>
         </div>
 
@@ -229,13 +297,53 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
         <div className="mt-5 rounded-2xl bg-ink/[0.04] py-6 text-center">
           <Eyebrow>Configuration code</Eyebrow>
           <div className="mt-2 font-mono text-[26px] font-semibold tracking-[0.22em]">{p.code ?? '··········'}</div>
-          {p.code && p.codeShared === undefined && <p className="mt-2 text-[11px] text-mute">Saving your build…</p>}
-          {p.codeShared === false && (
-            <p className="mx-6 mt-2 text-[11px] leading-relaxed text-mute">
-              Saved on this device only: the connection didn't allow a shared copy, so the link may not open elsewhere yet.
-            </p>
-          )}
+          {/* One live region, mounted throughout, so the swap from "Saving…" to the device-only note is announced
+              (kept as a plain <p>: the Status wrapper's 12.5px would change this 11px note) */}
+          <p
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className={cx('text-[11px] leading-relaxed text-mute', p.code && p.codeShared === undefined && 'mt-2', p.codeShared === false && 'mx-6 mt-2')}
+          >
+            {p.code && p.codeShared === undefined
+              ? 'Saving your build…'
+              : p.codeShared === false
+                ? "Saved on this device only: the connection didn't allow a shared copy, so the link may not open elsewhere yet."
+                : ''}
+          </p>
         </div>
+        {p.onSaveToGarage && (
+          <div className="mt-4">
+            {garage === 'naming' || garage === 'saving' ? (
+              <form onSubmit={saveToGarage} className="flex gap-2">
+                <input
+                  autoFocus
+                  aria-label="Build name"
+                  value={garageName}
+                  maxLength={80}
+                  onChange={(e) => setGarageName(e.target.value)}
+                  className="h-11 min-w-0 flex-1 rounded-full bg-ink/[0.04] px-5 text-[13.5px] outline-none ring-1 ring-line focus:ring-gold/60 transition"
+                />
+                <Button type="submit" variant="secondary" disabled={garage === 'saving' || !p.code}>
+                  {garage === 'saving' ? 'Saving…' : 'Save'}
+                </Button>
+              </form>
+            ) : (
+              <Button
+                variant="secondary"
+                className="w-full"
+                aria-label={p.signedIn ? 'Save to garage' : 'Sign in to save'}
+                onClick={startGarage}
+                icon={garage === 'saved' ? <Check className="h-4 w-4" /> : <Warehouse className="h-4 w-4" strokeWidth={1.7} />}
+              >
+                {garage === 'saved' ? 'Saved to your garage' : p.signedIn ? 'Save to garage' : 'Sign in to save'}
+              </Button>
+            )}
+            {garageError && <Alert className="mt-2">{garageError}</Alert>}
+            {/* The naming form (and its focused Save button) is replaced by the "Saved" button: say so */}
+            <Status className="sr-only">{garage === 'saving' ? 'Saving to your garage…' : garage === 'saved' ? 'Saved to your garage' : ''}</Status>
+          </div>
+        )}
         <div className="mt-5 grid gap-2.5">
           <Button
             variant="secondary"
@@ -258,6 +366,8 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
             {pdfBusy ? 'Preparing PDF…' : 'Download PDF'}
           </Button>
         </div>
+        {/* The button label swap alone is not read out by every screen reader */}
+        <Status className="sr-only">{copied ? 'Link copied' : ''}</Status>
       </Modal>
 
       <Modal open={gate} onClose={() => !pdfBusy && setGate(false)} title="Download your PDF" width="max-w-md">
@@ -269,10 +379,11 @@ export const SummaryPage: React.FC<SummaryProps> = (p) => {
           <GateField label="Email address" type="email" required autoComplete="email" value={contact.email} onChange={setField('email')} />
           <GateField label="Mobile number" type="tel" required autoComplete="tel" placeholder="082 123 4567" value={contact.phone} onChange={setField('phone')} />
           <GateField label="Name (optional)" autoComplete="name" value={contact.name} onChange={setField('name')} />
-          {gateError && <p className="text-[12.5px] text-red-400">{gateError}</p>}
+          {gateError && <Alert>{gateError}</Alert>}
           <Button type="submit" size="lg" className="w-full" disabled={pdfBusy} icon={<Download className="h-4 w-4" strokeWidth={1.7} />}>
             {pdfBusy ? 'Preparing PDF…' : 'Download PDF'}
           </Button>
+          <Status className="sr-only">{pdfBusy ? 'Preparing your PDF…' : ''}</Status>
           <p className="text-[11px] leading-relaxed text-mute">
             By continuing you agree to our{' '}
             <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 hover:text-gold">

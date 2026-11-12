@@ -17,6 +17,8 @@ ap.add_argument('--samples', type=int, default=32)
 ap.add_argument('--width', type=int, default=1440)
 ap.add_argument('--views', default='')
 ap.add_argument('--no-subdiv', action='store_true', help='for very dense models that run out of memory')
+ap.add_argument('--keep-normals', action='store_true',
+                help="for clean models: render the paint meshes and their authored normals as exported (no weld, smoothing or subdivision)")
 ap.add_argument('--car', default='', help='car id for the per-car fixes below (default: the output folder name)')
 ap.add_argument('--hide', default=None, help='regex of mesh names to drop (overrides the per-car default)')
 ap.add_argument('--studio', choices=['default', 'dark'], default='default',
@@ -65,6 +67,17 @@ CAR_FIXES = {
     # the panoramic roof's black plastic panel is coplanar with its glass: the two z-fought into black blotches from above.
     # Drop the panel, render the glass as flat dark glass and keep the crisp strips off it.
     'x5m_f95': {'hide': r'^roof_panoram_plastic', 'dark_glass': r'^roof_panoram\d*_glass', 'glass_unlink': r'^roof_panoram\d*_glass'},
+    # The prepared packages (Drive > 3d cars) are clean models with authored normals (16-bit in the web GLB). Welding the
+    # panels and re-weighting their normals crumpled them, and subdividing them had Blender killed for memory on an 8 GB
+    # machine, so they render exactly as exported. authored_lamps: their lamps are modelled (clear covers, reflectors, lit
+    # DRLs and tail lamps) and render that way; without it lamp covers and housings are satin black and nothing glows.
+    'm2_g87': {'keep_normals': True, 'authored_lamps': True},
+    'm4_cs_g82': {'keep_normals': True, 'authored_lamps': True},
+    'm5_g90': {'keep_normals': True, 'authored_lamps': True},
+    'm5_touring_g99': {'keep_normals': True, 'authored_lamps': True},
+    # Blendkit (frames-only: the browser never gets its GLB), from scripts/prerender/prepare_blend.py
+    'ix3_m60': {'keep_normals': True, 'authored_lamps': True},
+    'm3_g80': {'keep_normals': True, 'authored_lamps': True},
 }
 LAMP_MATS = {  # source part name in the mesh name: Principled inputs
     'Lights_Common': {'Base Color': (0.7, 0.7, 0.71, 1), 'Metallic': 1.0, 'Roughness': 0.15},  # reflectors
@@ -79,6 +92,7 @@ LAMP_MATS = {  # source part name in the mesh name: Principled inputs
     'Glass_Clear': {'Base Color': (0.9, 0.91, 0.92, 1), 'Alpha': 1.0, 'Transmission Weight': 0.92, 'IOR': 1.0,
                     'Roughness': 0.0, 'Coat Weight': 1.0, 'Coat Roughness': 0.02},  # thin, slightly hazy lens
 }
+LAMP_GLOW = 3.0      # most a lit lamp part may emit (authored_lamps); the engine's own values run far higher
 # --studio dark. Light sizes are in car lengths (L) or metres; *_rad is the emitted radiance in Blender
 # units (area-light power = radiance x area x pi), so the numbers mean the same whatever the car size.
 # A white paint pass sees diffuse light = albedo x irradiance / pi, so rad values are chosen to keep that
@@ -149,6 +163,8 @@ for o in meshes:
     is_paint = any(s.material and s.material.name.startswith('PAINT') for s in o.material_slots)
     if is_paint:
         o.data.materials.clear(); o.data.materials.append(paint)
+        if a.keep_normals or fix.get('keep_normals'):
+            continue   # a clean model: its panels and authored normals render exactly as exported
         # The source panels are faceted and split: weld, smooth and subdivide them so the
         # reflections run clean instead of looking like crumpled sheet metal.
         bm = bmesh.new(); bm.from_mesh(o.data)
@@ -167,7 +183,13 @@ for o in meshes:
         for s in o.material_slots:
             m = s.material
             b = m and m.node_tree and m.node_tree.nodes.get('Principled BSDF')
-            if b and m.name.split('.')[0] in ('part', 'other', 'blackTrim'):
+            kind = m.name.split('.')[0] if m else ''
+            lamps = fix.get('authored_lamps')
+            if b and lamps and kind == 'lens':   # clear lamp cover: thin glass, so the reflectors and the lit parts show through
+                for k, v in LAMP_MATS['Glass_Clear'].items(): b.inputs[k].default_value = v
+            if b:   # lit parts: without authored_lamps nothing glows (as these frames always were); with it, capped so a DRL reads lit without flooding the bumper
+                b.inputs['Emission Strength'].default_value = min(b.inputs['Emission Strength'].default_value, LAMP_GLOW) if lamps else 0.0
+            if b and (kind in ('part', 'other', 'blackTrim') or (kind in ('lens', 'lamp') and not lamps)):
                 # unnamed plastics, arch liners and trim: satin black, as on the real car
                 b.inputs['Base Color'].default_value = (0.02, 0.02, 0.022, 1)
                 b.inputs['Metallic'].default_value = 0.0

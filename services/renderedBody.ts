@@ -13,14 +13,66 @@ import type { CarConfiguratorEngine } from './CarConfiguratorEngine';
  * goes through here, so the tone curve and the backdrop cannot drift apart.
  */
 export const RENDER_ASPECT = 1.6; // matches scripts/prerender/export-scene.cjs
-export const RENDER_VIEWS: CameraViewPreset[] = ['frontThreeQuarter', 'side', 'rearThreeQuarter', 'frontWheel', 'top'];
+export const RENDER_VIEWS: CameraViewPreset[] = ['frontThreeQuarter', 'side', 'rearThreeQuarter', 'frontWheel', 'top', 'front'];
+
+/**
+ * A frames-only car (licensed model that may only reach the site as images, e.g. Blendkit Royalty Free): the browser
+ * never loads its GLB. The manifest carries what the engine would otherwise read from the GLB, written at render time
+ * by scripts/prerender/export-scene.cjs from the same engine: where each wheel sits ([x, y, z, scale] in engine space,
+ * keyed 'front-left' ... 'rear-right') and the car's half length and half width. Each view also has a depth.png
+ * (scripts/prerender/render_car.py --depth) that hides the far-side wheels behind the rendered body.
+ */
+export interface FramesLayout {
+  views: CameraViewPreset[];
+  wheels: Record<string, [number, number, number, number]>;
+  footprint: [number, number];
+}
+type ManifestEntry = string[] | ({ framesOnly?: boolean } & Partial<FramesLayout>);
+
+let rawManifest: Promise<Record<string, ManifestEntry>> | null = null;
+const loadRaw = () =>
+  (rawManifest ??= fetch('/renders/manifest.json')
+    .then((r) => (r.ok ? (r.json() as Promise<Record<string, ManifestEntry>>) : {}))
+    .catch(() => ({} as Record<string, ManifestEntry>)));
 
 let manifest: Promise<Record<string, string[]>> | null = null;
 /** Car ids that have renders, with their views. */
 export const loadRenderManifest = () =>
-  (manifest ??= fetch('/renders/manifest.json')
-    .then((r) => (r.ok ? r.json() : {}))
-    .catch(() => ({})));
+  (manifest ??= loadRaw().then((m) =>
+    Object.fromEntries(Object.entries(m).map(([id, e]) => [id, Array.isArray(e) ? e : e.views ?? []]))
+  ));
+
+const CORNERS = ['front-left', 'front-right', 'rear-left', 'rear-right'];
+let framesCars: Promise<Record<string, FramesLayout>> | null = null;
+/** Frames-only cars and their layouts. An entry missing a wheel or the footprint is left out (it would float). */
+export const loadFramesCars = () =>
+  (framesCars ??= loadRaw().then((m) => {
+    const out: Record<string, FramesLayout> = {};
+    for (const [id, e] of Object.entries(m)) {
+      if (Array.isArray(e) || !e.framesOnly || !e.views?.length || !e.footprint) continue;
+      if (!CORNERS.every((k) => e.wheels?.[k]?.length === 4)) {
+        console.warn(`renders/manifest.json: ${id} is frames-only but lacks a wheel layout; left out`);
+        continue;
+      }
+      out[id] = { views: e.views, wheels: e.wheels!, footprint: e.footprint };
+    }
+    return out;
+  }));
+
+/**
+ * Cars with Blender bodies for the summary and PDF stills only (public/renders/stills.json). The configurator's
+ * stage keeps drawing these cars live (a view in manifest.json would replace the live car there), but its stills are
+ * Cycles renders with the live wheels on top. A car listed in both has the union of the views.
+ */
+export const loadStillsManifest = async (): Promise<Record<string, string[]>> => {
+  const [main, stills] = await Promise.all([
+    loadRenderManifest(),
+    fetch('/renders/stills.json').then((r) => (r.ok ? (r.json() as Promise<Record<string, string[]>>) : {})).catch(() => ({} as Record<string, string[]>))
+  ]);
+  const out: Record<string, string[]> = { ...main };
+  for (const [car, views] of Object.entries(stills)) out[car] = [...new Set([...(out[car] ?? []), ...views])];
+  return out;
+};
 
 const toLin = new Float32Array(256).map((_, i) => {
   const c = i / 255;

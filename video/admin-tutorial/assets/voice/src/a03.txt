@@ -1,0 +1,1 @@
+Once you're in, five tabs run everything: cars, wheels, finishes, paints and enquiries. Anything you change here shows up in the configurator as soon as you save.

@@ -16,7 +16,7 @@ The configurator builds each rim face in 3D from a single PNG (`services/wheelKi
 - **The barrel behind the outer spokes** may stay in the photo. The app traces the arms across it to
   the lip. Cutting it out between the arms gives the cleanest result.
 - **Only the cut-out's shape is used for the 3D face.** Its colour comes from the finish the customer
-  picks (Liquid Metal, Bronze Matte, Black Gloss, Silver; see the `forgedsa-rim-finishes` skill).
+  picks (Liquid Metal, Bronze Matte, Gloss Black, Silver; see the `forgedsa-rim-finishes` skill).
   - The ingest still maps every photo to **neutral light grey**, because the flat fallback (no
     transparency, or 3D spokes switched off) shows the photo itself, multiplied by the finish.
   - A gold photo would tint every finish gold there.
@@ -45,7 +45,7 @@ there.
 | `code` | `FSA-02` | Optional; the wheel's id is built from it (`forged_fsa_02`), so keep it stable. |
 | `sizes` | `19\|20\|21\|22` | Separate values with `\|`. |
 | `prices_zar` or `prices_usd` | `68000\|74000\|82000\|92000` | Price for a set of four, one per size. Rand is converted at the `config/brand.ts` rate. |
-| `finishes` | `Liquid Metal\|Bronze Matte\|Black Gloss\|Silver` | Names or ids from the Finishes tab. |
+| `finishes` | `Liquid Metal\|Bronze Matte\|Gloss Black\|Silver` | Names or ids from the Finishes tab. |
 | `subtitle`, `description`, `highlights` | | Optional copy; highlights separated by `\|`. The AI writes them if blank. |
 | `style` | `Monoblock Forged` | Optional line under the name on the collection page. The AI suggests one if blank. |
 | `skip` | `yes` | Optional. `yes` leaves the row alone on the next run (used for the wheels already live). |
@@ -61,16 +61,17 @@ in the sheet; set them in `/admin`, and later runs keep them (as they keep a sty
 
 ## Current catalogue
 
-The first batch came from the 24 photos in `Wheel designs.zip`. Photos of the same design in another
-colour were merged, which leaves 17 designs.
+The configurator offers only the wheels on the owner's stock sheet: FSA001 (staggered), FSA002, FSA003,
+FSA004, FF-1 and FF-3, each a real 3D rim file (`docs/WHEEL_INVENTORY.md`, `scripts/ingest-rim.mjs`).
 
-| Codes | Status |
-|---|---|
-| FSA-01 … FSA-09 | **Live.** Front-on photos, cut out without redrawing, checked by eye and on the car. |
-| FSA-10 … FSA-17 | **Waiting.** Only three-quarter photos exist, so an image model has to redraw them face-on. That step needs OpenRouter (see one-time setup). Once it is allowed, run the workflow on the folder; these rows are already in the sheet. |
+The photo-traced designs this pipeline produced (FSA-01, 02, 04 to 09, 12, 13, 14; eleven wheels) are
+**hidden** (`active = false`) since 2026-11-10, not deleted, so they can be switched back on in
+`/admin` > Wheels. The three-quarter-photo batch (FSA-10 to FSA-17) was never run through the image-model
+step and is not offered. The six placeholder designs the app first shipped with were removed when the first
+photo wheel went live. `data/configuratorData.ts` mirrors the catalogue as the offline fallback.
 
-The six placeholder designs the app shipped with were removed when the first real wheel went live.
-`data/configuratorData.ts` mirrors the live wheels as the offline fallback.
+For a new wheel, start with the 3D rim file route in `PRODUCT_SPEC_CARS_AND_WHEELS.md`; this photo pipeline
+is the fallback when only a photo exists.
 
 ## Choosing photos
 

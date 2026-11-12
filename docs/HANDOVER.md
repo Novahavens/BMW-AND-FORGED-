@@ -27,20 +27,27 @@ Follow the sections in order. Each step has a **Check** line; do not move on unt
 
 | URL | What it is |
 |---|---|
-| `/` | Welcome: live car in the dark FORGEDSA studio, region and currency select, **Enter** |
-| `/models` | Showroom: one BMW M car at a time, huge model name behind it, ← → to switch (the car drives out and the next drives in), **Explore** (specs) and **Build** |
-| `/configure` | Configurator: right-hand panel (bottom sheet on phones) with 4 steps: Paint, Wheels, Size, Finish. Wheel choices cut to a close-up of the wheel |
-| `/summary` | Your build: studio stills, options, price, **Share** (configuration code + link), **PDF**, **Enquire** |
+| `/` | Welcome: the dark carousel of studio stills of the four cars. The car is chosen here (arrows, scroll, keyboard, swipe or dots). Region and currency select, **Enter** (opens the configurator on the car showing) |
+| `/models` | Opens the welcome. The showroom page that used to live here was removed on 2026-11-11 |
+| `/configure` | Configurator: a live car on the dark stage (black backdrop, a pool of light on a pale floor, pool shadow, "FORGED" plates; the M5 G90 shows its Blender frames in the fixed views instead, `ADD_PREPARED_CAR.md`, "Body modes"); the stepped drawer (a bottom sheet on phones, a side panel on wider screens) with Overview, then steps 1 Paint, 2 Wheels, 3 Size, 4 Finish; camera chips Front / Side / Rear / Wheel / Top and a turntable button over the stage; **Change model** (back to the welcome carousel, which opens on the car being built); **More options** (the … button in the drawer header: Region, Load a configuration, Account & garage, links to The wheels, Enquire, Delivery & fitment, Terms & conditions and Credits, and Start again, which returns to the welcome); live set price (the dearer finish counts). `?panel=viewer` shows the viewer's glass panel instead, for comparison |
+| `/summary` | Your build: studio stills, options, price, **Share** (configuration code + link), **PDF**, **Enquire**, **Save to garage** (signed in) |
+| Account sheet (the **Account** button in the configurator's stage corner, or **More options** → **Account & garage**) | Google sign-in (Supabase Auth); profile; garage of saved builds (open, rename, delete); sign out. `docs/ACCOUNTS.md` |
 | `/?config=CODE` | Reopens a shared configuration |
 | `/forged` | The wheel collection |
-| `/rims/<rim-id>` | 360° view of one wheel: finish, size, price, "See it on my car" |
+| `/rims/<rim-id>` | One wheel in the 3D wheel studio (views Face / 3/4 / Side / Back / Top, finish chips, Show toggles): finish, size, price, "See it on my car" |
 | `/delivery` | Delivery & fitment (copy in `config/pages.ts`) |
 | `/terms` | Terms & conditions (copy in `config/pages.ts`) |
 | `/admin` | Admin sign-in (with emailed set-password link), then edit cars, wheels, finishes and paints, upload GLBs, rim PNGs or CAD, and read Enquiries |
 
-**Only cars with a 3D file appear in the showroom.** Nine of the 11 cars have one; the M4 Convertible
-and M5 Touring appear automatically as soon as you upload a GLB for them in `/admin`. Model credits
-and licences: `public/models/CREDITS.md`.
+Since 2026-11-11 there is no showroom page: the car is chosen on the welcome carousel and **Enter** opens `/configure` on it. The `/configure` screen draws a live car in the stage look (`services/viewerStudio.ts`, `engine.setLook('stage')`: a black backdrop, a pool of light on a pale floor, a black reflection cove with one overhead softbox), modelled on the welcome's Cycles stills. Its controls are the stepped drawer (`StepDrawer` in `components/journey/Configurator.tsx`), which the owner chose over the viewer's glass panel. The prepared cars (M2 CS, M4 CS, M5, M5 Touring) are the line-up and the older Sketchfab cars are hidden until their packages arrive (`ADD_PREPARED_CAR.md`).
+
+**Four cars are in the line-up:** the prepared M2 CS, M4 CS, M5 and M5 Touring (all with a GLB in
+`public/models/`). The other eight rows (M4 Competition, M4 Convertible, M3, M3 Touring, M235, M8, X3 M50,
+X5 M) stay in the catalogue but are hidden (`active = false`, migration `20261110141000_legacy_cars_hidden.sql`)
+until their prepared packages arrive. Uploading a GLB alone does not bring a hidden car back: tick *Visible in
+configurator* as well (the M4 Convertible has no 3D file at all). Model credits and licences:
+`public/models/CREDITS.md`; the four prepared bodies are recorded there as **"Licence not confirmed"**
+(prototype use until a licence covering web use is in hand, `ADD_PREPARED_CAR.md`, "Licence").
 
 **Customer choices (only these five):** car, paint colour, rim design, rim size, rim colour (finish).
 Rim size visibly changes the rim on the car (bigger rim, thinner tyre sidewall) and has its own price.
@@ -58,8 +65,14 @@ If Supabase is ever unreachable, the app falls back to the bundled catalogue in
 1. Open <https://supabase.com/dashboard/project/qxlfkfhzpqbxffuqqewg/auth/users>.
 2. **Add user → Create new user**: email `fazal@novahavens.com` (already on the admin allowlist),
    choose a strong password, tick **Auto Confirm User**.
-3. **Turn off public sign-ups**: Authentication → Sign In / Providers → Email → untick
-   *Allow new users to sign up* → Save. (Nobody can sign up via the app anyway, but this closes the door.)
+3. **Leave sign-ups and email confirmation on**: Authentication → Sign In / Providers → Email → *Allow
+   new users to sign up* stays **on** (customers are created on their first Google sign-in, section 5b) and
+   *Confirm email* stays **on**. The admin lock is the allowlist plus a **confirmed email**: since
+   `supabase/migrations/20261110170000_admin_requires_confirmed_email.sql`, `private.is_admin()` says yes
+   only for an `admin_users` address whose `auth.users.email_confirmed_at` is set, so an unconfirmed
+   sign-up with an admin's address is just a customer. Create every admin with **Auto Confirm User**
+   ticked (or have them set a password through the emailed link, which confirms the address); the check
+   query is in `ACCOUNTS.md`, owner step 5c.
 4. To make the **client** an admin too: create their user the same way, then in
    **SQL Editor** run:
    ```sql
@@ -68,7 +81,8 @@ If Supabase is ever unreachable, the app falls back to the bundled catalogue in
    To remove someone: `delete from public.admin_users where email = '...';`
 
 **Check:** go to `/admin`, sign in, and you should see the Cars / Wheels / Finishes / Paints tabs.
-If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't match the login email.
+If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't match the login email, or
+(after migration `20261110170000`) the admin's email is not confirmed (`ACCOUNTS.md`, owner step 5c).
 
 ---
 
@@ -76,7 +90,9 @@ If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't ma
 
 ### 2a. Car models (.glb)
 
-> **No Blender?** See `NO_BLENDER_AND_UI_PLAN.md`, section 1: check names in the browser, rename in the free three.js editor, compress at gltf.report.
+> **No Blender?** See `archive/NO_BLENDER_AND_UI_PLAN.md`, section 1: check names in the browser, rename in the free three.js editor, compress at gltf.report.
+>
+> **Got one of the prepared car packages** (Drive > 3d cars, `BMW_*.zip` with `C10_Wheel_FL..` and a `Paint` material)? One command does everything below: `node scripts/ingest-car.mjs BMW_M5_G90.zip --car m5_g90 --check`. See `ADD_PREPARED_CAR.md`.
 
 **Prepare the file (Blender, free):**
 1. `File → Import` your model. If it's already .glb, import it anyway to check it.
@@ -99,7 +115,9 @@ If it says *"not on the admin allowlist"*, the email in `admin_users` doesn't ma
 **Upload:**
 1. `/admin` → **Cars** → click the car → **3D model (.glb) → Upload** → pick the file.
 2. Wait for the link to appear under the button, then click **Save**.
-3. Click **Back to studio** and select that car.
+3. Click **Back to studio** and choose that car on the welcome carousel, then **Enter**. A car with no slide
+   on the carousel yet (see the note under the table in section 3) is not offered there; open
+   `/configure?panel=viewer`, whose panel has Car chips, to look at it.
 
 **Check / fix:**
 
@@ -126,14 +144,20 @@ Each wheel can have a **rim image**, a **rim 3D model**, or both (the model wins
 - *Build 3D spokes from the image* is ticked by default; untick it to show the image flat.
 
 **Rim GLB (best quality)**: from the client's CAD files, an AI image-to-3D tool (Tripo, Meshy, Hunyuan3D)
-or a 3D modeller. See `NO_BLENDER_AND_UI_PLAN.md` section 2b.
+or a 3D modeller. See `archive/NO_BLENDER_AND_UI_PLAN.md` section 2b. The six stocked designs are already real
+3D rims (`public/models/rims/`, from the website's files); a new one goes in with one command,
+`node scripts/ingest-rim.mjs rim.glb --wheel <id> --new --name … --sizes … --price-zar … --finishes … --check`
+(`docs/ADD_PREPARED_CAR.md`, "Rims the same way"; a staggered set adds `--rear rear.glb`). Brake parts inside
+the file are dropped automatically.
 - The rim only, **without a tyre**. Under 15 MB is ideal (compress at gltf.report).
 - Upload: `/admin` → **Wheels** → the wheel → **Rim 3D model (.glb) → Upload** → **Save**.
 - It's turned, sized to the rim diameter and centred automatically, and takes the finish colour.
   If the face points into the car, tick **Flip 3D rim** → Save.
 
-**Check:** Studio → wheel drawer → select the wheel → **Zoom to Wheel**, and open **Rim detail**
-(the 3D turntable page).
+**Check:** `/configure` → step 2 **Wheels** → select the wheel (the camera cuts to the wheel close-up; the
+**Wheel** camera chip over the stage returns to it), then the **View in 360°** button on the wheel card,
+which opens the rim page (`/rims/<rim-id>`, the 3D wheel studio with finish, size and price). Check the
+wheel there as well: the rim page loads the same rim file as the car.
 
 ### 2c. Prices, names, finishes, paints
 
@@ -142,16 +166,25 @@ Everything in the drawers comes from the admin tabs. Edit → **Save** → the s
 - **Order**: *Sort order* (lower = first).
 - A wheel only offers the finishes ticked in *Available finishes*; *Default finish ID* must be one of them.
 - **Sizes & prices**: each wheel has a list of sizes with a set price (4 wheels) per size. Only listed sizes
-  are offered; remove a size with the bin icon, add one with the **+ 22"** style buttons. Starting prices are
-  placeholders (20" = the old set price, 19" −$600, 21" +$700, 22" +$1,500): **set the real ones**.
+  are offered; remove a size with the bin icon, add one with the **+ 22"** style buttons. The six stocked
+  wheels carry the stock sheet's prices (`docs/WHEEL_INVENTORY.md`; USD = ZAR ÷ 18.2 so the ZA price shows
+  exactly). **Dearer finishes** (Polished Face, Liquid Metal) have their own set price in the field of that name;
+  blank = same as the size price.
+- **Rear rim 3D model**: only for a staggered set whose rear rim differs (FSA001); otherwise leave it empty.
 
 ---
 
 ## 3. User journey
 
-Welcome (`/`) → **Enter** → Showroom (`/models`) → **Build** → pre-curated vehicle notice → Configurator
-(`/configure`) → **View your M4** → Summary (`/summary`) → Share / PDF / Enquire.
-One 3D studio stays alive behind every step; the camera glides between stages rather than the page reloading.
+Welcome (`/`, the car is chosen on the carousel) → **Enter** → Configurator (`/configure`) → **View your M4** →
+Summary (`/summary`, which carries the visualisation notice) → Share / PDF / Enquire. There is no showroom.
+One 3D studio stays alive behind the welcome and the configurator rather than the page reloading. While the
+welcome stills cover the canvas the engine is prepared behind them (stage look built, camera framed as in the
+configurator, the car on stage preloaded), so Enter reaches the configurator in well under a second in the
+harness. **Enter** opens the car in the paint its still shows when that car's palette has it (the M2 CS in
+Portimao Blue, the M5 in Fire Red); the M4 CS and M5 Touring palettes do not have their stills' paints, so they
+open in their first paint. **Change model** in the configurator goes back to the welcome carousel, which opens
+on the car being built.
 
 | To change… | Edit |
 |---|---|
@@ -159,12 +192,22 @@ One 3D studio stays alive behind every step; the camera glides between stages ra
 | Regions, languages, currencies and exchange rates (prices are stored in USD) | `config/brand.ts` → `regions` |
 | Browser tab title, link-preview text | `index.html` |
 | Welcome screen layout | `components/journey/WelcomeGate.tsx` |
-| Showroom | `components/journey/Showroom.tsx` |
-| Configurator panel and steps | `components/journey/Configurator.tsx` |
+| Welcome carousel: the cars, their order and the paint each still shows | `HERO_SLIDES` in `components/journey/HeroStage.tsx`; images in `public/hero/` |
+| Configurator controls (Overview, then 1 Paint, 2 Wheels, 3 Size, 4 Finish; camera chips; turntable) | `StepDrawer` in `components/journey/Configurator.tsx`. The viewer's glass panel (`components/journey/ViewerPanel.tsx`) only shows with `?panel=viewer` |
+| More options dialog (region, load a code, account, links to the other pages, Start again) | `MoreOptionsModal` in `components/journey/Configurator.tsx`; its page links are `menuLinks` in `App.tsx`. It replaces the hamburger menu and top bar, which went with the showroom (`components/journey/TopBar.tsx` is deleted). There is no "Home", "Models" or "Configure" entry; the welcome keeps its own "The wheels" link and social icons |
+| Rim page (`/rims/<id>`) | `components/RimDetailPage.tsx`, `components/WheelStage.tsx`, `shared/wheel-viewer/WheelStudio.tsx`, `shared/wheel-viewer/wheelStudioParts.ts` |
 | Summary page | `components/journey/SummaryPage.tsx` |
 | PDF layout | `services/brochurePdf.ts` |
 | Enquiry form | `components/journey/EnquiryModal.tsx` |
-| Car order in the showroom / default paint and wheel | Admin → *Sort order* (the first item is the default) |
+| Car order on the welcome, and the paint a car opens in | `HERO_SLIDES` (above). A car whose palette lacks its still's paint opens in the first paint of its palette |
+| Order of the wheel list / default wheel | Admin → *Sort order* (the first wheel is the default) |
+
+**The welcome carousel's slides are a fixed list (`HERO_SLIDES`), filtered to the catalogue's active cars.** Since
+the showroom went, it is the only place a customer chooses the car, so:
+- a car added in `/admin` is not offered to customers until it has a slide (a still in `public/hero/` and an
+  entry in `HERO_SLIDES`; `PRODUCT_SPEC_CARS_AND_WHEELS.md` section 4.7);
+- a car hidden in `/admin` loses its slide (`WelcomeGate` leaves out slides whose car is not on offer);
+- *Sort order* on cars does not change the order of the slides.
 
 **Where things are saved (Supabase):**
 - **Enquiries** → table `leads` (name, email, phone, message, consultation, configuration, code, region).
@@ -180,7 +223,7 @@ One 3D studio stays alive behind every step; the camera glides between stages ra
 | Name, logo | `config/brand.ts`: `name`, and `logoUrl` (put the SVG/PNG in `public/` and use e.g. `'/logo.svg'`) |
 | Colours | `config/brand.ts` → `colors` (used by the PDF), and the matching Tailwind tokens in `tailwind.config.cjs` (`gold`, `brass`, `carbon`, `surface`, `ember`). Main action buttons are the `primary` variant of `Button` in `components/journey/ui.tsx` (`bg-ember`, hover `ember-light`). The lead email has its own copy of the colours in the n8n Code node (§5a). |
 | Font | Satoshi (headings) and Inter (body), self-hosted in `public/fonts/` and declared in `index.html`. The PDF embeds `satoshi-700/900.ttf` |
-| Studio lighting / reflections | `services/CarConfiguratorEngine.ts` → `setupStudioLighting('studio_light')` and `HDRI_URL` |
+| Studio lighting / reflections | `/configure` (the stage look): `services/viewerStudio.ts` → `STAGE` (floor, pool of light, overhead softbox, exposure). The softbox studio the engine uses elsewhere: `services/CarConfiguratorEngine.ts` → `setupStudioLighting('studio_light')` and `HDRI_URL` |
 | Camera angles | `services/CarConfiguratorEngine.ts` → `setCameraPreset` |
 
 **Safe editing loop (every time):**
@@ -192,18 +235,58 @@ bun run lint                     # must print nothing
 bun run build                    # must end with "built in …"
 git commit -am "Describe change" && git push -u origin my-change
 ```
-Vercel builds a **preview URL** for every pushed branch. Check it there before merging to `main`.
+Check a branch on the Render preview (below) before merging to `main`. Vercel builds nothing on push
+(section 5).
 
 ---
 
 ## 5. Deploy (Vercel)
 
-A Vercel project **forged-configurator** (team *Nova Havens*) is connected to this repo. Every push
-builds a preview URL; the production URL is <https://forged-configurator-nova-havens.vercel.app>.
-Build settings: framework **Vite**, build `vite build`, output `dist`. No environment variables are needed.
-`vercel.json` makes every page work on refresh. Optional: Settings → Domains → add the client's domain.
+The production URL is <https://forged-configurator.vercel.app>. The client handover, the OAuth client
+and the Supabase redirect list all use this URL. It is served by the Vercel project
+**forged-configurator** (team *Nova Havens*, `prj_p1fOXWBPFfxedbLZFp9R3s1Qiq9P`).
+
+**The project is not linked to this repo, so pushes and merges deploy nothing.** This was checked
+read-only through the Vercel API on 2026-11-11:
+- The project has no git connection.
+- Its current production build (2026-10-08) was made from `Novahavens/BMW-AND-FORGED-` at `0aef67e`,
+  42 commits behind this repo's `main`.
+- No build has ever come from `FazalRSA/BMW-AND-FORGED-`.
+
+To update production there are two routes. Either connect this repo in the project's Git settings and
+merge to `main`, or start a production deployment by hand from a `main` commit (the
+`forgedsa-deploy-and-release` skill). Either way, production deploys are the owner's call.
+
+Build settings: framework **Vite**, build `vite build`, output `dist`. No environment variables are
+needed. `vercel.json` makes every page work on refresh. Optional: Settings → Domains → add the client's
+domain.
+
+**Production reads the live Supabase catalogue.**
+- All fifteen `supabase/migrations/20261110*.sql` files were applied to the live project on 2026-11-10
+  and checked against its migration history on 2026-11-11.
+- They cover the four prepared cars, the hidden legacy cars, the six stock-sheet wheels and finishes,
+  customer accounts, the confirmed-email admin lock, the M2 CS / M5 Touring specs and the
+  own-brakes hide rule.
+- The two `CONCURRENTLY` indexes from `ACCOUNTS.md` step 5b were created separately.
+
+The production code, however, is still the 2026-10-08 build until it is redeployed. **Continue with
+Google** fails until the Google provider and redirect URLs are set up (`ACCOUNTS.md`, owner steps 1
+to 4).
 
 ---
+
+### Branch preview on Render
+
+While a branch is under review it can be seen at <https://forgedsa-configurator.onrender.com>: a Render
+static site (`forgedsa-configurator`, workspace *My Workspace*) that builds `ccr-f52bf849-fnf7qs` on every
+push with `npm install --no-audit --no-fund && npm run build && cp dist/index.html dist/404.html`, publish
+`dist`, env `NODE_VERSION=22` and `VITE_CATALOG_SOURCE=static` (the bundled catalogue, so the preview shows
+the new cars and wheels before the migrations are applied). Point it at another branch in the Render
+dashboard → Settings → Branch. Everything else (share codes, leads, PDF, admin) uses the live Supabase
+project, so test leads from the preview email the team like real ones. **Google sign-in only works on a
+URL in the Supabase redirect list** (`ACCOUNTS.md`, owner step 3): add `https://forgedsa-configurator.onrender.com/**`
+before testing accounts on the preview, and `http://localhost:3000/**` for `bun run dev` (Vite is set to
+port 3000 in `vite.config.ts`; the list as written names `localhost:5173`, the port the harness scripts use).
 
 ## 5a. New-lead email automation
 
@@ -239,19 +322,42 @@ n8n "FORGEDSA · Lead email" ── Webhook (POST) ─▶ Code "Build branded em
 
 ---
 
+## 5b. Customer accounts (Google sign-in)
+
+Customers can sign in with Google (Supabase Auth) to keep a garage of saved builds; share codes and
+leads they create carry their account id, and the PDF gate and enquiry form pre-fill from their
+profile. Anonymous use is unchanged. The one-time dashboard setup (Google provider, redirect URLs),
+the schema and policies (`supabase/migrations/20261110150000_customer_accounts.sql`), what is stored
+(POPIA) and the test script are in [`ACCOUNTS.md`](ACCOUNTS.md). Admins keep their password sign-in and
+the `admin_users` allowlist, so a Google customer gains nothing at `/admin`; the one change for admins is
+that their email must be **confirmed** (step 1.3, migration `20261110170000`). Sign-in only works from a
+URL in the redirect list: production, the Vercel preview pattern, localhost, and the Render preview if
+you add it (section 5, "Branch preview on Render").
+
+---
+
 ## 6. Pre-handover checklist (do it on the live URL, on a laptop **and** a phone)
 
-- [ ] Loader → welcome in a few seconds; the car turns slowly on the welcome screen
-- [ ] Showroom arrows switch cars (drive-out / drive-in); Explore shows specs
-- [ ] Build → notice → Confirm opens the configurator; every paint, wheel, size and finish applies
+**Before you start (otherwise the car, wheel and account items below cannot pass):** every
+`supabase/migrations/20261110*.sql` applied in order, ending with `20261110170000` and `20261110171000`
+(section 5); the Google provider, redirect URLs and the confirmed-admin check done (`ACCOUNTS.md`, owner
+steps 1 to 5); the URL you test on is in the redirect list. Until then, use the Render preview for the
+car and wheel items (it ships the bundled catalogue) and skip the account item.
+
+- [ ] Loader → welcome in a few seconds; the welcome shows a studio still of a car on a dark stage
+- [ ] The welcome's arrows, scroll, arrow keys, swipe and dots switch between the four cars (M2 CS, M4 CS, M5, M5 Touring); no Sketchfab-era car appears
+- [ ] **Enter** opens the configurator on the car showing (the M2 CS in Portimao Blue, the M5 in Fire Red, the M4 CS and M5 Touring in their first paint); every paint, wheel, size and finish applies; **Change model** returns to the welcome on the same car
 - [ ] Choosing a wheel, size or finish cuts to the wheel close-up
 - [ ] Prices and currency match the region chosen on the welcome screen
-- [ ] Summary shows three stills; **Share** shows a code; opening `/?config=CODE` in a private window restores it
+- [ ] Summary shows three stills and the visualisation notice; **Share** shows a code; opening `/?config=CODE` in a private window restores it
+- [ ] **View in 360°** on a wheel opens the rim page: the wheel studio draws the rim, the view and finish chips work, FSA001 offers Front / Rear
 - [ ] **PDF** downloads a two-page spec sheet
 - [ ] PDF asks for email + mobile first; the lead appears in `/admin` → Enquiries as "PDF download"
 - [ ] An enquiry appears in `/admin` → Enquiries
 - [ ] Both send a branded email to forgedsa1@gmail.com within a few seconds (n8n → Executions shows green)
-- [ ] `/admin` sign-in works for you **and** the client; sign-ups disabled (step 1.3)
+- [ ] `/admin` sign-in works for you **and** the client; *Allow new users to sign up* **and** *Confirm email* are both still **on**, and every admin's email is confirmed (step 1.3; a Google customer visiting `/admin` sees "not on the admin allowlist")
+- [ ] Account → **Continue with Google** signs a customer in (needs the `ACCOUNTS.md` owner steps and the test URL in the redirect list); **Save to garage** on the summary lists the build in the garage; **Open** restores it; sign out
+- [ ] Every wheel in the panel is one of the six on the stock sheet, with its finishes and ZAR prices (`docs/WHEEL_INVENTORY.md`); FSA001 shows different front and rear rims
 
 ---
 

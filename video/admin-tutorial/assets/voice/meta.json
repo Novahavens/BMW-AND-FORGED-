@@ -1,0 +1,2664 @@
+{
+ "a01": {
+  "duration": 12.144,
+  "words": [
+   {
+    "text": "Every",
+    "start": 0.0,
+    "end": 0.471
+   },
+   {
+    "text": "car,",
+    "start": 0.471,
+    "end": 0.863
+   },
+   {
+    "text": "wheel,",
+    "start": 0.863,
+    "end": 1.412
+   },
+   {
+    "text": "price",
+    "start": 1.412,
+    "end": 1.883
+   },
+   {
+    "text": "and",
+    "start": 1.883,
+    "end": 2.196
+   },
+   {
+    "text": "finish",
+    "start": 2.196,
+    "end": 2.746
+   },
+   {
+    "text": "your",
+    "start": 2.746,
+    "end": 3.138
+   },
+   {
+    "text": "customers",
+    "start": 3.138,
+    "end": 3.922
+   },
+   {
+    "text": "see",
+    "start": 3.922,
+    "end": 4.236
+   },
+   {
+    "text": "in",
+    "start": 4.236,
+    "end": 4.471
+   },
+   {
+    "text": "the",
+    "start": 4.471,
+    "end": 4.785
+   },
+   {
+    "text": "configurator",
+    "start": 4.785,
+    "end": 5.805
+   },
+   {
+    "text": "is",
+    "start": 5.805,
+    "end": 6.04
+   },
+   {
+    "text": "managed",
+    "start": 6.04,
+    "end": 6.668
+   },
+   {
+    "text": "from",
+    "start": 6.668,
+    "end": 7.06
+   },
+   {
+    "text": "one",
+    "start": 7.06,
+    "end": 7.374
+   },
+   {
+    "text": "place.",
+    "start": 7.374,
+    "end": 7.923
+   },
+   {
+    "text": "This",
+    "start": 8.043,
+    "end": 8.405
+   },
+   {
+    "text": "is",
+    "start": 8.405,
+    "end": 8.622
+   },
+   {
+    "text": "the",
+    "start": 8.622,
+    "end": 8.911
+   },
+   {
+    "text": "dealership",
+    "start": 8.911,
+    "end": 9.708
+   },
+   {
+    "text": "admin,",
+    "start": 9.708,
+    "end": 10.214
+   },
+   {
+    "text": "and",
+    "start": 10.214,
+    "end": 10.504
+   },
+   {
+    "text": "here's",
+    "start": 10.504,
+    "end": 11.011
+   },
+   {
+    "text": "how",
+    "start": 11.011,
+    "end": 11.3
+   },
+   {
+    "text": "it",
+    "start": 11.3,
+    "end": 11.517
+   },
+   {
+    "text": "works.",
+    "start": 11.517,
+    "end": 12.024
+   }
+  ],
+  "transcript": "Every car, wheel, price and finish your customers see in the configurator is managed from one place. This is the dealership admin, and here's how it works."
+ },
+ "a02": {
+  "duration": 15.583,
+  "words": [
+   {
+    "text": "Open",
+    "start": 0.0,
+    "end": 0.305
+   },
+   {
+    "text": "slash",
+    "start": 0.305,
+    "end": 0.671
+   },
+   {
+    "text": "admin",
+    "start": 0.671,
+    "end": 1.037
+   },
+   {
+    "text": "and",
+    "start": 1.037,
+    "end": 1.281
+   },
+   {
+    "text": "sign",
+    "start": 1.281,
+    "end": 1.586
+   },
+   {
+    "text": "in",
+    "start": 1.586,
+    "end": 1.769
+   },
+   {
+    "text": "with",
+    "start": 1.769,
+    "end": 2.074
+   },
+   {
+    "text": "your",
+    "start": 2.074,
+    "end": 2.379
+   },
+   {
+    "text": "email",
+    "start": 2.379,
+    "end": 2.745
+   },
+   {
+    "text": "and",
+    "start": 2.745,
+    "end": 2.989
+   },
+   {
+    "text": "password.",
+    "start": 2.989,
+    "end": 3.599
+   },
+   {
+    "text": "Only",
+    "start": 3.719,
+    "end": 4.023
+   },
+   {
+    "text": "emails",
+    "start": 4.023,
+    "end": 4.449
+   },
+   {
+    "text": "on",
+    "start": 4.449,
+    "end": 4.631
+   },
+   {
+    "text": "the",
+    "start": 4.631,
+    "end": 4.874
+   },
+   {
+    "text": "dealership's",
+    "start": 4.874,
+    "end": 5.664
+   },
+   {
+    "text": "allowlist",
+    "start": 5.664,
+    "end": 6.272
+   },
+   {
+    "text": "get",
+    "start": 6.272,
+    "end": 6.515
+   },
+   {
+    "text": "through.",
+    "start": 6.515,
+    "end": 7.062
+   },
+   {
+    "text": "And",
+    "start": 7.182,
+    "end": 7.433
+   },
+   {
+    "text": "if",
+    "start": 7.433,
+    "end": 7.621
+   },
+   {
+    "text": "it's",
+    "start": 7.621,
+    "end": 7.935
+   },
+   {
+    "text": "your",
+    "start": 7.935,
+    "end": 8.248
+   },
+   {
+    "text": "first",
+    "start": 8.248,
+    "end": 8.625
+   },
+   {
+    "text": "time,",
+    "start": 8.625,
+    "end": 9.001
+   },
+   {
+    "text": "or",
+    "start": 9.001,
+    "end": 9.189
+   },
+   {
+    "text": "you've",
+    "start": 9.189,
+    "end": 9.629
+   },
+   {
+    "text": "forgotten",
+    "start": 9.629,
+    "end": 10.256
+   },
+   {
+    "text": "your",
+    "start": 10.256,
+    "end": 10.57
+   },
+   {
+    "text": "password,",
+    "start": 10.57,
+    "end": 11.197
+   },
+   {
+    "text": "tap",
+    "start": 11.197,
+    "end": 11.448
+   },
+   {
+    "text": "the",
+    "start": 11.448,
+    "end": 11.699
+   },
+   {
+    "text": "link",
+    "start": 11.699,
+    "end": 12.012
+   },
+   {
+    "text": "underneath,",
+    "start": 12.012,
+    "end": 12.765
+   },
+   {
+    "text": "and",
+    "start": 12.765,
+    "end": 13.016
+   },
+   {
+    "text": "it",
+    "start": 13.016,
+    "end": 13.204
+   },
+   {
+    "text": "emails",
+    "start": 13.204,
+    "end": 13.643
+   },
+   {
+    "text": "you",
+    "start": 13.643,
+    "end": 13.894
+   },
+   {
+    "text": "a",
+    "start": 13.894,
+    "end": 14.02
+   },
+   {
+    "text": "link",
+    "start": 14.02,
+    "end": 14.333
+   },
+   {
+    "text": "to",
+    "start": 14.333,
+    "end": 14.522
+   },
+   {
+    "text": "set",
+    "start": 14.522,
+    "end": 14.772
+   },
+   {
+    "text": "a",
+    "start": 14.772,
+    "end": 14.898
+   },
+   {
+    "text": "new",
+    "start": 14.898,
+    "end": 15.149
+   },
+   {
+    "text": "one.",
+    "start": 15.149,
+    "end": 15.463
+   }
+  ],
+  "transcript": "Open slash admin and sign in with your email and password. Only emails on the dealership's allowlist get through. And if it's your first time, or you've forgotten your password, tap the link underneath, and it emails you a link to set a new one."
+ },
+ "a03": {
+  "duration": 14.65,
+  "words": [
+   {
+    "text": "Once",
+    "start": 0.0,
+    "end": 0.452
+   },
+   {
+    "text": "you're",
+    "start": 0.452,
+    "end": 1.086
+   },
+   {
+    "text": "in,",
+    "start": 1.086,
+    "end": 1.448
+   },
+   {
+    "text": "five",
+    "start": 1.448,
+    "end": 1.9
+   },
+   {
+    "text": "tabs",
+    "start": 1.9,
+    "end": 2.353
+   },
+   {
+    "text": "run",
+    "start": 2.353,
+    "end": 2.715
+   },
+   {
+    "text": "everything:",
+    "start": 2.715,
+    "end": 3.801
+   },
+   {
+    "text": "cars,",
+    "start": 3.801,
+    "end": 4.344
+   },
+   {
+    "text": "wheels,",
+    "start": 4.344,
+    "end": 5.068
+   },
+   {
+    "text": "finishes,",
+    "start": 5.068,
+    "end": 5.973
+   },
+   {
+    "text": "paints",
+    "start": 5.973,
+    "end": 6.606
+   },
+   {
+    "text": "and",
+    "start": 6.606,
+    "end": 6.968
+   },
+   {
+    "text": "enquiries.",
+    "start": 6.968,
+    "end": 7.964
+   },
+   {
+    "text": "Anything",
+    "start": 8.084,
+    "end": 8.857
+   },
+   {
+    "text": "you",
+    "start": 8.857,
+    "end": 9.201
+   },
+   {
+    "text": "change",
+    "start": 9.201,
+    "end": 9.803
+   },
+   {
+    "text": "here",
+    "start": 9.803,
+    "end": 10.233
+   },
+   {
+    "text": "shows",
+    "start": 10.233,
+    "end": 10.748
+   },
+   {
+    "text": "up",
+    "start": 10.748,
+    "end": 11.006
+   },
+   {
+    "text": "in",
+    "start": 11.006,
+    "end": 11.264
+   },
+   {
+    "text": "the",
+    "start": 11.264,
+    "end": 11.608
+   },
+   {
+    "text": "configurator",
+    "start": 11.608,
+    "end": 12.725
+   },
+   {
+    "text": "as",
+    "start": 12.725,
+    "end": 12.983
+   },
+   {
+    "text": "soon",
+    "start": 12.983,
+    "end": 13.413
+   },
+   {
+    "text": "as",
+    "start": 13.413,
+    "end": 13.671
+   },
+   {
+    "text": "you",
+    "start": 13.671,
+    "end": 14.015
+   },
+   {
+    "text": "save.",
+    "start": 14.015,
+    "end": 14.53
+   }
+  ],
+  "transcript": "Once you're in, five tabs run everything: cars, wheels, finishes, paints and enquiries. Anything you change here shows up in the configurator as soon as you save."
+ },
+ "a04": {
+  "duration": 13.883,
+  "words": [
+   {
+    "text": "On",
+    "start": 0.0,
+    "end": 0.222
+   },
+   {
+    "text": "the",
+    "start": 0.222,
+    "end": 0.517
+   },
+   {
+    "text": "left,",
+    "start": 0.517,
+    "end": 0.961
+   },
+   {
+    "text": "a",
+    "start": 0.961,
+    "end": 1.109
+   },
+   {
+    "text": "list",
+    "start": 1.109,
+    "end": 1.478
+   },
+   {
+    "text": "of",
+    "start": 1.478,
+    "end": 1.7
+   },
+   {
+    "text": "everything",
+    "start": 1.7,
+    "end": 2.513
+   },
+   {
+    "text": "in",
+    "start": 2.513,
+    "end": 2.735
+   },
+   {
+    "text": "that",
+    "start": 2.735,
+    "end": 3.105
+   },
+   {
+    "text": "tab.",
+    "start": 3.105,
+    "end": 3.474
+   },
+   {
+    "text": "Anything",
+    "start": 3.594,
+    "end": 4.261
+   },
+   {
+    "text": "marked",
+    "start": 4.261,
+    "end": 4.779
+   },
+   {
+    "text": "hidden",
+    "start": 4.779,
+    "end": 5.297
+   },
+   {
+    "text": "is",
+    "start": 5.297,
+    "end": 5.52
+   },
+   {
+    "text": "switched",
+    "start": 5.52,
+    "end": 6.186
+   },
+   {
+    "text": "off",
+    "start": 6.186,
+    "end": 6.482
+   },
+   {
+    "text": "for",
+    "start": 6.482,
+    "end": 6.778
+   },
+   {
+    "text": "customers",
+    "start": 6.778,
+    "end": 7.519
+   },
+   {
+    "text": "but",
+    "start": 7.519,
+    "end": 7.815
+   },
+   {
+    "text": "still",
+    "start": 7.815,
+    "end": 8.259
+   },
+   {
+    "text": "here,",
+    "start": 8.259,
+    "end": 8.704
+   },
+   {
+    "text": "so",
+    "start": 8.704,
+    "end": 8.926
+   },
+   {
+    "text": "nothing",
+    "start": 8.926,
+    "end": 9.518
+   },
+   {
+    "text": "is",
+    "start": 9.518,
+    "end": 9.74
+   },
+   {
+    "text": "lost.",
+    "start": 9.74,
+    "end": 10.185
+   },
+   {
+    "text": "Pick",
+    "start": 10.305,
+    "end": 10.65
+   },
+   {
+    "text": "an",
+    "start": 10.65,
+    "end": 10.858
+   },
+   {
+    "text": "item",
+    "start": 10.858,
+    "end": 11.204
+   },
+   {
+    "text": "to",
+    "start": 11.204,
+    "end": 11.411
+   },
+   {
+    "text": "edit",
+    "start": 11.411,
+    "end": 11.757
+   },
+   {
+    "text": "it,",
+    "start": 11.757,
+    "end": 12.034
+   },
+   {
+    "text": "or",
+    "start": 12.034,
+    "end": 12.241
+   },
+   {
+    "text": "press",
+    "start": 12.241,
+    "end": 12.656
+   },
+   {
+    "text": "New",
+    "start": 12.656,
+    "end": 12.933
+   },
+   {
+    "text": "to",
+    "start": 12.933,
+    "end": 13.14
+   },
+   {
+    "text": "add",
+    "start": 13.14,
+    "end": 13.417
+   },
+   {
+    "text": "one.",
+    "start": 13.417,
+    "end": 13.763
+   }
+  ],
+  "transcript": "On the left, a list of everything in that tab. Anything marked hidden is switched off for customers but still here, so nothing is lost. Pick an item to edit it, or press New to add one."
+ },
+ "a05": {
+  "duration": 10.885,
+  "words": [
+   {
+    "text": "Open",
+    "start": 0.0,
+    "end": 0.384
+   },
+   {
+    "text": "a",
+    "start": 0.384,
+    "end": 0.538
+   },
+   {
+    "text": "car",
+    "start": 0.538,
+    "end": 0.846
+   },
+   {
+    "text": "and",
+    "start": 0.846,
+    "end": 1.153
+   },
+   {
+    "text": "its",
+    "start": 1.153,
+    "end": 1.461
+   },
+   {
+    "text": "details",
+    "start": 1.461,
+    "end": 2.076
+   },
+   {
+    "text": "are",
+    "start": 2.076,
+    "end": 2.384
+   },
+   {
+    "text": "right",
+    "start": 2.384,
+    "end": 2.845
+   },
+   {
+    "text": "there:",
+    "start": 2.845,
+    "end": 3.383
+   },
+   {
+    "text": "the",
+    "start": 3.383,
+    "end": 3.691
+   },
+   {
+    "text": "name,",
+    "start": 3.691,
+    "end": 4.152
+   },
+   {
+    "text": "the",
+    "start": 4.152,
+    "end": 4.46
+   },
+   {
+    "text": "engine,",
+    "start": 4.46,
+    "end": 5.075
+   },
+   {
+    "text": "the",
+    "start": 5.075,
+    "end": 5.382
+   },
+   {
+    "text": "power,",
+    "start": 5.382,
+    "end": 5.921
+   },
+   {
+    "text": "and",
+    "start": 5.921,
+    "end": 6.228
+   },
+   {
+    "text": "the",
+    "start": 6.228,
+    "end": 6.536
+   },
+   {
+    "text": "factory",
+    "start": 6.536,
+    "end": 7.151
+   },
+   {
+    "text": "fitment,",
+    "start": 7.151,
+    "end": 7.843
+   },
+   {
+    "text": "which",
+    "start": 7.843,
+    "end": 8.304
+   },
+   {
+    "text": "customers",
+    "start": 8.304,
+    "end": 9.073
+   },
+   {
+    "text": "see",
+    "start": 9.073,
+    "end": 9.381
+   },
+   {
+    "text": "on",
+    "start": 9.381,
+    "end": 9.611
+   },
+   {
+    "text": "their",
+    "start": 9.611,
+    "end": 10.073
+   },
+   {
+    "text": "summary.",
+    "start": 10.073,
+    "end": 10.765
+   }
+  ],
+  "transcript": "Open a car and its details are right there: the name, the engine, the power, and the factory fitment, which customers see on their summary."
+ },
+ "a06": {
+  "duration": 6.898,
+  "words": [
+   {
+    "text": "Tick",
+    "start": 0.0,
+    "end": 0.354
+   },
+   {
+    "text": "the",
+    "start": 0.354,
+    "end": 0.637
+   },
+   {
+    "text": "factory",
+    "start": 0.637,
+    "end": 1.204
+   },
+   {
+    "text": "paints",
+    "start": 1.204,
+    "end": 1.7
+   },
+   {
+    "text": "this",
+    "start": 1.7,
+    "end": 2.054
+   },
+   {
+    "text": "car",
+    "start": 2.054,
+    "end": 2.337
+   },
+   {
+    "text": "is",
+    "start": 2.337,
+    "end": 2.55
+   },
+   {
+    "text": "offered",
+    "start": 2.55,
+    "end": 3.117
+   },
+   {
+    "text": "in.",
+    "start": 3.117,
+    "end": 3.4
+   },
+   {
+    "text": "Tick",
+    "start": 3.52,
+    "end": 3.874
+   },
+   {
+    "text": "none,",
+    "start": 3.874,
+    "end": 4.299
+   },
+   {
+    "text": "and",
+    "start": 4.299,
+    "end": 4.582
+   },
+   {
+    "text": "it",
+    "start": 4.582,
+    "end": 4.795
+   },
+   {
+    "text": "offers",
+    "start": 4.795,
+    "end": 5.291
+   },
+   {
+    "text": "every",
+    "start": 5.291,
+    "end": 5.716
+   },
+   {
+    "text": "visible",
+    "start": 5.716,
+    "end": 6.282
+   },
+   {
+    "text": "paint.",
+    "start": 6.282,
+    "end": 6.778
+   }
+  ],
+  "transcript": "Tick the factory paints this car is offered in. Tick none, and it offers every visible paint."
+ },
+ "a07": {
+  "duration": 13.466,
+  "words": [
+   {
+    "text": "Here's",
+    "start": 0.0,
+    "end": 0.519
+   },
+   {
+    "text": "the",
+    "start": 0.519,
+    "end": 0.816
+   },
+   {
+    "text": "car's",
+    "start": 0.816,
+    "end": 1.26
+   },
+   {
+    "text": "3D",
+    "start": 1.26,
+    "end": 1.483
+   },
+   {
+    "text": "model.",
+    "start": 1.483,
+    "end": 2.002
+   },
+   {
+    "text": "Upload",
+    "start": 2.122,
+    "end": 2.683
+   },
+   {
+    "text": "a",
+    "start": 2.683,
+    "end": 2.843
+   },
+   {
+    "text": "new",
+    "start": 2.843,
+    "end": 3.164
+   },
+   {
+    "text": "G",
+    "start": 3.164,
+    "end": 3.324
+   },
+   {
+    "text": "L",
+    "start": 3.324,
+    "end": 3.485
+   },
+   {
+    "text": "B",
+    "start": 3.485,
+    "end": 3.645
+   },
+   {
+    "text": "to",
+    "start": 3.645,
+    "end": 3.886
+   },
+   {
+    "text": "replace",
+    "start": 3.886,
+    "end": 4.527
+   },
+   {
+    "text": "it,",
+    "start": 4.527,
+    "end": 4.848
+   },
+   {
+    "text": "set",
+    "start": 4.848,
+    "end": 5.168
+   },
+   {
+    "text": "the",
+    "start": 5.168,
+    "end": 5.489
+   },
+   {
+    "text": "rotation",
+    "start": 5.489,
+    "end": 6.211
+   },
+   {
+    "text": "so",
+    "start": 6.211,
+    "end": 6.451
+   },
+   {
+    "text": "the",
+    "start": 6.451,
+    "end": 6.772
+   },
+   {
+    "text": "nose",
+    "start": 6.772,
+    "end": 7.173
+   },
+   {
+    "text": "faces",
+    "start": 7.173,
+    "end": 7.654
+   },
+   {
+    "text": "the",
+    "start": 7.654,
+    "end": 7.974
+   },
+   {
+    "text": "camera,",
+    "start": 7.974,
+    "end": 8.616
+   },
+   {
+    "text": "and",
+    "start": 8.616,
+    "end": 8.936
+   },
+   {
+    "text": "give",
+    "start": 8.936,
+    "end": 9.337
+   },
+   {
+    "text": "it",
+    "start": 9.337,
+    "end": 9.578
+   },
+   {
+    "text": "the",
+    "start": 9.578,
+    "end": 9.898
+   },
+   {
+    "text": "real",
+    "start": 9.898,
+    "end": 10.299
+   },
+   {
+    "text": "car",
+    "start": 10.299,
+    "end": 10.62
+   },
+   {
+    "text": "length,",
+    "start": 10.62,
+    "end": 11.261
+   },
+   {
+    "text": "so",
+    "start": 11.261,
+    "end": 11.502
+   },
+   {
+    "text": "it's",
+    "start": 11.502,
+    "end": 11.903
+   },
+   {
+    "text": "scaled",
+    "start": 11.903,
+    "end": 12.464
+   },
+   {
+    "text": "correctly.",
+    "start": 12.464,
+    "end": 13.346
+   }
+  ],
+  "transcript": "Here's the car's 3D model. Upload a new G L B to replace it, set the rotation so the nose faces the camera, and give it the real car length, so it's scaled correctly."
+ },
+ "a08": {
+  "duration": 13.105,
+  "words": [
+   {
+    "text": "Untick",
+    "start": 0.0,
+    "end": 0.66
+   },
+   {
+    "text": "Visible",
+    "start": 0.66,
+    "end": 1.414
+   },
+   {
+    "text": "to",
+    "start": 1.414,
+    "end": 1.697
+   },
+   {
+    "text": "hide",
+    "start": 1.697,
+    "end": 2.168
+   },
+   {
+    "text": "a",
+    "start": 2.168,
+    "end": 2.357
+   },
+   {
+    "text": "car",
+    "start": 2.357,
+    "end": 2.734
+   },
+   {
+    "text": "without",
+    "start": 2.734,
+    "end": 3.488
+   },
+   {
+    "text": "deleting",
+    "start": 3.488,
+    "end": 4.337
+   },
+   {
+    "text": "it.",
+    "start": 4.337,
+    "end": 4.714
+   },
+   {
+    "text": "Delete",
+    "start": 4.834,
+    "end": 5.317
+   },
+   {
+    "text": "is",
+    "start": 5.317,
+    "end": 5.524
+   },
+   {
+    "text": "permanent,",
+    "start": 5.524,
+    "end": 6.283
+   },
+   {
+    "text": "so",
+    "start": 6.283,
+    "end": 6.49
+   },
+   {
+    "text": "it",
+    "start": 6.49,
+    "end": 6.697
+   },
+   {
+    "text": "asks",
+    "start": 6.697,
+    "end": 7.042
+   },
+   {
+    "text": "you",
+    "start": 7.042,
+    "end": 7.318
+   },
+   {
+    "text": "to",
+    "start": 7.318,
+    "end": 7.525
+   },
+   {
+    "text": "confirm",
+    "start": 7.525,
+    "end": 8.077
+   },
+   {
+    "text": "first.",
+    "start": 8.077,
+    "end": 8.56
+   },
+   {
+    "text": "And",
+    "start": 8.68,
+    "end": 9.005
+   },
+   {
+    "text": "Save",
+    "start": 9.005,
+    "end": 9.411
+   },
+   {
+    "text": "publishes",
+    "start": 9.411,
+    "end": 10.223
+   },
+   {
+    "text": "your",
+    "start": 10.223,
+    "end": 10.629
+   },
+   {
+    "text": "changes",
+    "start": 10.629,
+    "end": 11.279
+   },
+   {
+    "text": "to",
+    "start": 11.279,
+    "end": 11.523
+   },
+   {
+    "text": "the",
+    "start": 11.523,
+    "end": 11.847
+   },
+   {
+    "text": "configurator.",
+    "start": 11.847,
+    "end": 12.985
+   }
+  ],
+  "transcript": "Untick Visible to hide a car without deleting it. Delete is permanent, so it asks you to confirm first. And Save publishes your changes to the configurator."
+ },
+ "a09": {
+  "duration": 10.515,
+  "words": [
+   {
+    "text": "Wheels",
+    "start": 0.0,
+    "end": 0.512
+   },
+   {
+    "text": "work",
+    "start": 0.512,
+    "end": 0.878
+   },
+   {
+    "text": "the",
+    "start": 0.878,
+    "end": 1.171
+   },
+   {
+    "text": "same",
+    "start": 1.171,
+    "end": 1.537
+   },
+   {
+    "text": "way.",
+    "start": 1.537,
+    "end": 1.903
+   },
+   {
+    "text": "Each",
+    "start": 2.023,
+    "end": 2.442
+   },
+   {
+    "text": "one",
+    "start": 2.442,
+    "end": 2.776
+   },
+   {
+    "text": "has",
+    "start": 2.776,
+    "end": 3.111
+   },
+   {
+    "text": "a",
+    "start": 3.111,
+    "end": 3.279
+   },
+   {
+    "text": "code,",
+    "start": 3.279,
+    "end": 3.781
+   },
+   {
+    "text": "a",
+    "start": 3.781,
+    "end": 3.949
+   },
+   {
+    "text": "name,",
+    "start": 3.949,
+    "end": 4.451
+   },
+   {
+    "text": "a",
+    "start": 4.451,
+    "end": 4.618
+   },
+   {
+    "text": "style,",
+    "start": 4.618,
+    "end": 5.204
+   },
+   {
+    "text": "and",
+    "start": 5.204,
+    "end": 5.539
+   },
+   {
+    "text": "a",
+    "start": 5.539,
+    "end": 5.707
+   },
+   {
+    "text": "rim",
+    "start": 5.707,
+    "end": 6.042
+   },
+   {
+    "text": "picture",
+    "start": 6.042,
+    "end": 6.711
+   },
+   {
+    "text": "that",
+    "start": 6.711,
+    "end": 7.13
+   },
+   {
+    "text": "the",
+    "start": 7.13,
+    "end": 7.465
+   },
+   {
+    "text": "configurator",
+    "start": 7.465,
+    "end": 8.553
+   },
+   {
+    "text": "turns",
+    "start": 8.553,
+    "end": 9.056
+   },
+   {
+    "text": "into",
+    "start": 9.056,
+    "end": 9.474
+   },
+   {
+    "text": "3D",
+    "start": 9.474,
+    "end": 9.725
+   },
+   {
+    "text": "spokes.",
+    "start": 9.725,
+    "end": 10.395
+   }
+  ],
+  "transcript": "Wheels work the same way. Each one has a code, a name, a style, and a rim picture that the configurator turns into 3D spokes."
+ },
+ "a10": {
+  "duration": 15.349,
+  "words": [
+   {
+    "text": "For",
+    "start": 0.0,
+    "end": 0.332
+   },
+   {
+    "text": "the",
+    "start": 0.332,
+    "end": 0.665
+   },
+   {
+    "text": "best",
+    "start": 0.665,
+    "end": 1.08
+   },
+   {
+    "text": "quality,",
+    "start": 1.08,
+    "end": 1.828
+   },
+   {
+    "text": "upload",
+    "start": 1.828,
+    "end": 2.41
+   },
+   {
+    "text": "the",
+    "start": 2.41,
+    "end": 2.742
+   },
+   {
+    "text": "manufacturer's",
+    "start": 2.742,
+    "end": 3.988
+   },
+   {
+    "text": "3D",
+    "start": 3.988,
+    "end": 4.238
+   },
+   {
+    "text": "file.",
+    "start": 4.238,
+    "end": 4.736
+   },
+   {
+    "text": "If",
+    "start": 4.856,
+    "end": 5.128
+   },
+   {
+    "text": "it's",
+    "start": 5.128,
+    "end": 5.582
+   },
+   {
+    "text": "a",
+    "start": 5.582,
+    "end": 5.763
+   },
+   {
+    "text": "STEP,",
+    "start": 5.763,
+    "end": 6.307
+   },
+   {
+    "text": "IGES,",
+    "start": 6.307,
+    "end": 6.852
+   },
+   {
+    "text": "S",
+    "start": 6.852,
+    "end": 7.033
+   },
+   {
+    "text": "T",
+    "start": 7.033,
+    "end": 7.214
+   },
+   {
+    "text": "L",
+    "start": 7.214,
+    "end": 7.396
+   },
+   {
+    "text": "or",
+    "start": 7.396,
+    "end": 7.668
+   },
+   {
+    "text": "O",
+    "start": 7.668,
+    "end": 7.849
+   },
+   {
+    "text": "B",
+    "start": 7.849,
+    "end": 8.031
+   },
+   {
+    "text": "J,",
+    "start": 8.031,
+    "end": 8.303
+   },
+   {
+    "text": "it's",
+    "start": 8.303,
+    "end": 8.756
+   },
+   {
+    "text": "converted",
+    "start": 8.756,
+    "end": 9.663
+   },
+   {
+    "text": "in",
+    "start": 9.663,
+    "end": 9.935
+   },
+   {
+    "text": "the",
+    "start": 9.935,
+    "end": 10.298
+   },
+   {
+    "text": "browser",
+    "start": 10.298,
+    "end": 11.024
+   },
+   {
+    "text": "first.",
+    "start": 11.024,
+    "end": 11.659
+   },
+   {
+    "text": "Staggered",
+    "start": 11.778,
+    "end": 12.171
+   },
+   {
+    "text": "set?",
+    "start": 12.171,
+    "end": 12.367
+   },
+   {
+    "text": "There's",
+    "start": 12.487,
+    "end": 13.133
+   },
+   {
+    "text": "a",
+    "start": 13.133,
+    "end": 13.294
+   },
+   {
+    "text": "separate",
+    "start": 13.294,
+    "end": 14.02
+   },
+   {
+    "text": "rear",
+    "start": 14.02,
+    "end": 14.423
+   },
+   {
+    "text": "file",
+    "start": 14.423,
+    "end": 14.826
+   },
+   {
+    "text": "too.",
+    "start": 14.826,
+    "end": 15.229
+   }
+  ],
+  "transcript": "For the best quality, upload the manufacturer's 3D file. If it's a STEP, IGES, S T L or O B J, it's converted in the browser first. Staggered set? There's a separate rear file too."
+ },
+ "a11": {
+  "duration": 13.612,
+  "words": [
+   {
+    "text": "Sizes",
+    "start": 0.0,
+    "end": 0.499
+   },
+   {
+    "text": "and",
+    "start": 0.499,
+    "end": 0.831
+   },
+   {
+    "text": "prices",
+    "start": 0.831,
+    "end": 1.413
+   },
+   {
+    "text": "live",
+    "start": 1.413,
+    "end": 1.829
+   },
+   {
+    "text": "here.",
+    "start": 1.829,
+    "end": 2.328
+   },
+   {
+    "text": "Only",
+    "start": 2.448,
+    "end": 2.823
+   },
+   {
+    "text": "the",
+    "start": 2.823,
+    "end": 3.124
+   },
+   {
+    "text": "sizes",
+    "start": 3.124,
+    "end": 3.575
+   },
+   {
+    "text": "you",
+    "start": 3.575,
+    "end": 3.875
+   },
+   {
+    "text": "list",
+    "start": 3.875,
+    "end": 4.251
+   },
+   {
+    "text": "are",
+    "start": 4.251,
+    "end": 4.551
+   },
+   {
+    "text": "offered,",
+    "start": 4.551,
+    "end": 5.227
+   },
+   {
+    "text": "and",
+    "start": 5.227,
+    "end": 5.528
+   },
+   {
+    "text": "each",
+    "start": 5.528,
+    "end": 5.904
+   },
+   {
+    "text": "price",
+    "start": 5.904,
+    "end": 6.354
+   },
+   {
+    "text": "is",
+    "start": 6.354,
+    "end": 6.58
+   },
+   {
+    "text": "for",
+    "start": 6.58,
+    "end": 6.88
+   },
+   {
+    "text": "a",
+    "start": 6.88,
+    "end": 7.031
+   },
+   {
+    "text": "full",
+    "start": 7.031,
+    "end": 7.406
+   },
+   {
+    "text": "set",
+    "start": 7.406,
+    "end": 7.707
+   },
+   {
+    "text": "of",
+    "start": 7.707,
+    "end": 7.932
+   },
+   {
+    "text": "four,",
+    "start": 7.932,
+    "end": 8.383
+   },
+   {
+    "text": "stored",
+    "start": 8.383,
+    "end": 8.909
+   },
+   {
+    "text": "in",
+    "start": 8.909,
+    "end": 9.134
+   },
+   {
+    "text": "dollars,",
+    "start": 9.134,
+    "end": 9.81
+   },
+   {
+    "text": "so",
+    "start": 9.81,
+    "end": 10.036
+   },
+   {
+    "text": "every",
+    "start": 10.036,
+    "end": 10.487
+   },
+   {
+    "text": "customer",
+    "start": 10.487,
+    "end": 11.163
+   },
+   {
+    "text": "sees",
+    "start": 11.163,
+    "end": 11.538
+   },
+   {
+    "text": "it",
+    "start": 11.538,
+    "end": 11.764
+   },
+   {
+    "text": "in",
+    "start": 11.764,
+    "end": 11.989
+   },
+   {
+    "text": "their",
+    "start": 11.989,
+    "end": 12.44
+   },
+   {
+    "text": "own",
+    "start": 12.44,
+    "end": 12.741
+   },
+   {
+    "text": "currency.",
+    "start": 12.741,
+    "end": 13.492
+   }
+  ],
+  "transcript": "Sizes and prices live here. Only the sizes you list are offered, and each price is for a full set of four, stored in dollars, so every customer sees it in their own currency."
+ },
+ "a12": {
+  "duration": 14.786,
+  "words": [
+   {
+    "text": "Next,",
+    "start": 0.0,
+    "end": 0.477
+   },
+   {
+    "text": "choose",
+    "start": 0.477,
+    "end": 1.033
+   },
+   {
+    "text": "which",
+    "start": 1.033,
+    "end": 1.51
+   },
+   {
+    "text": "finishes",
+    "start": 1.51,
+    "end": 2.226
+   },
+   {
+    "text": "this",
+    "start": 2.226,
+    "end": 2.623
+   },
+   {
+    "text": "wheel",
+    "start": 2.623,
+    "end": 3.1
+   },
+   {
+    "text": "comes",
+    "start": 3.1,
+    "end": 3.577
+   },
+   {
+    "text": "in.",
+    "start": 3.577,
+    "end": 3.895
+   },
+   {
+    "text": "And",
+    "start": 4.015,
+    "end": 4.336
+   },
+   {
+    "text": "if",
+    "start": 4.336,
+    "end": 4.577
+   },
+   {
+    "text": "a",
+    "start": 4.577,
+    "end": 4.738
+   },
+   {
+    "text": "finish",
+    "start": 4.738,
+    "end": 5.299
+   },
+   {
+    "text": "costs",
+    "start": 5.299,
+    "end": 5.781
+   },
+   {
+    "text": "more,",
+    "start": 5.781,
+    "end": 6.262
+   },
+   {
+    "text": "like",
+    "start": 6.262,
+    "end": 6.664
+   },
+   {
+    "text": "Polished",
+    "start": 6.664,
+    "end": 7.386
+   },
+   {
+    "text": "Face",
+    "start": 7.386,
+    "end": 7.787
+   },
+   {
+    "text": "or",
+    "start": 7.787,
+    "end": 8.028
+   },
+   {
+    "text": "Liquid",
+    "start": 8.028,
+    "end": 8.59
+   },
+   {
+    "text": "Metal,",
+    "start": 8.59,
+    "end": 9.151
+   },
+   {
+    "text": "set",
+    "start": 9.151,
+    "end": 9.472
+   },
+   {
+    "text": "its",
+    "start": 9.472,
+    "end": 9.793
+   },
+   {
+    "text": "price",
+    "start": 9.793,
+    "end": 10.275
+   },
+   {
+    "text": "underneath.",
+    "start": 10.275,
+    "end": 11.238
+   },
+   {
+    "text": "Leave",
+    "start": 11.358,
+    "end": 11.755
+   },
+   {
+    "text": "it",
+    "start": 11.755,
+    "end": 11.953
+   },
+   {
+    "text": "blank",
+    "start": 11.953,
+    "end": 12.35
+   },
+   {
+    "text": "and",
+    "start": 12.35,
+    "end": 12.615
+   },
+   {
+    "text": "it",
+    "start": 12.615,
+    "end": 12.814
+   },
+   {
+    "text": "costs",
+    "start": 12.814,
+    "end": 13.211
+   },
+   {
+    "text": "the",
+    "start": 13.211,
+    "end": 13.475
+   },
+   {
+    "text": "same",
+    "start": 13.475,
+    "end": 13.806
+   },
+   {
+    "text": "as",
+    "start": 13.806,
+    "end": 14.005
+   },
+   {
+    "text": "the",
+    "start": 14.005,
+    "end": 14.269
+   },
+   {
+    "text": "rest.",
+    "start": 14.269,
+    "end": 14.666
+   }
+  ],
+  "transcript": "Next, choose which finishes this wheel comes in. And if a finish costs more, like Polished Face or Liquid Metal, set its price underneath. Leave it blank and it costs the same as the rest."
+ },
+ "a13": {
+  "duration": 10.208,
+  "words": [
+   {
+    "text": "To",
+    "start": 0.0,
+    "end": 0.169
+   },
+   {
+    "text": "change",
+    "start": 0.169,
+    "end": 0.563
+   },
+   {
+    "text": "a",
+    "start": 0.563,
+    "end": 0.675
+   },
+   {
+    "text": "price,",
+    "start": 0.675,
+    "end": 1.069
+   },
+   {
+    "text": "type",
+    "start": 1.069,
+    "end": 1.35
+   },
+   {
+    "text": "the",
+    "start": 1.35,
+    "end": 1.575
+   },
+   {
+    "text": "new",
+    "start": 1.575,
+    "end": 1.8
+   },
+   {
+    "text": "figure",
+    "start": 1.8,
+    "end": 2.194
+   },
+   {
+    "text": "and",
+    "start": 2.194,
+    "end": 2.419
+   },
+   {
+    "text": "press",
+    "start": 2.419,
+    "end": 2.757
+   },
+   {
+    "text": "Save.",
+    "start": 2.757,
+    "end": 3.095
+   },
+   {
+    "text": "You'll",
+    "start": 3.215,
+    "end": 3.755
+   },
+   {
+    "text": "get",
+    "start": 3.755,
+    "end": 4.064
+   },
+   {
+    "text": "a",
+    "start": 4.064,
+    "end": 4.219
+   },
+   {
+    "text": "green",
+    "start": 4.219,
+    "end": 4.682
+   },
+   {
+    "text": "confirmation,",
+    "start": 4.682,
+    "end": 5.763
+   },
+   {
+    "text": "and",
+    "start": 5.763,
+    "end": 6.072
+   },
+   {
+    "text": "the",
+    "start": 6.072,
+    "end": 6.381
+   },
+   {
+    "text": "configurator",
+    "start": 6.381,
+    "end": 7.385
+   },
+   {
+    "text": "picks",
+    "start": 7.385,
+    "end": 7.849
+   },
+   {
+    "text": "up",
+    "start": 7.849,
+    "end": 8.08
+   },
+   {
+    "text": "the",
+    "start": 8.08,
+    "end": 8.389
+   },
+   {
+    "text": "change",
+    "start": 8.389,
+    "end": 8.93
+   },
+   {
+    "text": "straight",
+    "start": 8.93,
+    "end": 9.625
+   },
+   {
+    "text": "away.",
+    "start": 9.625,
+    "end": 10.088
+   }
+  ],
+  "transcript": "To change a price, type the new figure and press Save. You'll get a green confirmation, and the configurator picks up the change straight away."
+ },
+ "a14": {
+  "duration": 10.87,
+  "words": [
+   {
+    "text": "Finishes",
+    "start": 0.0,
+    "end": 0.611
+   },
+   {
+    "text": "and",
+    "start": 0.611,
+    "end": 0.883
+   },
+   {
+    "text": "paints",
+    "start": 0.883,
+    "end": 1.359
+   },
+   {
+    "text": "are",
+    "start": 1.359,
+    "end": 1.631
+   },
+   {
+    "text": "edited",
+    "start": 1.631,
+    "end": 2.106
+   },
+   {
+    "text": "the",
+    "start": 2.106,
+    "end": 2.378
+   },
+   {
+    "text": "same",
+    "start": 2.378,
+    "end": 2.718
+   },
+   {
+    "text": "way.",
+    "start": 2.718,
+    "end": 3.057
+   },
+   {
+    "text": "Pick",
+    "start": 3.177,
+    "end": 3.507
+   },
+   {
+    "text": "the",
+    "start": 3.507,
+    "end": 3.77
+   },
+   {
+    "text": "colour,",
+    "start": 3.77,
+    "end": 4.297
+   },
+   {
+    "text": "then",
+    "start": 4.297,
+    "end": 4.626
+   },
+   {
+    "text": "how",
+    "start": 4.626,
+    "end": 4.889
+   },
+   {
+    "text": "metallic,",
+    "start": 4.889,
+    "end": 5.548
+   },
+   {
+    "text": "how",
+    "start": 5.548,
+    "end": 5.811
+   },
+   {
+    "text": "rough,",
+    "start": 5.811,
+    "end": 6.272
+   },
+   {
+    "text": "and",
+    "start": 6.272,
+    "end": 6.536
+   },
+   {
+    "text": "how",
+    "start": 6.536,
+    "end": 6.799
+   },
+   {
+    "text": "glossy",
+    "start": 6.799,
+    "end": 7.26
+   },
+   {
+    "text": "it",
+    "start": 7.26,
+    "end": 7.457
+   },
+   {
+    "text": "is,",
+    "start": 7.457,
+    "end": 7.721
+   },
+   {
+    "text": "so",
+    "start": 7.721,
+    "end": 7.918
+   },
+   {
+    "text": "it",
+    "start": 7.918,
+    "end": 8.116
+   },
+   {
+    "text": "looks",
+    "start": 8.116,
+    "end": 8.511
+   },
+   {
+    "text": "like",
+    "start": 8.511,
+    "end": 8.84
+   },
+   {
+    "text": "the",
+    "start": 8.84,
+    "end": 9.103
+   },
+   {
+    "text": "real",
+    "start": 9.103,
+    "end": 9.433
+   },
+   {
+    "text": "coating",
+    "start": 9.433,
+    "end": 9.959
+   },
+   {
+    "text": "on",
+    "start": 9.959,
+    "end": 10.157
+   },
+   {
+    "text": "the",
+    "start": 10.157,
+    "end": 10.42
+   },
+   {
+    "text": "car.",
+    "start": 10.42,
+    "end": 10.75
+   }
+  ],
+  "transcript": "Finishes and paints are edited the same way. Pick the colour, then how metallic, how rough, and how glossy it is, so it looks like the real coating on the car."
+ },
+ "a15": {
+  "duration": 9.962,
+  "words": [
+   {
+    "text": "To",
+    "start": 0.0,
+    "end": 0.264
+   },
+   {
+    "text": "add",
+    "start": 0.264,
+    "end": 0.615
+   },
+   {
+    "text": "something",
+    "start": 0.615,
+    "end": 1.494
+   },
+   {
+    "text": "new,",
+    "start": 1.494,
+    "end": 1.933
+   },
+   {
+    "text": "press",
+    "start": 1.933,
+    "end": 2.461
+   },
+   {
+    "text": "New,",
+    "start": 2.461,
+    "end": 2.9
+   },
+   {
+    "text": "give",
+    "start": 2.9,
+    "end": 3.339
+   },
+   {
+    "text": "it",
+    "start": 3.339,
+    "end": 3.603
+   },
+   {
+    "text": "a",
+    "start": 3.603,
+    "end": 3.779
+   },
+   {
+    "text": "unique",
+    "start": 3.779,
+    "end": 4.394
+   },
+   {
+    "text": "ID,",
+    "start": 4.394,
+    "end": 4.745
+   },
+   {
+    "text": "add",
+    "start": 4.745,
+    "end": 5.097
+   },
+   {
+    "text": "the",
+    "start": 5.097,
+    "end": 5.449
+   },
+   {
+    "text": "pictures",
+    "start": 5.449,
+    "end": 6.239
+   },
+   {
+    "text": "or",
+    "start": 6.239,
+    "end": 6.503
+   },
+   {
+    "text": "the",
+    "start": 6.503,
+    "end": 6.855
+   },
+   {
+    "text": "3D",
+    "start": 6.855,
+    "end": 7.118
+   },
+   {
+    "text": "file,",
+    "start": 7.118,
+    "end": 7.645
+   },
+   {
+    "text": "set",
+    "start": 7.645,
+    "end": 7.997
+   },
+   {
+    "text": "the",
+    "start": 7.997,
+    "end": 8.349
+   },
+   {
+    "text": "sizes,",
+    "start": 8.349,
+    "end": 8.964
+   },
+   {
+    "text": "and",
+    "start": 8.964,
+    "end": 9.315
+   },
+   {
+    "text": "save.",
+    "start": 9.315,
+    "end": 9.842
+   }
+  ],
+  "transcript": "To add something new, press New, give it a unique ID, add the pictures or the 3D file, set the sizes, and save."
+ },
+ "a16": {
+  "duration": 20.715,
+  "words": [
+   {
+    "text": "And",
+    "start": 0.0,
+    "end": 0.172
+   },
+   {
+    "text": "finally,",
+    "start": 0.172,
+    "end": 0.56
+   },
+   {
+    "text": "enquiries.",
+    "start": 0.56,
+    "end": 1.035
+   },
+   {
+    "text": "Every",
+    "start": 1.155,
+    "end": 1.604
+   },
+   {
+    "text": "enquiry",
+    "start": 1.604,
+    "end": 2.202
+   },
+   {
+    "text": "form",
+    "start": 2.202,
+    "end": 2.576
+   },
+   {
+    "text": "and",
+    "start": 2.576,
+    "end": 2.876
+   },
+   {
+    "text": "every",
+    "start": 2.876,
+    "end": 3.325
+   },
+   {
+    "text": "PDF",
+    "start": 3.325,
+    "end": 3.624
+   },
+   {
+    "text": "download",
+    "start": 3.624,
+    "end": 4.298
+   },
+   {
+    "text": "from",
+    "start": 4.298,
+    "end": 4.672
+   },
+   {
+    "text": "the",
+    "start": 4.672,
+    "end": 4.971
+   },
+   {
+    "text": "configurator",
+    "start": 4.971,
+    "end": 5.944
+   },
+   {
+    "text": "lands",
+    "start": 5.944,
+    "end": 6.393
+   },
+   {
+    "text": "here,",
+    "start": 6.393,
+    "end": 6.842
+   },
+   {
+    "text": "newest",
+    "start": 6.842,
+    "end": 7.366
+   },
+   {
+    "text": "first,",
+    "start": 7.366,
+    "end": 7.889
+   },
+   {
+    "text": "with",
+    "start": 7.889,
+    "end": 8.264
+   },
+   {
+    "text": "the",
+    "start": 8.264,
+    "end": 8.563
+   },
+   {
+    "text": "customer's",
+    "start": 8.563,
+    "end": 9.386
+   },
+   {
+    "text": "details",
+    "start": 9.386,
+    "end": 9.985
+   },
+   {
+    "text": "and",
+    "start": 9.985,
+    "end": 10.284
+   },
+   {
+    "text": "the",
+    "start": 10.284,
+    "end": 10.583
+   },
+   {
+    "text": "exact",
+    "start": 10.583,
+    "end": 11.032
+   },
+   {
+    "text": "build",
+    "start": 11.032,
+    "end": 11.481
+   },
+   {
+    "text": "they",
+    "start": 11.481,
+    "end": 11.855
+   },
+   {
+    "text": "chose.",
+    "start": 11.855,
+    "end": 12.379
+   },
+   {
+    "text": "Reply",
+    "start": 12.499,
+    "end": 12.941
+   },
+   {
+    "text": "opens",
+    "start": 12.941,
+    "end": 13.382
+   },
+   {
+    "text": "an",
+    "start": 13.382,
+    "end": 13.603
+   },
+   {
+    "text": "email",
+    "start": 13.603,
+    "end": 14.045
+   },
+   {
+    "text": "to",
+    "start": 14.045,
+    "end": 14.266
+   },
+   {
+    "text": "them,",
+    "start": 14.266,
+    "end": 14.707
+   },
+   {
+    "text": "Open",
+    "start": 14.707,
+    "end": 15.075
+   },
+   {
+    "text": "build",
+    "start": 15.075,
+    "end": 15.517
+   },
+   {
+    "text": "reopens",
+    "start": 15.517,
+    "end": 16.105
+   },
+   {
+    "text": "their",
+    "start": 16.105,
+    "end": 16.547
+   },
+   {
+    "text": "configuration,",
+    "start": 16.547,
+    "end": 17.651
+   },
+   {
+    "text": "and",
+    "start": 17.651,
+    "end": 17.945
+   },
+   {
+    "text": "Export",
+    "start": 17.945,
+    "end": 18.461
+   },
+   {
+    "text": "CSV",
+    "start": 18.461,
+    "end": 18.755
+   },
+   {
+    "text": "gives",
+    "start": 18.755,
+    "end": 19.196
+   },
+   {
+    "text": "you",
+    "start": 19.196,
+    "end": 19.491
+   },
+   {
+    "text": "a",
+    "start": 19.491,
+    "end": 19.638
+   },
+   {
+    "text": "spreadsheet.",
+    "start": 19.638,
+    "end": 20.595
+   }
+  ],
+  "transcript": "And finally, enquiries. Every enquiry form and every PDF download from the configurator lands here, newest first, with the customer's details and the exact build they chose. Reply opens an email to them, Open build reopens their configuration, and Export CSV gives you a spreadsheet."
+ },
+ "a17": {
+  "duration": 11.66,
+  "words": [
+   {
+    "text": "That's",
+    "start": 0.0,
+    "end": 0.646
+   },
+   {
+    "text": "the",
+    "start": 0.646,
+    "end": 1.015
+   },
+   {
+    "text": "whole",
+    "start": 1.015,
+    "end": 1.568
+   },
+   {
+    "text": "admin.",
+    "start": 1.568,
+    "end": 2.213
+   },
+   {
+    "text": "Your",
+    "start": 2.333,
+    "end": 2.847
+   },
+   {
+    "text": "cars,",
+    "start": 2.847,
+    "end": 3.464
+   },
+   {
+    "text": "your",
+    "start": 3.464,
+    "end": 3.977
+   },
+   {
+    "text": "wheels,",
+    "start": 3.977,
+    "end": 4.799
+   },
+   {
+    "text": "your",
+    "start": 4.799,
+    "end": 5.313
+   },
+   {
+    "text": "prices,",
+    "start": 5.313,
+    "end": 6.135
+   },
+   {
+    "text": "and",
+    "start": 6.135,
+    "end": 6.546
+   },
+   {
+    "text": "every",
+    "start": 6.546,
+    "end": 7.162
+   },
+   {
+    "text": "enquiry,",
+    "start": 7.162,
+    "end": 8.087
+   },
+   {
+    "text": "all",
+    "start": 8.087,
+    "end": 8.498
+   },
+   {
+    "text": "in",
+    "start": 8.498,
+    "end": 8.806
+   },
+   {
+    "text": "one",
+    "start": 8.806,
+    "end": 9.217
+   },
+   {
+    "text": "place.",
+    "start": 9.217,
+    "end": 9.936
+   },
+   {
+    "text": "Forged",
+    "start": 10.056,
+    "end": 10.922
+   },
+   {
+    "text": "S",
+    "start": 10.922,
+    "end": 11.169
+   },
+   {
+    "text": "A.",
+    "start": 11.169,
+    "end": 11.54
+   }
+  ],
+  "transcript": "That's the whole admin. Your cars, your wheels, your prices, and every enquiry, all in one place. Forged S A."
+ }
+}

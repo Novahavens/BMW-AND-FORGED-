@@ -1,0 +1,33 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; background: #0b0b0c; overflow: hidden; font-family: 'Satoshi', sans-serif; }
+    #root .pic-host { position: absolute; left: 820px; top: 0; width: 1100px; height: 1080px; overflow: hidden; }
+    #root .pic { position: absolute; left: -274px; top: 108px; width: 1728px; height: 972px; }
+    #root .wm-host { position: absolute; left: 110px; top: 260px; width: 640px; }
+    #root .wm { width: 640px; display: block; }
+    #root .rule { position: absolute; left: 110px; top: 360px; width: 240px; height: 10px; background: #CF9F52; }
+    #root .tag-host { position: absolute; left: 110px; top: 420px; width: 700px; }
+    #root .tag { color: #fff; font-weight: 900; font-size: 60px; line-height: 1.08; letter-spacing: -.02em; }
+    #root .url-host { position: absolute; left: 110px; top: 800px; }
+    #root .url { color: #fff; font-weight: 700; font-size: 44px; letter-spacing: .02em; border-bottom: 8px solid #FF5500; padding-bottom: 8px; display: inline-block; }
+  </style>
+  <div id="root" data-composition-id="a17" data-width="1920" data-height="1080">
+    <div id="a17-pic" class="clip pic-host" data-layout-allow-overflow data-start="0" data-duration="13.06" data-track-index="0"><img id="a17-pici" class="pic" src="assets/shots/hero.png" alt=""></div>
+    <div id="a17-wm" class="clip wm-host" data-start="0" data-duration="13.06" data-track-index="1"><img id="a17-wmi" class="wm" src="assets/brand/forgedsa-wordmark.svg" alt="FORGEDSA"></div>
+    <div id="a17-rule" class="clip rule" data-start="0" data-duration="13.06" data-track-index="1"></div>
+    <div id="a17-tag" class="clip tag-host" data-hold data-start="0" data-duration="13.06" data-track-index="2"><div id="a17-tagi" class="tag">Your catalogue.<br>Your prices.<br>Your enquiries.</div></div>
+    <div id="a17-url" class="clip url-host" data-start="0" data-duration="13.06" data-track-index="3"><div id="a17-urli" class="url">Sign in at /admin</div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#a17-pici",{opacity:0,scale:1.0,transformOrigin:"50% 100%"},{opacity:1,scale:1.04,duration:13.06,ease:"sine.out"},0);
+    tl.fromTo("#a17-wmi",{x:-80,opacity:0},{x:0,opacity:1,duration:0.6,ease:"power4.out"},0.1);
+    tl.fromTo("#a17-rule",{scaleX:0,transformOrigin:"0% 50%"},{scaleX:1,duration:0.5,ease:"power3.out"},0.5);
+    tl.fromTo("#a17-tagi",{x:-40,opacity:0},{x:0,opacity:1,duration:0.45,ease:"power4.out"},0.8);
+    tl.fromTo("#a17-urli",{opacity:0},{opacity:1,duration:0.3,ease:"power2.out"},1.6);
+    window.__timelines["a17"] = tl;
+  </script>
+</template>

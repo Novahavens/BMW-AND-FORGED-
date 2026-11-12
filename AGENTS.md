@@ -16,3 +16,42 @@
 - Decision: 16:9, about 90s, British female VO with best voice model — Reason: user spec for BMW pitch
 
 <!-- handoff:learnings:end -->
+
+## Agent workflow
+
+This repository uses a lightweight engineering workflow to keep features, automation, and
+maintenance organized. (Merged here from the former root `agents.md`, which duplicated this
+filename on case-insensitive filesystems and is now deleted — see `docs/MAP.md` for the
+project's navigation map.)
+
+### Core Principles
+
+- Keep changes small and reviewable.
+- Prefer explicit, documented workflows over implicit assumptions.
+- Write readable TypeScript and avoid hidden side effects.
+- Maintain a clean separation between UI logic, configuration, and data access.
+- Keep environment variables and secrets out of source control.
+
+### Project Context
+
+This repository is a BMW wheel configurator built with React + TypeScript, Vite, Three.js,
+Supabase (data/back-end) and Vercel (deployment). Package manager is **bun**.
+
+### Agent expectations
+
+- **Code generation:** prefer TypeScript-safe patterns, clear naming, component-driven design,
+  centralized configuration-driven UI.
+- **Deployment and environment:** never hardcode production secrets; use `.env` or Vercel
+  environment variables; keep local setup documented.
+- **Safety:** avoid destructive commands on shared branches unless explicitly requested; confirm
+  deployment or environment changes before modifying live infrastructure; propose migration steps
+  clearly for database changes.
+
+### Task playbooks
+
+Before changing a specific area (cars, wheels, paint, PDF, lead emails, brand, docs, deploys,
+secrets), read the matching skill in `.claude/skills/` — index: [`docs/SKILLS.md`](docs/SKILLS.md).
+Secrets on this project live in Supabase Vault and n8n credentials (no `.env` is needed for the app).
+
+Start any task with [`docs/MAP.md`](docs/MAP.md): where cars are added, how they're made
+photoreal, where wheels are added, and how wheels and cars come together in the configurator.

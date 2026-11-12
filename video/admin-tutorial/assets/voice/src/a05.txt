@@ -1,0 +1,1 @@
+Open a car and its details are right there: the name, the engine, the power, and the factory fitment, which customers see on their summary.

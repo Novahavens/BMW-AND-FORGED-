@@ -1,0 +1,705 @@
+{
+  "version": 1,
+  "about": "FORGEDSA photoreal plates: what gets rendered and how. Read docs/PLATES_MASTER_PLAN.md first. Paths under 'sources' are relative to PLATES_SRC.",
+  "frame": {
+    "width": 1920,
+    "height": 1080
+  },
+  "colour": {
+    "view_transform": "Khronos PBR Neutral",
+    "look": "None",
+    "exposure": -0.8
+  },
+  "quality": {
+    "preview": {
+      "scale": 0.5,
+      "samples": 32,
+      "noise_threshold": 0.05,
+      "min_samples": 8,
+      "denoise": true
+    },
+    "review": {
+      "scale": 1.0,
+      "samples": 128,
+      "noise_threshold": 0.02,
+      "min_samples": 16,
+      "denoise": true
+    },
+    "final": {
+      "scale": 1.0,
+      "samples": 768,
+      "noise_threshold": 0.006,
+      "min_samples": 64,
+      "denoise": true
+    }
+  },
+  "light_paths": {
+    "max": 12,
+    "diffuse": 3,
+    "glossy": 6,
+    "transmission": 12,
+    "transparent": 16,
+    "clamp_indirect": 10.0,
+    "caustics": false
+  },
+  "sources": {
+    "studio": "studio/studio_m2_cs_g87.blend",
+    "rims": "rims"
+  },
+  "views": [
+    {
+      "id": "front34",
+      "label": "Front",
+      "turn_deg": 0,
+      "aim": "car",
+      "fill": 0.8
+    },
+    {
+      "id": "side",
+      "label": "Side",
+      "turn_deg": -55,
+      "aim": "car",
+      "fill": 0.84
+    },
+    {
+      "id": "rear34",
+      "label": "Rear",
+      "turn_deg": -100,
+      "aim": "car",
+      "fill": 0.8
+    },
+    {
+      "id": "wheel",
+      "label": "Wheel",
+      "turn_deg": -28,
+      "aim": "wheel_front",
+      "wheel_frac": 0.5
+    }
+  ],
+  "cars": [
+    {
+      "id": "m2_cs_g87",
+      "label": "BMW M2 CS",
+      "chassis": "G87",
+      "source": "",
+      "tyres": {
+        "front": "275/35R19",
+        "rear": "285/30R20"
+      },
+      "default_paint": "portimao_blue_metallic"
+    },
+    {
+      "id": "m4_cs_g82",
+      "label": "BMW M4 CS",
+      "chassis": "G82",
+      "source": "cars/m4_cs_g82.blend",
+      "tyres": {
+        "front": "275/35R19",
+        "rear": "285/30R20"
+      },
+      "default_paint": "sao_paulo_yellow"
+    },
+    {
+      "id": "m5_g90",
+      "label": "BMW M5",
+      "chassis": "G90",
+      "source": "cars/m5_g90.blend",
+      "tyres": {
+        "front": "285/40R20",
+        "rear": "295/35R21"
+      },
+      "default_paint": "fire_red_vegas_red_metallic"
+    },
+    {
+      "id": "m5_touring_g99",
+      "label": "BMW M5 Touring",
+      "chassis": "G99",
+      "source": "cars/m5_touring_g99.blend",
+      "tyres": {
+        "front": "285/40R20",
+        "rear": "295/35R21"
+      },
+      "default_paint": "frozen_pure_grey_metallic"
+    }
+  ],
+  "paint_finishes": {
+    "solid": {
+      "metalness": 0,
+      "roughness": 0.35,
+      "clearcoat": 1,
+      "clearcoatRoughness": 0.02,
+      "flake": 0,
+      "iridescence": 0,
+      "flop": 0.2,
+      "flop_value": 0.7,
+      "flop_sat": 1.05,
+      "peel": 1.0
+    },
+    "metallic": {
+      "metalness": 0.75,
+      "roughness": 0.34,
+      "clearcoat": 1,
+      "clearcoatRoughness": 0.025,
+      "flake": 0.32,
+      "iridescence": 0,
+      "flop": 0.55,
+      "flop_value": 0.5,
+      "flop_sat": 1.15,
+      "peel": 1.0
+    },
+    "pearl": {
+      "metalness": 0.45,
+      "roughness": 0.3,
+      "clearcoat": 1,
+      "clearcoatRoughness": 0.025,
+      "flake": 0.22,
+      "iridescence": 0.5,
+      "iridescenceIOR": 1.6,
+      "flop": 0.5,
+      "flop_value": 0.7,
+      "flop_sat": 1.1,
+      "flop_hue": 0.06,
+      "peel": 1.0
+    },
+    "frozen": {
+      "metalness": 0.72,
+      "roughness": 0.45,
+      "clearcoat": 1.0,
+      "clearcoatRoughness": 0.38,
+      "flake": 0.12,
+      "iridescence": 0,
+      "flop": 0.35,
+      "flop_value": 0.6,
+      "flop_sat": 1.1,
+      "peel": 0.0
+    },
+    "satin": {
+      "metalness": 0.3,
+      "roughness": 0.45,
+      "clearcoat": 1.0,
+      "clearcoatRoughness": 0.18,
+      "flake": 0.06,
+      "iridescence": 0,
+      "flop": 0.3,
+      "flop_value": 0.6,
+      "flop_sat": 1.1,
+      "peel": 0.4
+    }
+  },
+  "paints": [
+    {
+      "id": "satin_slate_blue",
+      "name": "Satin Slate Blue",
+      "code": "—",
+      "group": "Satin",
+      "finish": "satin",
+      "hex": "#606870",
+      "o": {
+        "metalness": 0.36,
+        "roughness": 0.5,
+        "clearcoat": 1.0,
+        "clearcoatRoughness": 0.2
+      },
+      "note": "matched to the reference render, not a BMW code"
+    },
+    {
+      "id": "alpine_white",
+      "name": "Alpine White",
+      "code": "300",
+      "group": "Standard",
+      "finish": "solid",
+      "hex": "#EEEEEA"
+    },
+    {
+      "id": "black_sapphire_metallic",
+      "name": "Black Sapphire Metallic",
+      "code": "475",
+      "group": "Standard",
+      "finish": "metallic",
+      "hex": "#0C0E13",
+      "o": {
+        "roughness": 0.28,
+        "flake": 0.45
+      }
+    },
+    {
+      "id": "brooklyn_grey_metallic",
+      "name": "Brooklyn Grey Metallic",
+      "code": "C4P",
+      "group": "Standard",
+      "finish": "metallic",
+      "hex": "#9EA2A5",
+      "o": {
+        "metalness": 0.55,
+        "flake": 0.25
+      }
+    },
+    {
+      "id": "skyscraper_grey_metallic",
+      "name": "Skyscraper Grey Metallic",
+      "code": "C4W",
+      "group": "Standard",
+      "finish": "metallic",
+      "hex": "#A4A6AE",
+      "o": {
+        "metalness": 0.6
+      }
+    },
+    {
+      "id": "zandvoort_blue",
+      "name": "Zandvoort Blue",
+      "code": "C6E",
+      "group": "Standard",
+      "finish": "solid",
+      "hex": "#2C63AE"
+    },
+    {
+      "id": "portimao_blue_metallic",
+      "name": "Portimao Blue Metallic",
+      "code": "C31",
+      "group": "Standard",
+      "finish": "metallic",
+      "hex": "#1F4DAE"
+    },
+    {
+      "id": "fire_red_vegas_red_metallic",
+      "name": "Fire Red / Vegas Red Metallic",
+      "code": "C68",
+      "group": "Standard",
+      "finish": "metallic",
+      "hex": "#9A1220"
+    },
+    {
+      "id": "toronto_red_metallic",
+      "name": "Toronto Red Metallic",
+      "code": "C3G",
+      "group": "Standard",
+      "finish": "metallic",
+      "hex": "#7B1118",
+      "note": "MY2023–24"
+    },
+    {
+      "id": "sao_paulo_yellow",
+      "name": "Sao Paulo Yellow",
+      "code": "C4H",
+      "group": "Standard",
+      "finish": "solid",
+      "hex": "#EAD61E",
+      "o": {
+        "iridescence": 0.12,
+        "iridescenceIOR": 1.4
+      },
+      "note": "shifts yellow → green"
+    },
+    {
+      "id": "frozen_pure_grey_metallic",
+      "name": "Frozen Pure Grey Metallic",
+      "code": "X1F",
+      "group": "Frozen",
+      "finish": "frozen",
+      "hex": "#B4B6B7"
+    },
+    {
+      "id": "frozen_portimao_blue_ii_metallic",
+      "name": "Frozen Portimao Blue II Metallic",
+      "code": "X1E",
+      "group": "Frozen",
+      "finish": "frozen",
+      "hex": "#2E5296"
+    },
+    {
+      "id": "java_green_metallic",
+      "name": "Java Green Metallic",
+      "code": "n/c",
+      "group": "Individual",
+      "finish": "metallic",
+      "hex": "#5DB82D",
+      "o": {
+        "flake": 0.4
+      },
+      "note": "code not confirmed"
+    },
+    {
+      "id": "voodoo_blue",
+      "name": "Voodoo Blue",
+      "code": "P7L",
+      "group": "Individual",
+      "finish": "solid",
+      "hex": "#1C3FA2"
+    },
+    {
+      "id": "grigio_telesto_pearl",
+      "name": "Grigio Telesto Pearl",
+      "code": "P6M",
+      "group": "Individual",
+      "finish": "pearl",
+      "hex": "#8F9394",
+      "o": {
+        "iridescence": 0.35
+      }
+    },
+    {
+      "id": "twilight_purple_pearl",
+      "name": "Twilight Purple Pearl",
+      "code": "P28",
+      "group": "Individual",
+      "finish": "pearl",
+      "hex": "#3B2347",
+      "o": {
+        "iridescence": 0.7
+      }
+    },
+    {
+      "id": "velvet_blue_metallic",
+      "name": "Velvet Blue Metallic",
+      "code": "379",
+      "group": "M2 CS",
+      "finish": "metallic",
+      "hex": "#2B3170",
+      "note": "Individual code 379 (historic) — verify for CS"
+    },
+    {
+      "id": "mint_green_as_supplied",
+      "name": "Mint Green (as supplied)",
+      "code": "—",
+      "group": "M4 CS",
+      "finish": "solid",
+      "hex": "#4A8A7B",
+      "note": "sampled from the supplied model, not a BMW colour code"
+    },
+    {
+      "id": "mineral_white_metallic",
+      "name": "Mineral White Metallic",
+      "code": "A96",
+      "group": "More BMW",
+      "finish": "pearl",
+      "hex": "#E4E2DC",
+      "o": {
+        "iridescence": 0.2,
+        "metalness": 0.3
+      }
+    },
+    {
+      "id": "jet_black",
+      "name": "Jet Black",
+      "code": "668",
+      "group": "More BMW",
+      "finish": "solid",
+      "hex": "#060606"
+    },
+    {
+      "id": "sunset_orange_metallic",
+      "name": "Sunset Orange Metallic",
+      "code": "C1F",
+      "group": "More BMW",
+      "finish": "metallic",
+      "hex": "#C4521C"
+    }
+  ],
+  "wheel_plate": {
+    "paint": "brooklyn_grey_metallic",
+    "pad_px": 6,
+    "edge_inset_px": 2,
+    "neutral_reflection": true,
+    "rim_card_watts": 260.0,
+    "rim_card_width": 5.0,
+    "rim_card_height": 2.2,
+    "rim_card_distance": 3.2
+  },
+  "wheel_finishes": {
+    "black_matte": {
+      "name": "Black Matte",
+      "hex": "#26282b",
+      "metalness": 0.0,
+      "roughness": 0.5,
+      "clearcoat": 0.0,
+      "cycles": {
+        "base": [
+          0.016,
+          0.016,
+          0.018
+        ],
+        "metallic": 0.0,
+        "roughness": 0.58,
+        "coat": 0.0,
+        "sheen": 0.18,
+        "specular": 0.38,
+        "hardware": "dark"
+      }
+    },
+    "gold": {
+      "name": "Gold",
+      "hex": "#c9a24e",
+      "metalness": 0.9,
+      "roughness": 0.32,
+      "clearcoat": 0.85,
+      "cycles": {
+        "base": [
+          0.86,
+          0.63,
+          0.27
+        ],
+        "metallic": 1.0,
+        "roughness": 0.26,
+        "coat": 1.0,
+        "coat_roughness": 0.035,
+        "flake": 0.02,
+        "flop": 0.72,
+        "peel": 0.012
+      }
+    },
+    "hyper_black": {
+      "name": "Hyper Black",
+      "hex": "#3a3e44",
+      "metalness": 0.9,
+      "roughness": 0.24,
+      "clearcoat": 0.9,
+      "cycles": {
+        "base": [
+          0.26,
+          0.27,
+          0.29
+        ],
+        "metallic": 1.0,
+        "roughness": 0.2,
+        "coat": 1.0,
+        "coat_roughness": 0.03,
+        "flake": 0.015,
+        "flop": 0.5,
+        "peel": 0.01,
+        "hardware": "dark"
+      }
+    },
+    "polished_face": {
+      "name": "Polished Face",
+      "hex": "#e6e9ec",
+      "metalness": 1.0,
+      "roughness": 0.08,
+      "clearcoat": 0.6,
+      "cycles": {
+        "base": [
+          0.913,
+          0.921,
+          0.925
+        ],
+        "metallic": 1.0,
+        "roughness": 0.14,
+        "coat": 0.0,
+        "anisotropic": 0.3
+      }
+    },
+    "silver": {
+      "name": "Silver",
+      "hex": "#c3c8cd",
+      "metalness": 0.9,
+      "roughness": 0.28,
+      "clearcoat": 0.7,
+      "cycles": {
+        "base": [
+          0.7,
+          0.71,
+          0.72
+        ],
+        "metallic": 1.0,
+        "roughness": 0.32,
+        "coat": 1.0,
+        "coat_roughness": 0.03,
+        "flake": 0.02,
+        "flop": 0.65,
+        "peel": 0.012
+      }
+    },
+    "black": {
+      "name": "Gloss Black",
+      "hex": "#141618",
+      "metalness": 0.7,
+      "roughness": 0.15,
+      "clearcoat": 0.95,
+      "cycles": {
+        "base": [
+          0.012,
+          0.012,
+          0.014
+        ],
+        "metallic": 0.0,
+        "roughness": 0.35,
+        "coat": 1.0,
+        "coat_roughness": 0.02,
+        "peel": 0.012,
+        "hardware": "dark"
+      }
+    },
+    "pure_bronze": {
+      "name": "Pure Bronze",
+      "hex": "#9c6b3a",
+      "metalness": 0.9,
+      "roughness": 0.3,
+      "clearcoat": 0.85,
+      "cycles": {
+        "base": [
+          0.3,
+          0.165,
+          0.065
+        ],
+        "metallic": 1.0,
+        "roughness": 0.3,
+        "coat": 1.0,
+        "coat_roughness": 0.03,
+        "flake": 0.02,
+        "flop": 0.6,
+        "peel": 0.012
+      }
+    },
+    "liquid_metal": {
+      "name": "Liquid Metal",
+      "hex": "#dfe4e8",
+      "metalness": 0.98,
+      "roughness": 0.12,
+      "clearcoat": 1.0,
+      "cycles": {
+        "base": [
+          0.9,
+          0.91,
+          0.92
+        ],
+        "metallic": 1.0,
+        "roughness": 0.04,
+        "coat": 0.0
+      }
+    }
+  },
+  "wheels": [
+    {
+      "id": "forged_fsa001",
+      "name": "FSA001",
+      "front": "forged_fsa001.glb",
+      "rear": "forged_fsa001-rear.glb",
+      "finishes": [
+        "black_matte"
+      ],
+      "parts": {
+        "barrel": {
+          "base": [
+            0.8,
+            0.81,
+            0.83
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "anisotropic": 0.5
+        },
+        "bolts": {
+          "base": [
+            0.5,
+            0.012,
+            0.012
+          ],
+          "metallic": 1.0,
+          "roughness": 0.26
+        }
+      }
+    },
+    {
+      "id": "forged_fsa002",
+      "name": "FSA002",
+      "front": "forged_fsa002.glb",
+      "finishes": [
+        "gold",
+        "hyper_black",
+        "polished_face"
+      ]
+    },
+    {
+      "id": "forged_fsa_03",
+      "name": "FSA003",
+      "front": "forged_fsa_03.glb",
+      "finishes": [
+        "silver",
+        "hyper_black"
+      ]
+    },
+    {
+      "id": "forged_fsa004",
+      "name": "FSA004",
+      "front": "forged_fsa004.glb",
+      "finishes": [
+        "silver",
+        "hyper_black",
+        "black"
+      ]
+    },
+    {
+      "id": "sixnine_ff1",
+      "name": "FF-1",
+      "front": "sixnine_ff1.glb",
+      "finishes": [
+        "silver",
+        "liquid_metal"
+      ]
+    },
+    {
+      "id": "sixnine_ff3",
+      "name": "FF-3",
+      "front": "sixnine_ff3.glb",
+      "finishes": [
+        "pure_bronze",
+        "black",
+        "liquid_metal"
+      ]
+    }
+  ],
+  "look": {
+    "drl": {
+      "hex": "#FFC300",
+      "strength": 1.75,
+      "spill": 10.0,
+      "core": 2.3,
+      "ends": 0.7
+    },
+    "glass": {
+      "ior": 1.52,
+      "tint_hex": "#D9E4E0",
+      "thin_wall": true,
+      "shadow_transparency": 0.85
+    },
+    "lens": {
+      "ior": 1.585,
+      "thin_wall": true
+    },
+    "tyre": {
+      "base": 0.025,
+      "roughness": 0.68
+    },
+    "studio": {
+      "glass_reflector": {
+        "on": true,
+        "strength": 0.15,
+        "soft_edge": 0.45,
+        "scale": [
+          1.6,
+          1.2
+        ],
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "power": 1.0
+      },
+      "cabin_fill": {
+        "watts": 160.0,
+        "width": 0.7,
+        "length": 0.45,
+        "y": 0.42,
+        "drop": 0.1,
+        "shadow": true
+      },
+      "follow": {
+        "default": 1.0
+      },
+      "fixed_floor_lights": true
+    },
+    "interior_lift": {
+      "m2_cs_g87": 0.72
+    }
+  }
+}

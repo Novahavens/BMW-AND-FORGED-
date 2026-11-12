@@ -1,0 +1,11 @@
+# Generated, large, and reproducible from the commands in README.md
+*/renders/
+*/.hyperframes/
+*/.media/
+*/assets/shots/*.png
+*/assets/voice/*.wav
+*/assets/voice/*.raw.wav
+*/assets/sfx/
+*/CLAUDE.md
+*/AGENTS.md
+*/assets/shots/fixtures.json

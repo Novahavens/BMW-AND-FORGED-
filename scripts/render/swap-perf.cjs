@@ -109,10 +109,7 @@ const PORT = process.env.PORT || 5173;
     if (!injected) log('WARNING: engine hook not injected; spoke times will be missing');
     await p.waitForTimeout(1500);
     await p.getByRole('button', { name: /enter|start|begin|discover/i }).first().click({ timeout: 180000 });
-    await p.getByRole('button', { name: /^build$/i }).waitFor({ timeout: 60000 });
-    await p.waitForTimeout(1500);
-    await p.getByRole('button', { name: /^build$/i }).click({ timeout: 180000 });
-    await p.getByRole('button', { name: /^confirm$/i }).click({ timeout: 180000 });
+    // Enter opens the configurator directly (the showroom model picker is gone)
     await p.getByRole('button', { name: /step 2: wheels/i }).first().waitFor({ timeout: 60000 });
     await p.waitForTimeout(2500);
     const carName = await p.locator('aside .font-display').first().textContent().catch(() => '?');

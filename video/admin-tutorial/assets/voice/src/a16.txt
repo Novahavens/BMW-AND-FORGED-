@@ -1,0 +1,1 @@
+And finally, enquiries. Every enquiry form and every PDF download from the configurator lands here, newest first, with the customer's details and the exact build they chose. Reply opens an email to them, Open build reopens their configuration, and Export CSV gives you a spreadsheet.

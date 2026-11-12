@@ -2,6 +2,8 @@
 <body><div id="c"></div><script type="module">
 import { CarConfiguratorEngine } from '/services/CarConfiguratorEngine.ts';
 import { STATIC_CATALOG } from '/services/catalogService.ts';
+import { WHEEL_DESIGNS } from '/data/configuratorData.ts';
+import { loadFramesCars } from '/services/renderedBody.ts';
 const q=new URLSearchParams(location.search);
 if (q.get('bg')) document.documentElement.style.setProperty('--bg', q.get('bg'));
 if (q.get('nosmooth')) CarConfiguratorEngine.SMOOTH_PAINT = false;
@@ -21,14 +23,25 @@ if (q.get('model')) {
     hideMeshMatch: q.get('hideMatch') || undefined
   };
 } else {
-  car = STATIC_CATALOG.cars[+(q.get('car')||0)];
+  // carId=<id> picks a car by id (frames-only cars too), car=<n> by index
+  car = (q.get('carId') && STATIC_CATALOG.cars.find((c) => c.id === q.get('carId'))) || STATIC_CATALOG.cars[+(q.get('car')||0)];
 }
+// Frames-only cars (renders/manifest.json): no GLB; wheels and the depth mask come from the manifest
+e.setFramesCars(await loadFramesCars());
 e.applyPaintColor(STATIC_CATALOG.paints[+(q.get('paint')||0)]);
-let wheel = STATIC_CATALOG.wheels[+(q.get('wheel')||0)];
+// wheel = a wheel id (preferred) or an index into the bundled WHEEL_DESIGNS list (every design, hidden ones too)
+const wq = q.get('wheel') || '0';
+let wheel = WHEEL_DESIGNS.find((w) => w.id === wq) || WHEEL_DESIGNS[+wq] || WHEEL_DESIGNS[0];
 // rimModel=/path.glb puts a 3D rim file on the chosen wheel (rimFlip=1 if its face points inward)
 if (q.get('rimModel')) wheel = { ...wheel, modelUrl: q.get('rimModel'), modelFlip: !!q.get('rimFlip') };
 e.applyWheelDesign(wheel);
-e.applyWheelFinish(STATIC_CATALOG.finishes[q.get('finish')||'liquid_metal'] || STATIC_CATALOG.finishes.liquid_metal);
+// fhex= fmetal= frough= fcoat= try other values for the finish (comparison renders)
+const fin = { ...(STATIC_CATALOG.finishes[q.get('finish')||'liquid_metal'] || STATIC_CATALOG.finishes.liquid_metal) };
+if (q.get('fhex')) fin.hex = '#' + q.get('fhex');
+if (q.has('fmetal')) fin.metalness = +q.get('fmetal');
+if (q.has('frough')) fin.roughness = +q.get('frough');
+if (q.has('fcoat')) fin.clearcoat = +q.get('fcoat');
+e.applyWheelFinish(fin);
 e.setRimSize(q.get('size')||'20"');
 e.loadCar(car).then(r=>{if (q.get('rendered')) e.setRenderedBody(true); e.setCameraPreset(q.get('view')||'frontThreeQuarter',{instant:true}); window.done=r; window.mode=r;});
 </script></body></html>

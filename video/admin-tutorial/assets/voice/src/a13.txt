@@ -1,0 +1,1 @@
+To change a price, type the new figure and press Save. You'll get a green confirmation, and the configurator picks up the change straight away.

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Runs a plate script with Blender-as-a-module, one at a time. The sandbox has 2 cores and 7 GB, so
+# concurrent Blender sessions are queued on a lock. Usage: ./bl render.py --car m2_cs_g87 ...
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script="$1"; shift
+exec flock "${PLATES_LOCK:-/tmp/plates-blender.lock}" python3 -I "$here/$script" "$@"

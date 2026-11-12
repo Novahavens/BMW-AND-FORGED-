@@ -1,0 +1,387 @@
+{
+  "welcome-m2": {
+    "file": "01-welcome-m2.png",
+    "boxes": {
+      "enter": {
+        "x": 326,
+        "y": 892,
+        "w": 138,
+        "h": 56
+      },
+      "region": {
+        "x": 48,
+        "y": 892,
+        "w": 266,
+        "h": 56
+      }
+    }
+  },
+  "welcome-next": {
+    "file": "02-welcome-next.png",
+    "boxes": {
+      "enter": null
+    }
+  },
+  "configure-overview": {
+    "file": "03-configure-overview.png",
+    "boxes": {
+      "panel": {
+        "x": 1460,
+        "y": 0,
+        "w": 460,
+        "h": 1080
+      },
+      "paintRow": {
+        "x": 1489,
+        "y": 232,
+        "w": 403,
+        "h": 89
+      },
+      "moreBtn": {
+        "x": 1820,
+        "y": 28,
+        "w": 40,
+        "h": 40
+      },
+      "summaryIcon": {
+        "x": 1860,
+        "y": 28,
+        "w": 40,
+        "h": 40
+      },
+      "price": {
+        "x": 1802,
+        "y": 958,
+        "w": 90,
+        "h": 30
+      },
+      "cta": {
+        "x": 1489,
+        "y": 1004,
+        "w": 403,
+        "h": 56
+      },
+      "stepper": {
+        "x": 1720,
+        "y": 102,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "paint-step": {
+    "file": "04-paint-step.png",
+    "boxes": {
+      "panel": {
+        "x": 1460,
+        "y": 0,
+        "w": 460,
+        "h": 1080
+      },
+      "swatch": {
+        "x": 1695,
+        "y": 312,
+        "w": 95,
+        "h": 80
+      }
+    }
+  },
+  "paint-black": {
+    "file": "05-paint-black.png",
+    "boxes": {
+      "swatch": {
+        "x": 1695,
+        "y": 312,
+        "w": 95,
+        "h": 80
+      }
+    }
+  },
+  "wheels-step": {
+    "file": "06-wheels-step.png",
+    "boxes": {
+      "list": {
+        "x": 1489,
+        "y": 591,
+        "w": 403,
+        "h": 468
+      },
+      "info": {
+        "x": 1786,
+        "y": 511,
+        "w": 40,
+        "h": 40
+      },
+      "rim360": {
+        "x": 1832,
+        "y": 511,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "wheels-ff3": {
+    "file": "07-wheels-ff3.png",
+    "boxes": {
+      "row": {
+        "x": 1489,
+        "y": 730,
+        "w": 403,
+        "h": 78
+      },
+      "info": {
+        "x": 1786,
+        "y": 260,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "wheel-info": {
+    "file": "08-wheel-info.png",
+    "boxes": {
+      "modal": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      }
+    }
+  },
+  "size-21": {
+    "file": "09-size-21.png",
+    "boxes": {
+      "size": {
+        "x": 1696,
+        "y": 305,
+        "w": 197,
+        "h": 90
+      }
+    }
+  },
+  "finish-bronze": {
+    "file": "10-finish-bronze.png",
+    "boxes": {
+      "finish": {
+        "x": 1489,
+        "y": 285,
+        "w": 403,
+        "h": 66
+      }
+    }
+  },
+  "cam-side": {
+    "file": "11-cam-side.png",
+    "boxes": {
+      "chip": {
+        "x": 608,
+        "y": 1004,
+        "w": 62,
+        "h": 40
+      },
+      "chips": {
+        "x": 531,
+        "y": 1004,
+        "w": 75,
+        "h": 40
+      },
+      "turntable": {
+        "x": 889,
+        "y": 1004,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "cam-rear": {
+    "file": "12-cam-rear.png",
+    "boxes": {
+      "chip": {
+        "x": 672,
+        "y": 1004,
+        "w": 66,
+        "h": 40
+      },
+      "chips": {
+        "x": 531,
+        "y": 1004,
+        "w": 75,
+        "h": 40
+      },
+      "turntable": {
+        "x": 889,
+        "y": 1004,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "cam-wheel": {
+    "file": "13-cam-wheel.png",
+    "boxes": {
+      "chip": {
+        "x": 740,
+        "y": 1004,
+        "w": 77,
+        "h": 40
+      },
+      "chips": {
+        "x": 531,
+        "y": 1004,
+        "w": 75,
+        "h": 40
+      },
+      "turntable": {
+        "x": 889,
+        "y": 1004,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "cam-top": {
+    "file": "14-cam-top.png",
+    "boxes": {
+      "chip": {
+        "x": 818,
+        "y": 1004,
+        "w": 58,
+        "h": 40
+      },
+      "chips": {
+        "x": 531,
+        "y": 1004,
+        "w": 75,
+        "h": 40
+      },
+      "turntable": {
+        "x": 889,
+        "y": 1004,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "cam-front": {
+    "file": "15-cam-front.png",
+    "boxes": {
+      "chip": {
+        "x": 531,
+        "y": 1004,
+        "w": 75,
+        "h": 40
+      },
+      "chips": {
+        "x": 531,
+        "y": 1004,
+        "w": 75,
+        "h": 40
+      },
+      "turntable": {
+        "x": 889,
+        "y": 1004,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "turntable": {
+    "file": "16-turntable.png",
+    "boxes": {
+      "turntable": {
+        "x": 889,
+        "y": 1004,
+        "w": 40,
+        "h": 40
+      }
+    }
+  },
+  "more-options": {
+    "file": "17-more-options.png",
+    "boxes": {
+      "modal": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      }
+    }
+  },
+  "summary-top": {
+    "file": "18-summary-top.png",
+    "boxes": {
+      "share": {
+        "x": 1719,
+        "y": 18,
+        "w": 169,
+        "h": 44
+      }
+    }
+  },
+  "summary-options": {
+    "file": "19-summary-options.png",
+    "boxes": {
+      "price": {
+        "x": 1144,
+        "y": 260,
+        "w": 360,
+        "h": 408
+      },
+      "enquire": {
+        "x": 1172,
+        "y": 415,
+        "w": 304,
+        "h": 56
+      },
+      "share": {
+        "x": 1172,
+        "y": 483,
+        "w": 148,
+        "h": 44
+      },
+      "pdf": {
+        "x": 1328,
+        "y": 483,
+        "w": 148,
+        "h": 44
+      }
+    }
+  },
+  "summary-standard": {
+    "file": "20-summary-standard.png",
+    "boxes": {
+      "tab": {
+        "x": 592,
+        "y": 260,
+        "w": 157,
+        "h": 41
+      }
+    }
+  },
+  "share-modal": {
+    "file": "21-share-modal.png",
+    "boxes": {
+      "modal": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      }
+    }
+  },
+  "enquire-modal": {
+    "file": "22-enquire-modal.png",
+    "boxes": {
+      "modal": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      }
+    }
+  },
+  "rim-page": {
+    "file": "23-rim-page.png",
+    "boxes": {}
+  }
+}

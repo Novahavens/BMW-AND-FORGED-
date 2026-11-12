@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Car, Rotate3d } from 'lucide-react';
-import { CarConfiguratorEngine } from '../services/CarConfiguratorEngine';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Car } from 'lucide-react';
 import { WheelDesign, WheelFinish } from '../types';
-import { nearestRimSize, rimPrice, rimSizes } from '../services/pricing';
+import { finishSurcharge, nearestRimSize, rimPrice, rimSizes } from '../services/pricing';
 import { Region, formatMoney } from '../config/brand';
-import { Button, Eyebrow, FinishChip, IconButton, cx } from './journey/ui';
-import RimSpinView, { loadRimSpinManifest } from './RimSpinView';
+import { Button, Eyebrow, FinishChip, IconButton, cx, wheelEyebrow } from './journey/ui';
+import { WheelStage } from './WheelStage';
 
 interface RimDetailPageProps {
   wheels: WheelDesign[];
@@ -27,8 +26,14 @@ interface RimDetailPageProps {
   onOpenRim: (wheelId: string) => void;
   /** Puts this rim, finish and size on the car in the studio. */
   onConfigure: (wheel: WheelDesign, finish: WheelFinish, size: string) => void;
+  /** Opens the enquiry form for this rim, finish and size (the Enquire button on the 3D stage). */
+  onEnquire?: (wheel: WheelDesign, finish: WheelFinish, size: string) => void;
 }
 
+/**
+ * A wheel on its own: the 3D wheel studio (or the wheel's photo when it has no model) beside its
+ * name, finishes, sizes, price and the way onto a car.
+ */
 export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   wheels,
   finishes,
@@ -40,13 +45,9 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   backLabel = 'Back to your build',
   onBack,
   onOpenRim,
-  onConfigure
+  onConfigure,
+  onEnquire
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<CarConfiguratorEngine | null>(null);
-  const [ready, setReady] = useState(false);
-  const [autoRotate, setAutoRotate] = useState(true);
-
   // an unknown id is "not found", not the first wheel under the wrong address
   const found = wheels.findIndex((w) => w.id === wheelId);
   const index = Math.max(0, found);
@@ -59,49 +60,12 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   const [finish, setFinish] = useState<WheelFinish | undefined>(defaultFinish);
   const [size, setSize] = useState<string>(() => (wheel ? nearestRimSize(wheel, initialSize ?? '20"') : '20"'));
 
-  // Rims with a rendered 360° spin (scripts/rim3d/turntable.py) show that instead of the live engine
-  const [spins, setSpins] = useState<Record<string, { frames: number; finishes: string[] }> | null>(null);
-  useEffect(() => {
-    loadRimSpinManifest().then(setSpins);
-  }, []);
-  const [failedSpins, setFailedSpins] = useState<Set<string>>(() => new Set());
-  const spinKey = wheel && finish ? `${wheel.id}/${finish.id}` : '';
-  const spin = wheel && finish && !failedSpins.has(spinKey) && spins?.[wheel.id]?.finishes.includes(finish.id) ? spins[wheel.id] : null;
-  const onSpinError = useCallback(() => setFailedSpins((s) => (s.has(spinKey) ? s : new Set(s).add(spinKey))), [spinKey]);
-  const liveEngine = spins !== null && !spin;
-
-  // One showcase engine for the page's lifetime. Waits for the wheel: on a direct link to a wheel
-  // that only exists in Supabase, the first render is "not found" and has no container yet.
-  const hasWheel = !!wheel;
-  useEffect(() => {
-    if (!hasWheel || !liveEngine || !containerRef.current) return;
-    const engine = new CarConfiguratorEngine(containerRef.current, () => setReady(true), { showcase: true });
-    engineRef.current = engine;
-    engine.setAutoRotate(true);
-    const onResize = () => engine.handleResize();
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      engine.cleanup();
-      engineRef.current = null;
-    };
-  }, [hasWheel, liveEngine]);
-
   // Switching rims keeps the finish/size when the new rim offers them
   useEffect(() => {
     if (!wheel) return;
     setFinish((f) => (f && wheel.availableVariants.includes(f.id) ? f : finishes[wheel.defaultVariant] ?? availableFinishes[0]));
     setSize((s) => nearestRimSize(wheel, s));
   }, [wheel?.id]);
-
-  useEffect(() => {
-    const engine = engineRef.current;
-    if (!engine || !wheel) return;
-    engine.applyWheelDesign(wheel);
-    if (finish) engine.applyWheelFinish(finish);
-    engine.setRimSize(size);
-    // liveEngine: the engine is made when a spin fails, after the wheel was chosen
-  }, [wheel, finish, size, liveEngine]);
 
   if (!wheel) {
     if (loading) return <div className="absolute inset-0 bg-studio" />;
@@ -118,56 +82,42 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
   const money = (usd: number) => formatMoney(usd, region);
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-studio text-ink flex flex-col lg:flex-row short:flex-row select-none">
-      {/* 360° turntable */}
-      {/* at least 320 px: on a 568 px-tall phone 46% left the wheel ~150 px wide once the overlaid controls are cleared */}
-      <div className="relative h-[max(46dvh,320px)] shrink-0 lg:h-auto lg:flex-1 lg:min-h-0 short:h-auto short:flex-1 short:min-h-0">
-        {spin ? (
-          // the padding keeps the wheel clear of the overlaid controls: the back button over its top on a
-          // phone (and on a phone on its side, where the column is narrow), and the rotate pill + hint
-          // (88 px, 100 px on sm+) over its bottom
-          <div className="absolute inset-0 px-4 pt-14 pb-[88px] sm:p-8 sm:pb-[100px] short:pt-16">
-            <RimSpinView wheelId={wheel.id} finishId={finish!.id} frames={spin.frames} autoRotate={autoRotate} onError={onSpinError} />
-          </div>
-        ) : (
-          <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
-        )}
-        {!ready && !spin && spins !== null && (
-          <div className="absolute inset-0 flex items-center justify-center bg-studio">
-            <div className="h-10 w-10 rounded-full border border-ink/15 border-t-ink animate-spin" />
-          </div>
-        )}
-        <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-          <Button variant="light" size="sm" onClick={onBack} className="pl-3">
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.8} /> {backLabel}
+    // A phone scrolls the whole page (the stage, then the details). From `lg` up, and on a phone on its
+    // side, the stage fills the height beside the details, which scroll on their own.
+    <div className="absolute inset-0 overflow-y-auto overscroll-contain bg-studio text-ink flex flex-col lg:flex-row lg:overflow-hidden short:flex-row short:overflow-hidden">
+      {/* The stage: back and previous/next above the wheel studio */}
+      <div className="flex shrink-0 flex-col gap-3 p-3 sm:p-4 lg:min-h-0 lg:min-w-0 lg:flex-1 lg:shrink lg:p-5 short:min-h-0 short:min-w-0 short:flex-1 short:shrink short:gap-2 short:p-2">
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="light" size="sm" onClick={onBack} className="pl-3 min-w-0">
+            <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.8} /> <span className="truncate">{backLabel}</span>
           </Button>
-        </div>
-        <div className="absolute top-5 sm:top-7 left-1/2 -translate-x-1/2 hidden xl:block">
-          <Eyebrow className="tracking-[0.34em]">360° view</Eyebrow>
-        </div>
-        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-1 rounded-full bg-surface/85 backdrop-blur p-1 ring-1 ring-line shadow-float">
+          <div className="flex shrink-0 items-center gap-1 rounded-full bg-surface/85 backdrop-blur p-1 ring-1 ring-line">
             <IconButton label={`Previous: ${prev.name}`} onClick={() => onOpenRim(prev.id)}>
               <ChevronLeft className="h-4 w-4" />
             </IconButton>
-            <button
-              onClick={() => { const v = !autoRotate; setAutoRotate(v); engineRef.current?.setAutoRotate(v); }}
-              className={cx('flex h-10 items-center gap-2 rounded-full px-4 text-[10.5px] font-semibold uppercase tracking-[0.14em] transition', autoRotate ? 'bg-gold text-carbon' : 'text-ink hover:bg-ink/[0.05]')}
-            >
-              <Rotate3d className="h-4 w-4" strokeWidth={1.7} /> Rotate
-            </button>
+            <span className="px-1 text-[10.5px] font-semibold tabular-nums tracking-[0.14em] text-mute" aria-hidden>
+              {index + 1} / {wheels.length}
+            </span>
             <IconButton label={`Next: ${next.name}`} onClick={() => onOpenRim(next.id)}>
               <ChevronRight className="h-4 w-4" />
             </IconButton>
           </div>
-          <p className="text-[11px] text-mute whitespace-nowrap">{spin ? 'Drag to rotate' : 'Drag to rotate · Scroll to zoom'}</p>
         </div>
+        <WheelStage
+          wheel={wheel}
+          finishes={availableFinishes}
+          finish={finish}
+          onSelectFinish={setFinish}
+          onEnquire={onEnquire && finish ? () => onEnquire(wheel, finish, size) : undefined}
+          // the website's stage height on a phone; beside the details it takes the height that is there
+          className="h-[76dvh] min-h-[540px] max-h-[860px] lg:h-auto lg:min-h-0 lg:max-h-none lg:flex-1 short:h-auto short:min-h-0 short:max-h-none short:flex-1"
+        />
       </div>
 
       {/* Details */}
-      <aside className="w-full min-h-0 flex-1 lg:flex-none lg:w-[var(--panel-w)] short:flex-none short:w-[min(360px,46vw)] shrink-0 bg-surface lg:border-l short:border-l border-line overflow-y-auto overscroll-contain px-6 sm:px-7 py-7 space-y-7 shadow-panel">
+      <aside className="w-full shrink-0 lg:w-[var(--panel-w)] lg:min-h-0 lg:overflow-y-auto short:w-[min(360px,46vw)] short:min-h-0 short:overflow-y-auto overscroll-contain bg-surface lg:border-l short:border-l border-line px-6 sm:px-7 py-7 space-y-7 shadow-panel">
         <div key={wheel.id} className="animate-rise">
-          <div className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-bronze">{wheel.code}</div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-bronze">{wheelEyebrow(wheel)}</div>
           <h1 className="mt-2 font-display text-[26px] font-extrabold tracking-[-0.02em]">{wheel.name}</h1>
           <p className="mt-1 text-[13px] text-mute">{wheel.subtitle}</p>
         </div>
@@ -179,7 +129,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
               <button
                 key={f.id}
                 onClick={() => setFinish(f)}
-                title={f.name}
+                title={`${f.name}${finishSurcharge(wheel, size, f.id) ? ` · +${money(finishSurcharge(wheel, size, f.id))}` : ''}`}
                 className={cx('rounded-full p-[3px] transition-all duration-300', finish?.id === f.id ? 'ring-[1.5px] ring-ink' : 'ring-1 ring-transparent hover:ring-line')}
               >
                 <FinishChip finish={f} size={40} />
@@ -206,7 +156,7 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
         <div className="flex items-end justify-between border-y border-line py-5">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mute">Set of four</div>
-            <div className="mt-1 font-display text-[26px] font-extrabold tabular-nums">{money(rimPrice(wheel, size))}</div>
+            <div className="mt-1 font-display text-[26px] font-extrabold tabular-nums">{money(rimPrice(wheel, size, finish?.id))}</div>
           </div>
           {(wheel.weightFrontKg > 0 || wheel.weightRearKg > 0) && (
             <div className="text-right text-[12px] text-mute">
@@ -215,9 +165,16 @@ export const RimDetailPage: React.FC<RimDetailPageProps> = ({
           )}
         </div>
 
-        <Button size="lg" className="w-full" onClick={() => finish && onConfigure(wheel, finish, size)} icon={<Car className="h-4 w-4" strokeWidth={1.7} />}>
-          See it on my car
-        </Button>
+        <div className="space-y-3">
+          <Button size="lg" className="w-full" onClick={() => finish && onConfigure(wheel, finish, size)} icon={<Car className="h-4 w-4" strokeWidth={1.7} />}>
+            See it on my car
+          </Button>
+          {onEnquire && (
+            <Button variant="secondary" size="lg" className="w-full" onClick={() => finish && onEnquire(wheel, finish, size)}>
+              Enquire about this wheel
+            </Button>
+          )}
+        </div>
 
         {wheel.description && <p className="text-[14px] leading-relaxed text-mute">{wheel.description}</p>}
         {wheel.highlights.length > 0 && (

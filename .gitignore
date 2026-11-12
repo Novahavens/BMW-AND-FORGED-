@@ -28,3 +28,16 @@ dist-ssr
 scripts/_*.mjs
 .prerender/
 __pycache__/
+
+# ingest check shots: only the contact sheets (*.jpg) are committed
+docs/ingest/**/*.png
+.token-optimizer/decisions.log
+.token-optimizer/state/
+.token-optimizer/probe/
+!.token-optimizer/optimize.sh
+
+# CTO toolkit turn-stats log (rewritten by a hook every turn)
+.cto-toolkit/learning/patterns.jsonl
+
+# Agent worktrees (isolated checkouts made by Claude Code; never part of the repo)
+.claude/worktrees/

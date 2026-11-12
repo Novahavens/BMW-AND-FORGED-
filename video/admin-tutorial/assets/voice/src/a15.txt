@@ -1,0 +1,1 @@
+To add something new, press New, give it a unique ID, add the pictures or the 3D file, set the sizes, and save.

@@ -12,6 +12,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { applyPaintLayers, installPaintLayers } from './paintShader';
 import { buildSoftboxStudio, ROOM_DARK, ROOM_LIGHT, ROOM_WALLS, ROOM_WHITE } from './studioSoftbox';
 import { bindEnvironment, blackenGrilleChrome, glassReflectionMaterial, passMaterial } from './carMaterials';
+import { DOME_HORIZON, GLOSS_COVE, STAGE, VIEWER_FINISH, buildDome, buildFloor, buildGlossCove, buildPool, buildSoftCove, buildStageCove, buildStageDome, buildStageFloor, disposeCove, floorColorFor, isGlossPaint, poolTexture, studioExposure } from './viewerStudio';
 import { HorizontalBlurShader } from 'three/examples/jsm/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/examples/jsm/shaders/VerticalBlurShader.js';
 import { traceRimShapes, buildRimFaceGeometry } from './rimExtrusion';
@@ -27,6 +28,7 @@ import {
   buildDisc,
   buildHub,
   capTexture,
+  plateTexture,
   buildRimShell,
   buildTyre,
   createWheelKitMaterials,
@@ -36,7 +38,7 @@ import {
   tyreSizeLabel
 } from './wheelKit';
 import { buildRimFacesAsync, promoteRimFace, RimFacePriority } from './rimFaceAsync';
-import { finishLook, installFinishLayers, applyFinishLook } from './wheelFinish';
+import { finishLook, installFinishLayers, applyFinishLook, FINISH_FLAKE_SCALE, type FinishLook } from './wheelFinish';
 import { RIM_CAP_TEXT, RIM_FACE_MASKS, RIM_FACE_OPTIONS } from './rimFaces';
 import { proceduralRimShapes } from './proceduralRims';
 import { 
@@ -49,6 +51,7 @@ import {
   StudioTheme,
   Custom2DWheelConfig
 } from '../types';
+import type { FramesLayout } from './renderedBody';
 
 /**
  * The placeholder body has three shapes; other body styles use the nearest one:
@@ -56,6 +59,9 @@ import {
  */
 export const proceduralShape = (style: CarModel['bodyStyle']): 'coupe' | 'sedan' | 'suv' =>
   style === 'convertible' ? 'coupe' : style === 'touring' || style === 'gran_coupe' ? 'sedan' : style;
+
+/** The stage around the car: the softbox studio, the four-car viewer's grey dome, or the Cycles stills' black stage. */
+export type StageLook = 'studio' | 'viewer' | 'stage';
 
 export class CarConfiguratorEngine {
   private container: HTMLElement;
@@ -86,6 +92,15 @@ export class CarConfiguratorEngine {
     isRight: boolean;
   }[] = [];
   private kit!: WheelKitMaterials;
+  /** The car's own tyres and brake discs per corner ('front-right' ...), filled when a car is mounted. */
+  private ownTyreMeshes = new Map<string, THREE.Object3D[]>();
+  private ownDiscMeshes = new Map<string, THREE.Object3D[]>();
+  /** Copies of the car's painted caliper material, recoloured by applyCaliperColor. */
+  private ownCaliperPaints: THREE.MeshStandardMaterial[] = [];
+  /** Factory rim diameter (inches) of each axle from the car's fitment; null when not known. */
+  private factoryInches: { front: number | null; rear: number | null } = { front: null, rear: null };
+  /** The chosen rim diameter in inches. */
+  private rimInches = 20;
   /** Inside of the barrel: the finish, a touch darker and less polished. */
   private barrelMaterial!: THREE.MeshPhysicalMaterial;
   private lipStyle: LipStyle = 'mono';
@@ -205,6 +220,16 @@ export class CarConfiguratorEngine {
     const m = typeof window !== 'undefined' ? /[?&]exposure=([0-9.]+)/.exec(window.location.search) : null;
     return m ? +m[1] : undefined;
   })();
+  /**
+   * Stage look at start: 'studio' (softbox studio over the page backdrop), 'viewer' (the four-car viewer's grey dome,
+   * floor and coves) or 'stage' (the Cycles hero stills: black backdrop, pool of light on the floor); all three in
+   * services/viewerStudio.ts. ?look=viewer|stage compares.
+   */
+  static LOOK: StageLook =
+    typeof window !== 'undefined' ? ((/[?&]look=(viewer|stage)\b/.exec(window.location.search)?.[1] as StageLook | undefined) ?? 'studio') : 'studio';
+  /** "FORGED" placeholder plates on live GLB bodies (the viewer's idea); `?plates=0` turns them off for comparisons. */
+  static PLATES = typeof window === 'undefined' || !/[?&]plates=0/.test(window.location.search);
+  private plates: THREE.Mesh[] = [];
   static DEFAULT_HIDE = '(^|[^a-z])(wheel|rim|tyre|tire|brake|caliper|calliper|rotor|lugs?)';
   private isDisposed = false;
   private contactShadow: {
@@ -235,6 +260,8 @@ export class CarConfiguratorEngine {
     easeIn: boolean;
     resolve: () => void;
   } | null = null;
+  /** Car loads and car-change drives (driveToCar) in flight (settle() waits for them). */
+  private stageOps = 0;
   private cameraDamping = 0.12;
   private viewInset = { right: 0, bottom: 0 };
   private currentInset = { right: 0, bottom: 0 };
@@ -257,7 +284,7 @@ export class CarConfiguratorEngine {
     const aspect = w / (h > 0 ? h : 1);
 
     // Camera
-    this.camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(CarConfiguratorEngine.RENDER_FOV, aspect, 0.1, 100);
     this.camera.position.copy(this.targetCameraPos);
 
     // Renderer
@@ -273,11 +300,21 @@ export class CarConfiguratorEngine {
 
     // A phone can take the GPU away (app backgrounded, memory pressure) and hand it back empty.
     // three.js re-creates its own state and re-uploads textures and geometry on demand, but the
-    // two things that only ever lived on the GPU are gone: the reflection environment and the
-    // contact shadow. Without this the car comes back dark with no studio reflections.
+    // things that only ever lived on the GPU are gone: the reflection environments (studio, the
+    // viewer's coves, the rendered-body studio) and the contact shadow. Without this the car comes
+    // back dark with no studio reflections, or mirrors dead cove textures.
     this.boundOnContextRestored = () => {
       this.environmentTarget = null; // its GPU objects died with the old context; nothing to free
+      this.renderEnvTarget = null;
+      // rebuilt by the next applyViewerPaint (every cove: a missed one leaves the car black on the stage)
+      if (this.viewer) this.viewer.gloss = this.viewer.soft = this.viewer.stage = null;
       this.generateStudioEnvironment();
+      if (this.renderedBody) {
+        this.liveEnv = null; // the studio just generated is the live one to come back to
+        this.applyRenderedEnvironment(true);
+      } else {
+        this.applyLook(true); // the current look again: coves, fog, tone mapping, bound materials
+      }
       this.markShadowDirty();
       this.requestRender();
     };
@@ -308,6 +345,7 @@ export class CarConfiguratorEngine {
 
     // Generate procedural studio environment reflection
     this.generateStudioEnvironment();
+    if (CarConfiguratorEngine.LOOK !== 'studio') this.setLook(CarConfiguratorEngine.LOOK);
 
     // Start loop
     this.animate = this.animate.bind(this);
@@ -670,6 +708,7 @@ export class CarConfiguratorEngine {
       this.scene.environmentIntensity = CarConfiguratorEngine.SOFTBOX_INTENSITY;
       this.scene.environmentRotation.set(0, 0, 0);
       this.environmentTarget = studioTarget;
+      this.syncWheelEnvironment();
       roomTarget.dispose(); // replaced before the first frame
       pmrem.dispose();
       this.requestRender();
@@ -685,10 +724,12 @@ export class CarConfiguratorEngine {
         this.scene.environment = envTarget.texture;
         roomTarget.dispose();
         this.environmentTarget = envTarget;
+        this.syncWheelEnvironment();
         this.requestRender();
         this.scene.environmentIntensity = 1.0;
         this.scene.environmentRotation.set(0, Math.PI * 0.35, 0);
         pmrem.dispose();
+        this.syncBoundEnvironment(); // parts pinned to the room so far follow
       })
       .catch((err) => {
         console.warn('Studio HDRI unavailable; keeping the procedural studio reflections.', err);
@@ -945,28 +986,40 @@ export class CarConfiguratorEngine {
    * Shows the car's uploaded GLB, or the procedural body when it has none (or it fails to load).
    * Resolves to which one ended up on screen.
    */
-  public async loadCar(car: CarModel): Promise<'model' | 'procedural'> {
+  public async loadCar(car: CarModel): Promise<'model' | 'procedural' | 'frames'> {
     const token = ++this.carLoadToken;
-    this.proceduralWheelScale = car.bodyStyle === 'suv' ? 1.14 : 1;
-    if (car.modelUrl) {
-      try {
-        const template = await this.loadCarTemplate(car.modelUrl);
-        if (token === this.carLoadToken) {
-          this.mountCarModel(template.clone(true), car);
-          this.mountedModelUrl = car.modelUrl;
-        }
-        return 'model';
-      } catch (err) {
-        console.warn(`Failed to load 3D model for ${car.name}; using procedural body.`, err);
+    this.stageOps++;
+    try {
+      this.proceduralWheelScale = car.bodyStyle === 'suv' ? 1.14 : 1;
+      const frames = this.framesCars[car.id];
+      if (frames) {
+        // Frames-only: nothing is downloaded, whatever modelUrl says
+        if (token === this.carLoadToken) this.mountFramesCar(car, frames);
+        return 'frames';
       }
+      if (car.modelUrl) {
+        try {
+          const template = await this.loadCarTemplate(car.modelUrl);
+          if (token === this.carLoadToken) {
+            this.mountCarModel(template.clone(true), car);
+            this.mountedModelUrl = car.modelUrl;
+          }
+          return 'model';
+        } catch (err) {
+          console.warn(`Failed to load 3D model for ${car.name}; using procedural body.`, err);
+        }
+      }
+      if (token === this.carLoadToken) {
+        this.mountedModelUrl = null;
+        this.framesCarId = null;
+        this.buildBMWCarBody(car.bodyStyle);
+        this.resetWheelLayout();
+        this.markShadowDirty();
+      }
+      return 'procedural';
+    } finally {
+      this.stageOps--;
     }
-    if (token === this.carLoadToken) {
-      this.mountedModelUrl = null;
-      this.buildBMWCarBody(car.bodyStyle);
-      this.resetWheelLayout();
-      this.markShadowDirty();
-    }
-    return 'procedural';
   }
 
   /** Downloads a car GLB once; every later mount clones the cached scene (geometry is shared). */
@@ -996,7 +1049,7 @@ export class CarConfiguratorEngine {
     return p;
   }
 
-  /** Keeps the cache to a few cars so browsing the showroom doesn't pile up GPU memory. */
+  /** Keeps the cache to a few cars so browsing the cars on the welcome carousel doesn't pile up GPU memory. */
   private evictModels(keep: string) {
     for (const url of this.modelCache.keys()) {
       if (this.modelCache.size <= CarConfiguratorEngine.MODEL_CACHE_MAX) break;
@@ -1041,7 +1094,7 @@ export class CarConfiguratorEngine {
   /** Warms the model cache so switching to this car is instant. Runs when the browser is idle. */
   public preloadCar(car: CarModel) {
     const url = car.modelUrl;
-    if (!url) return;
+    if (!url || this.framesCars[car.id]) return;
     if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
     const run = () => {
       if (!this.isDisposed) this.loadCarTemplate(url).catch(() => {});
@@ -1051,17 +1104,53 @@ export class CarConfiguratorEngine {
   }
 
   /**
-   * Showroom change: the current car drives out of frame, the next one drives in and stops on its
-   * mark. direction 1 = forwards (next), -1 = reversing (previous).
+   * Car change with a drive: the current car drives out of frame, the next one drives in and stops on its
+   * mark. direction 1 = forwards (next), -1 = reversing (previous). This was the showroom's car change; with
+   * the showroom gone, only the viewer panel's Car chips use it (?panel=viewer). The welcome's Enter mounts
+   * the chosen car with loadCar, without a drive.
    */
   public async driveToCar(car: CarModel, direction: 1 | -1 = 1): Promise<void> {
     const distance = 11;
-    const loading = car.modelUrl ? this.loadCarTemplate(car.modelUrl).catch(() => null) : Promise.resolve(null);
-    await this.animateDrive(this.carGroup.position.z, direction * distance, 0.85, true);
-    await loading;
-    this.carGroup.position.z = -direction * distance;
-    await this.loadCar(car);
-    await this.animateDrive(-direction * distance, 0, 1.25, false);
+    this.stageOps++;
+    try {
+      const loading = car.modelUrl && !this.framesCars[car.id] ? this.loadCarTemplate(car.modelUrl).catch(() => null) : Promise.resolve(null);
+      await this.animateDrive(this.carGroup.position.z, direction * distance, 0.85, true);
+      await loading;
+      this.carGroup.position.z = -direction * distance;
+      await this.loadCar(car);
+      await this.animateDrive(-direction * distance, 0, 1.25, false);
+    } finally {
+      this.stageOps--;
+    }
+  }
+
+  /** Puts a drive in flight at its end at once (a paused engine never animates it on). */
+  private finishDrive() {
+    const d = this.drive;
+    if (!d) return;
+    this.drive = null;
+    this.carGroup.position.z = d.to;
+    d.resolve();
+  }
+
+  /**
+   * Resolves once the stage is still: no wheel design or rim size is still being prepared, no car is loading or
+   * driving, and the drive animation is over. Resolves at once when nothing is pending and never hangs (about
+   * `maxMs` at most). A paused engine does not animate, so a drive caught in flight is completed on the spot.
+   * App.tsx awaits this before taking the summary stills.
+   */
+  public settle(maxMs = 4000): Promise<void> {
+    return new Promise((resolve) => {
+      const started = performance.now();
+      const check = () => {
+        if (this.isPaused && this.drive) this.finishDrive();
+        const sizeShown = this.wheelAssemblies.every((a) => a.dims.rimScale === this.rimScale);
+        const idle = this.pendingWheelToken === null && sizeShown && !this.drive && this.stageOps === 0;
+        if (idle || this.isDisposed || performance.now() - started >= maxMs) resolve();
+        else setTimeout(check, 40);
+      };
+      check();
+    });
   }
 
   private animateDrive(from: number, to: number, duration: number, easeIn: boolean): Promise<void> {
@@ -1114,7 +1203,45 @@ export class CarConfiguratorEngine {
     }
   }
 
+  /** Frames-only cars the engine should mount without a GLB (from renders/manifest.json via loadFramesCars). */
+  public setFramesCars(cars: Record<string, FramesLayout>) {
+    this.framesCars = cars;
+  }
+
+  public isFramesCar(carId: string) {
+    return !!this.framesCars[carId];
+  }
+
+  /**
+   * A frames-only car: no body in the scene, only the forged wheels where the manifest puts them. It is meant to be
+   * shown in rendered mode (setRenderedBody), where the Blender frame is the body and depth.png masks the far wheels.
+   */
+  private mountFramesCar(car: CarModel, layout: FramesLayout) {
+    this.ownCaliperPaints.forEach((m) => m.dispose());
+    this.ownCaliperPaints = [];
+    this.ownTyreMeshes.clear();
+    this.ownDiscMeshes.clear();
+    this.factoryInches = {
+      front: CarConfiguratorEngine.inchesFrom(car.recommendedWheelFitment?.front),
+      rear: CarConfiguratorEngine.inchesFrom(car.recommendedWheelFitment?.rear),
+    };
+    this.disposeBody();
+    this.mountedModelUrl = null;
+    this.framesCarId = car.id;
+    this.setCarFootprint(layout.footprint[0] + 0.1, layout.footprint[1] + 0.28); // the margins mountCarModel adds
+    this.wheelAssemblies.forEach((a) => {
+      const [x, y, z, s] = layout.wheels[`${a.isFront ? 'front' : 'rear'}-${a.isRight ? 'right' : 'left'}`];
+      a.group.position.set(x, y, z);
+      a.group.scale.setScalar(s);
+      a.caliper.visible = true; // no model calipers: ours draw
+    });
+    this.applyOwnPartsVisibility();
+    this.markShadowDirty();
+    this.syncRenderedBody();
+  }
+
   private mountCarModel(model: THREE.Object3D, car: CarModel) {
+    this.framesCarId = null;
     // Orient: this scene drives along Z, so turn models authored along X first.
     model.updateMatrixWorld(true);
     const rawSize = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
@@ -1135,6 +1262,8 @@ export class CarConfiguratorEngine {
     model.updateMatrixWorld(true);
 
     const carBox = new THREE.Box3().setFromObject(model);
+    const carSize = carBox.getSize(new THREE.Vector3());
+    this.setCarFootprint(carSize.z / 2 + 0.1, carSize.x / 2 + 0.28); // the viewer look's pool of shadow hugs this car
     const paintRe = CarConfiguratorEngine.safeRegex(car.paintMeshMatch, 'paint|body|carpaint|exterior');
     // Whole words only by default, so "trim" or "brim" never count as a rim.
     const legacyHide = 'wheel|rim|tyre|tire|brake|caliper|rotor';
@@ -1143,6 +1272,15 @@ export class CarConfiguratorEngine {
     const notPaintRe = /glass|window|light|lamp|chrome|trim|rubber|interior|carbon|grille|badge|logo|plastic/i;
     const notWheelRe = /steer|arch|well|house|liner|mudguard|fender/i;
     const wheelRe = /wheel|(^|[^a-z])(rim|tyre|tire)/i;
+    // Per-car wheel parts, filled by the traversal below. Copies from an earlier mount are released first.
+    this.ownCaliperPaints.forEach((m) => m.dispose());
+    this.ownCaliperPaints = [];
+    this.ownTyreMeshes.clear();
+    this.ownDiscMeshes.clear();
+    this.factoryInches = {
+      front: CarConfiguratorEngine.inchesFrom(car.recommendedWheelFitment?.front),
+      rear: CarConfiguratorEngine.inchesFrom(car.recommendedWheelFitment?.rear),
+    };
 
     // Wheel bounds per corner, keyed by side of the car's centre line: front/rear + left/right.
     const corners = new Map<string, THREE.Box3>();
@@ -1183,14 +1321,28 @@ export class CarConfiguratorEngine {
       }
 
       const ownNames = `${mesh.name} ${materialNames}`;
-      // A car whose hide pattern leaves its own calipers visible keeps them: the painted body of the
-      // caliper takes the caliper colour (like ours), its hardware keeps a metal look
+      // The car's own tyre and brake disc at each corner: the viewer keeps them and swaps only the rim.
+      // They keep their own materials (never painted); applyOwnPartsVisibility decides which one shows.
+      const isOwnTyre = wheelRe.test(partNames) && /tyre|tire/i.test(materialNames);
+      const isOwnDisc = wheelRe.test(partNames) && /disc/i.test(materialNames);
+      if (isOwnTyre || isOwnDisc) {
+        const bucket = isOwnTyre ? this.ownTyreMeshes : this.ownDiscMeshes;
+        const key = CarConfiguratorEngine.cornerKeyOf(mesh);
+        bucket.set(key, [...(bucket.get(key) ?? []), mesh]);
+        mesh.userData.ownWheelPart = true;
+      }
+      // A car whose hide pattern leaves its own calipers visible keeps them, with their shape, badge and metal.
+      // The painted body takes its own copy of the car's material, so the owner's caliper colour still applies.
       if (/caliper|calliper/i.test(materialNames)) {
-        mesh.material = this.kit.caliper;
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((m) => this.ownCaliperMaterial(m))
+          : this.ownCaliperMaterial(mesh.material);
         mesh.userData.modelCaliper = true;
         modelCalipers = true;
         return;
       }
+      if (isOwnTyre && !Array.isArray(mesh.material)) mesh.material = this.greyCarTyre(mesh.material);
+      if (isOwnTyre || isOwnDisc) return; // kept with the car's own material
       if (paintRe.test(ownNames) && !notPaintRe.test(ownNames)) {
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map((m) => this.paintMaterialFor(m))
@@ -1205,13 +1357,13 @@ export class CarConfiguratorEngine {
           const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
           mesh.material = blackenGrilleChrome(mesh.material, c, carBox);
         }
-        bindEnvironment(mesh.material, this.scene.environment, this.scene.environmentIntensity);
+        this.bindToStudio(mesh.material);
         // Full-strength Fresnel reflections on single-material glazing (see glassReflectionMaterial)
         // (a cached model mounted again arrives with the overlay child cloned along: never twice)
         const glass = !Array.isArray(mesh.material) && mesh.material.userData.partKind === 'glass';
         if (glass && !mesh.children.some((c) => c.userData.isOverlay)) {
           const glassMat = glassReflectionMaterial();
-          bindEnvironment(glassMat, this.scene.environment, this.scene.environmentIntensity);
+          this.bindToStudio(glassMat);
           const overlay = new THREE.Mesh(mesh.geometry, glassMat);
           overlay.name = 'glass_reflection';
           overlay.renderOrder = mesh.renderOrder + 1;
@@ -1227,6 +1379,16 @@ export class CarConfiguratorEngine {
     // made only of such triangles are hidden. A cylinder, not the wheel's box: fender lips sit
     // inside the box corners but outside the tyre. (Same space as the wheel boxes: before the
     // model joins the scene.)
+    // The car's own tyre sets each wheel's size. When only the stock rim is hidden, the rim's box is smaller than
+    // the tyre around it, and sizing from it drew our rim (and, off the factory size, our tyre) 15-26% too small.
+    // Measured here, in the same space as the corner boxes (before the model joins the scene).
+    const ownTyreBoxes = new Map<string, THREE.Box3>();
+    this.ownTyreMeshes.forEach((meshes, key) => {
+      const box = new THREE.Box3();
+      meshes.forEach((m) => box.expandByObject(m));
+      if (!box.isEmpty()) ownTyreBoxes.set(key, box);
+    });
+
     // All four wheels merged into one mesh: split its vertices by side of the car instead.
     if (corners.size < 4 && wheelMeshes.length) {
       const byVertex = CarConfiguratorEngine.cornersFromVertices(wheelMeshes);
@@ -1236,12 +1398,18 @@ export class CarConfiguratorEngine {
 
     // The model's own calipers replace ours (they match its brakes and arches)
     this.wheelAssemblies.forEach((a) => (a.caliper.visible = !modelCalipers));
+    this.applyOwnPartsVisibility();
 
     this.disposeBody();
     this.bodyMeshGroup.add(model);
     this.paintVariants = usedVariants;
+    // A cached car comes back with the paint its variant materials (panels with normal/AO maps) had when it
+    // was last on screen; the shared body material has moved on since, so the paint is applied again
+    if (this.currentPaint) this.applyPaintColor(this.currentPaint);
+    this.syncBoundEnvironment(); // glass, chrome, trim and lamps mirror the cove in the viewer look
     this.markShadowDirty();
     this.syncRenderedBody();
+    this.addNumberPlates(model, carBox);
 
 
     if (corners.size === 4) {
@@ -1249,7 +1417,8 @@ export class CarConfiguratorEngine {
         const key = `${a.isFront ? 'front' : 'rear'}-${a.isRight ? 'right' : 'left'}`;
         const cornerBox = corners.get(key)!;
         const c = cornerBox.getCenter(new THREE.Vector3());
-        const tyreRadius = cornerBox.getSize(new THREE.Vector3()).y / 2;
+        // The rim we replace places the wheel; the car's own tyre, where it has one, sizes it
+        const tyreRadius = (ownTyreBoxes.get(key) ?? cornerBox).getSize(new THREE.Vector3()).y / 2;
         a.group.position.set(c.x, c.y, c.z);
         a.group.scale.setScalar(tyreRadius / 0.35); // procedural tyre radius
       });
@@ -1272,7 +1441,7 @@ export class CarConfiguratorEngine {
     const v = new THREE.Vector3();
     model.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
-      if (!mesh.isMesh || !mesh.visible || mesh.userData.isOverlay || mesh.userData.modelCaliper) return;
+      if (!mesh.isMesh || !mesh.visible || mesh.userData.isOverlay || mesh.userData.modelCaliper || mesh.userData.ownWheelPart) return;
       const geo = mesh.geometry;
       // Decided once per geometry: a cached model is mounted as a clone whose userData is a copy,
       // but whose geometry is shared, so the decision lives on the geometry
@@ -1367,6 +1536,7 @@ export class CarConfiguratorEngine {
 
   /** Removes the current body; GLB geometry is disposed, shared studio materials are kept. */
   private disposeBody() {
+    this.disposePlates(); // first: their geometry and materials are the engine's own, not the cached GLB's
     // hand a cached model back with its own materials (see syncRenderedBody)
     this.bodyMeshGroup.traverse((o) => {
       const mesh = o as THREE.Mesh;
@@ -1384,6 +1554,101 @@ export class CarConfiguratorEngine {
       });
     });
     this.bodyMeshGroup.clear();
+  }
+
+  /** Removes the placeholder plates and frees their box geometry, materials and the "FORGED" texture (made per plate). */
+  private disposePlates() {
+    this.plates.forEach((p) => {
+      p.removeFromParent();
+      p.geometry.dispose();
+      (Array.isArray(p.material) ? p.material : [p.material]).forEach((m) => { (m as THREE.MeshStandardMaterial).map?.dispose(); m.dispose(); });
+    });
+    this.plates = [];
+  }
+
+  /**
+   * The viewer's placeholder number plates, ported: a UK-format plate reading "FORGED" (so no real
+   * registration is shown) on the front and rear bumpers of a live GLB body. The bumper surface is found
+   * by a ray along the car's axis at plate height; the plate sits square to the car (pitch only). A car
+   * without a bumper surface at those heights simply gets no plate.
+   *
+   * Rays against a 150k-triangle body are the dear part of a mount (three.js has no BVH): only the meshes
+   * whose bounds reach the car's end at plate height are cast against, the fitted height is tried first
+   * and at most six neighbours after it, and the search stops at the first square hit. `carBox` is the
+   * body's bounds in bodyMeshGroup space (mountCarModel).
+   */
+  private addNumberPlates(model: THREE.Object3D, carBox: THREE.Box3) {
+    if (!CarConfiguratorEngine.PLATES) return;
+    this.carGroup.updateMatrixWorld(true);
+    const all: THREE.Mesh[] = [];
+    model.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh && mesh.visible && !/glass|wheel|tyre|tire|brake|interior|plate/i.test(`${mesh.name} ${mesh.parent?.name ?? ''}`)) all.push(mesh);
+    });
+    if (!all.length) return;
+    const toLocal = new THREE.Matrix4().copy(this.bodyMeshGroup.matrixWorld).invert();
+    const third = (carBox.max.z - carBox.min.z) / 3;
+    const ray = new THREE.Raycaster();
+    const bounds = new THREE.Box3();
+    const mount = (rear: boolean) => {
+      const dz = rear ? 1 : -1; // the nose points +z: the front plate is hit from +z looking back
+      const preferred = rear ? 0.62 : 0.4; // the viewer's heights, fitted on the M2 CS
+      const heights = [preferred];
+      for (let i = 1; i <= 3; i++) for (const s of [1, -1]) heights.push(+(preferred + s * i * 0.03).toFixed(3)); // nearest first: 0.03 m steps either way
+      heights.splice(1, heights.length, ...heights.slice(1).filter((h) => h >= 0.34 && h <= 0.7)); // within the viewer's plate band
+      const yMin = Math.min(...heights) - 0.02, yMax = Math.max(...heights) + 0.02;
+      const zEnd = rear ? carBox.min.z : carBox.max.z;
+      // The ray runs along x = 0 at plate height: a mesh whose bounds miss that line, or that stays out
+      // of this end's third of the car, cannot be hit
+      const meshes = all.filter((mesh) => {
+        bounds.setFromObject(mesh).applyMatrix4(toLocal);
+        if (bounds.min.x > 0 || bounds.max.x < 0 || bounds.max.y < yMin || bounds.min.y > yMax) return false;
+        return rear ? bounds.min.z <= carBox.min.z + third : bounds.max.z >= carBox.max.z - third;
+      });
+      if (!meshes.length) return;
+      let best: { point: THREE.Vector3; normal: THREE.Vector3; score: number } | null = null;
+      const local = new THREE.Vector3();
+      for (const h of heights) {
+        const origin = new THREE.Vector3(0, h, -dz * 6).applyMatrix4(this.carGroup.matrixWorld);
+        const dir = new THREE.Vector3(0, 0, dz).transformDirection(this.carGroup.matrixWorld);
+        ray.set(origin, dir);
+        ray.near = 0;
+        ray.far = 12;
+        const hit = ray.intersectObjects(meshes, false)[0];
+        if (!hit?.face) continue;
+        const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+        if (n.dot(dir) > 0) n.negate();
+        // Off the centre line, deep behind the bumper line (a grille, intake or engine-bay face seen through
+        // an opening) or on a surface that is not mostly upright (a bonnet or boot lid): not a plate mount
+        local.copy(hit.point).applyMatrix4(toLocal);
+        if (Math.abs(local.x) > 0.35 || Math.abs(local.z - zEnd) > 0.35 || Math.abs(n.y) > 0.6) continue;
+        const square = Math.abs(n.dot(dir));
+        const score = square + (h === preferred ? 0.08 : 0); // the most square surface wins; the fitted height gets a small bonus
+        if (!best || score > best.score) best = { point: hit.point.clone(), normal: n, score };
+        if (best.score >= 1 || square >= 0.98) break; // nothing can beat the fitted height now / square enough
+      }
+      if (!best || best.score < 0.75) return;
+      const point = best.point.applyMatrix4(toLocal);
+      const n = best.normal.transformDirection(toLocal);
+      n.x = 0;
+      n.y = THREE.MathUtils.clamp(n.y, -0.05, 0.28);
+      n.normalize();
+      const black = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.6 });
+      const face = new THREE.MeshStandardMaterial({ map: plateTexture(rear, this.renderer.capabilities.getMaxAnisotropy()), roughness: 0.55, metalness: 0 });
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.111, 0.008), [black, black, black, black, face, black]);
+      plate.position.copy(point).addScaledVector(n, 0.03);
+      plate.up.set(0, 1, 0);
+      plate.lookAt(plate.position.clone().add(n));
+      plate.castShadow = true;
+      plate.receiveShadow = true;
+      plate.name = rear ? 'Plate_Rear' : 'Plate_Front';
+      plate.userData.isPlate = true; // syncRenderedBody leaves it out of the depth mask
+      plate.visible = !this.renderedBody; // mounted after the sync: follow the rendered-body state from the start
+      this.bodyMeshGroup.add(plate);
+      this.plates.push(plate);
+    };
+    mount(false);
+    mount(true);
   }
 
   // ----------------------------------------------------
@@ -1509,6 +1774,7 @@ export class CarConfiguratorEngine {
       // Spoke faces are built for 20"; they scale across the face, not in depth
       a.spokeMeshGroup.scale.set(1, s, s);
     });
+    this.applyOwnPartsVisibility();
   }
 
   /** Frees every cached tyre and rim shell (engine cleanup). */
@@ -1535,6 +1801,7 @@ export class CarConfiguratorEngine {
 
   /** Resizes the rim inside a fixed tyre, e.g. '21"'. Bigger rim = thinner sidewall, like a real upgrade. */
   public setRimSize(size: string) {
+    this.rimInches = parseInt(size, 10) || this.rimInches;
     const scale = CarConfiguratorEngine.rimScaleFor(size);
     if (Math.abs(scale - this.rimScale) < 1e-6 && this.wheelAssemblies.every((a) => a.tyre)) return;
     this.rimScale = scale;
@@ -1685,8 +1952,26 @@ export class CarConfiguratorEngine {
     };
 
     if (modelUrl) {
-      this.loadRimModel(modelUrl).then(
-        (template) => commit(() => this.wheelAssemblies.forEach((a) => this.mountRimModel(a.spokeMeshGroup, template, !!wheel.modelFlip))),
+      // Staggered sets bring a second file for the rear axle; it falls back to the front file if it fails.
+      const rearUrl = wheel.rearModelUrl && wheel.rearModelUrl !== modelUrl ? wheel.rearModelUrl : null;
+      const rear = rearUrl
+        ? this.loadRimModel(rearUrl).catch((err) => {
+            console.warn(`Failed to load the rear 3D rim for ${wheel.name}; using the front file on every corner.`, err);
+            return null;
+          })
+        : Promise.resolve(null);
+      Promise.all([this.loadRimModel(modelUrl), rear]).then(
+        ([front, back]) =>
+          commit(() => {
+            try {
+              this.wheelAssemblies.forEach((a) => this.mountRimModel(a.spokeMeshGroup, a.isFront || !back ? front : back, !!wheel.modelFlip));
+            } catch (err) {
+              // A file that parses but cannot be fitted (no geometry, broken transforms) falls back like a failed
+              // load; the next commit's clearSpokes takes any half-mounted corners down
+              console.warn(`Could not mount the 3D rim for ${wheel.name}; falling back.`, err);
+              this.applyWheelDesign({ ...wheel, modelUrl: null });
+            }
+          }),
         (err) => {
           console.warn(`Failed to load 3D rim for ${wheel.name}; falling back.`, err);
           if (token === this.wheelDesignToken) this.applyWheelDesign({ ...wheel, modelUrl: null });
@@ -1863,7 +2148,10 @@ export class CarConfiguratorEngine {
   private loadRimModel(url: string): Promise<THREE.Object3D> {
     let p = this.rimModelCache.get(url);
     if (!p) {
-      p = this.getGltfLoader().loadAsync(url).then((g) => g.scene);
+      p = this.getGltfLoader().loadAsync(url).then((g) => {
+        if (this.isDisposed) CarConfiguratorEngine.disposeScene(g.scene); // arrived after cleanup
+        return g.scene;
+      });
       p.catch(() => this.rimModelCache.delete(url));
       this.rimModelCache.set(url, p);
     }
@@ -1888,6 +2176,7 @@ export class CarConfiguratorEngine {
 
     holder.updateMatrixWorld(true);
     let box = new THREE.Box3().setFromObject(holder);
+    if (box.isEmpty()) throw new Error('the rim file has no geometry');
     const size = box.getSize(new THREE.Vector3());
     holder.scale.setScalar((2 * 0.26) / (Math.max(size.y, size.z) || 1)); // 20" base rim diameter
     holder.updateMatrixWorld(true);
@@ -1895,34 +2184,60 @@ export class CarConfiguratorEngine {
     const c = box.getCenter(new THREE.Vector3());
     holder.position.set(-box.max.x + 0.01, -c.y, -c.z);
 
-    // One finish material per mounted rim: CAD exports can hold hundreds of bodies. A per-mesh copy is
-    // kept only where the GLB brings its own texture or normal map.
-    const shared = new THREE.MeshPhysicalMaterial({
-      color: this.wheelMaterial.color.clone(),
-      metalness: this.wheelMaterial.metalness,
-      roughness: this.wheelMaterial.roughness,
-      clearcoat: this.wheelMaterial.clearcoat,
-      clearcoatRoughness: this.wheelMaterial.clearcoatRoughness,
-      envMap: this.wheelMaterial.envMap
-    });
-    this.customFaceMaterials.push(shared);
+    // One finish material per mounted rim (CAD exports can hold hundreds of bodies), shared by every mesh
+    // with the same sidedness and unit scale; a mesh that brings its own texture or normal map gets a copy.
+    // The holder has no parent yet, so a mesh's world scale is its local unit in the wheel's metres.
+    const shared = new Map<string, THREE.MeshPhysicalMaterial>();
+    const unit = new THREE.Vector3();
     rim.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       mesh.receiveShadow = true; // spokes shade the barrel, as on the procedural and photo rims
-      const old = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+      const old = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial | undefined;
+      const side = old?.side ?? THREE.FrontSide; // FSA001's barrel is an open double-sided shell
+      unit.setFromMatrixScale(mesh.matrixWorld);
+      const unitScale = (unit.x + unit.y + unit.z) / 3;
       if (old?.map || old?.normalMap) {
-        const mat = shared.clone();
+        const mat = this.makeRimFinishMaterial(side, unitScale);
         mat.map = old.map ?? null;
         mat.normalMap = old.normalMap ?? null;
-        this.customFaceMaterials.push(mat);
         mesh.material = mat;
-      } else {
-        mesh.material = shared;
+        return;
       }
+      const key = `${side}|${unitScale.toFixed(3)}`;
+      let mat = shared.get(key);
+      if (!mat) shared.set(key, (mat = this.makeRimFinishMaterial(side, unitScale)));
+      mesh.material = mat;
     });
     parent.add(holder);
+  }
+
+  /** The look applyWheelFinish last set (GLB rims mounted later start from it). */
+  private wheelFinishLook: FinishLook | null = null;
+
+  /**
+   * A finish material for a GLB rim or a flat image face: the current finish with everything the procedural
+   * spokes have (wheel-arch shading, face/flop and flake layers, the gloss-paint specular cut), so it looks the
+   * same and applyWheelFinish keeps it in step. `unitScale` is the mesh's local unit in metres of the 20" wheel:
+   * the flake cells stay ~1 mm whatever the file's units.
+   */
+  private makeRimFinishMaterial(side: THREE.Side, unitScale: number): THREE.MeshPhysicalMaterial {
+    const m = new THREE.MeshPhysicalMaterial({ side, envMap: this.wheelMaterial.envMap, envMapIntensity: this.wheelMaterial.envMapIntensity });
+    installWheelShading(m, { arch: 0.3 });
+    installFinishLayers(m).uFinishFlakeScale.value = FINISH_FLAKE_SCALE * (unitScale > 0 ? unitScale : 1);
+    if (this.wheelFinishLook) applyFinishLook(m, this.wheelFinishLook);
+    else {
+      const w = this.wheelMaterial; // before the first finish: the kit's default
+      m.color.copy(w.color);
+      m.metalness = w.metalness;
+      m.roughness = w.roughness;
+      m.clearcoat = w.clearcoat;
+      m.clearcoatRoughness = w.clearcoatRoughness;
+      m.specularIntensity = w.specularIntensity;
+    }
+    this.customFaceMaterials.push(m);
+    return m;
   }
 
   private applyCustom2DSpokeTexture(parent: THREE.Group, config: Custom2DWheelConfig, isFront: boolean, token: number) {
@@ -1942,6 +2257,7 @@ export class CarConfiguratorEngine {
             roughness: this.wheelMaterial.roughness,
             clearcoat: this.wheelMaterial.clearcoat,
             clearcoatRoughness: this.wheelMaterial.clearcoatRoughness,
+            specularIntensity: this.wheelMaterial.specularIntensity,
             color: this.wheelMaterial.color.clone(),
             envMap: this.wheelMaterial.envMap,
             bumpMap: texture,
@@ -1968,6 +2284,7 @@ export class CarConfiguratorEngine {
           roughness: this.wheelMaterial.roughness,
           clearcoat: this.wheelMaterial.clearcoat,
           clearcoatRoughness: this.wheelMaterial.clearcoatRoughness,
+          specularIntensity: this.wheelMaterial.specularIntensity,
           color: this.wheelMaterial.color,
           envMap: this.wheelMaterial.envMap,
           bumpMap: texture,
@@ -2011,6 +2328,16 @@ export class CarConfiguratorEngine {
     return m ? +m[1] : 0.45;
   })();
   /** Overall strength of the generated softbox studio (scene.environmentIntensity). */
+  /**
+   * How strongly the wheels reflect the softbox studio on the stage and viewer looks (ADR-001). Those looks light
+   * the car with a cove that is black except overhead, so near-vertical spokes mirrored black and every finish read
+   * flat. The wheels keep the softbox studio's long strips instead, at this strength. ?wheelEnv= compares.
+   */
+  static WHEEL_ENV: number = (() => {
+    const m = typeof window !== 'undefined' ? /[?&]wheelEnv=([0-9.]+)/.exec(window.location.search) : null;
+    return m ? +m[1] : 0.1;
+  })();
+
   static SOFTBOX_INTENSITY: number = (() => {
     const m = typeof window !== 'undefined' ? /[?&]envi=([0-9.]+)/.exec(window.location.search) : null;
     return m ? +m[1] : 0.28;
@@ -2027,17 +2354,31 @@ export class CarConfiguratorEngine {
     this.currentPaint = paint;
     for (const m of [this.carBodyMaterial, ...this.paintVariants]) {
       applyPaintLayers(m, paint);
-      m.envMapIntensity = CarConfiguratorEngine.BODY_ENV_INTENSITY;
+      m.envMapIntensity = this.look !== 'studio' ? 1 : CarConfiguratorEngine.BODY_ENV_INTENSITY; // the coves are built for full reflections
       m.color.set(paint.hex);
-      // Gloss: a sharper clear coat and a smoother base coat for glossy paints; Frozen stays matte
-      const glossy = paint.type !== 'Frozen';
-      const g = glossy ? CarConfiguratorEngine.GLOSS : 1;
-      m.roughness = paint.roughness * g;
-      m.metalness = paint.metalness;
-      m.clearcoat = paint.clearcoat;
-      m.clearcoatRoughness = glossy ? Math.min(paint.clearcoatRoughness, 0.025) : paint.clearcoatRoughness;
+      if (this.look !== 'studio') {
+        // The viewer's finish table by paint type (its coves, and the stage's, were tuned for these values)
+        const f = VIEWER_FINISH[paint.type] ?? VIEWER_FINISH.Metallic;
+        m.metalness = f.metalness;
+        m.roughness = f.roughness;
+        m.clearcoat = f.clearcoat;
+        m.clearcoatRoughness = f.clearcoatRoughness;
+        m.iridescence = f.iridescence;
+        m.iridescenceIOR = f.iridescenceIOR;
+        m.iridescenceThicknessRange = [180, 620];
+      } else {
+        // Gloss: a sharper clear coat and a smoother base coat for glossy paints; Frozen stays matte
+        const glossy = paint.type !== 'Frozen';
+        const g = glossy ? CarConfiguratorEngine.GLOSS : 1;
+        m.roughness = paint.roughness * g;
+        m.metalness = paint.metalness;
+        m.clearcoat = paint.clearcoat;
+        m.clearcoatRoughness = glossy ? Math.min(paint.clearcoatRoughness, 0.025) : paint.clearcoatRoughness;
+        m.iridescence = 0;
+      }
       m.needsUpdate = true;
     }
+    this.applyViewerPaint(paint);
     this.requestRender();
   }
 
@@ -2075,6 +2416,7 @@ export class CarConfiguratorEngine {
     // The admin's four numbers are read as a layered coating (polished metal, gloss paint, satin
     // metallic or metallic paint): see wheelFinish.ts
     const look = finishLook(finish);
+    this.wheelFinishLook = look;
     applyFinishLook(this.wheelMaterial, look);
 
     // The barrel's inside: same finish, a little darker and less polished (it is also in shadow)
@@ -2087,7 +2429,7 @@ export class CarConfiguratorEngine {
     this.barrelMaterial.specularIntensity = look.kind === 'gloss-paint' ? 0 : 1; // see applyFinishLook
     this.barrelMaterial.needsUpdate = true;
 
-    // GLB and flat image rim faces take the finish too (without flake: their units vary)
+    // GLB and flat image rim faces take the finish too (GLB materials carry the finish layers at their own unit scale)
     this.customFaceMaterials.forEach((m) => applyFinishLook(m, look));
     this.requestRender(); // a still camera would otherwise show it on the next heartbeat (up to 1 s)
   }
@@ -2095,6 +2437,66 @@ export class CarConfiguratorEngine {
   public applyCaliperColor(caliper: CaliperColor) {
     this.kit.caliper.color.set(caliper.hex);
     this.kit.caliper.needsUpdate = true;
+    this.ownCaliperPaints.forEach((m) => {
+      m.color.set(caliper.hex);
+      m.needsUpdate = true;
+    });
+  }
+
+  /**
+   * The car's own tyre, as the owner's viewer draws it: dark grey rubber, never black. The bead texture has an
+   * orange ring that a brightness lift turns into a glowing lip, so only its luminance is kept, capped at 0.24.
+   */
+  private greyCarTyre(material: THREE.Material): THREE.Material {
+    if (material.userData.tyreGreyed || !(material instanceof THREE.MeshStandardMaterial)) return material;
+    material.userData.tyreGreyed = true;
+    material.color.setScalar(5.5);
+    material.roughness = 0.8;
+    material.onBeforeCompile = (sh) => {
+      sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        diffuseColor.rgb = vec3(min(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)), 0.24));`);
+    };
+    material.customProgramCacheKey = () => 'car-tyre-grey';
+    return material;
+  }
+
+  /** The car's caliper material: the painted body gets its own copy (recoloured by applyCaliperColor); the rest is kept. */
+  private ownCaliperMaterial(material: THREE.Material): THREE.Material {
+    if (!(material instanceof THREE.MeshStandardMaterial) || !/paint/i.test(material.name)) return material;
+    const copy = material.clone();
+    this.ownCaliperPaints.push(copy);
+    return copy;
+  }
+
+  /**
+   * The car's own tyre shows at a corner only when the chosen size is that axle's factory fitment: the
+   * car's tyre has one size. Our procedural tyre shows everywhere else. The brake disc does not depend on the
+   * rim, so the car's own disc shows wherever the car has one; ours is hidden behind it.
+   */
+  private applyOwnPartsVisibility() {
+    this.wheelAssemblies.forEach((a) => {
+      const key = `${a.isFront ? 'front' : 'rear'}-${a.isRight ? 'right' : 'left'}`;
+      const factory = a.isFront ? this.factoryInches.front : this.factoryInches.rear;
+      const ownTyres = this.ownTyreMeshes.get(key) ?? [];
+      const ownDiscs = this.ownDiscMeshes.get(key) ?? [];
+      const useOwnTyre = ownTyres.length > 0 && factory !== null && factory === this.rimInches;
+      ownTyres.forEach((m) => (m.visible = useOwnTyre));
+      ownDiscs.forEach((m) => (m.visible = true));
+      if (a.tyre) a.tyre.visible = !useOwnTyre;
+      a.disc.visible = ownDiscs.length === 0;
+    });
+  }
+
+  /** Corner key of a part from its centre: 'front-right', 'rear-left' ... (the same keys as the wheel bounds). */
+  private static cornerKeyOf(part: THREE.Object3D): string {
+    const c = new THREE.Box3().setFromObject(part).getCenter(new THREE.Vector3());
+    return `${c.z >= 0 ? 'front' : 'rear'}-${c.x >= 0 ? 'right' : 'left'}`;
+  }
+
+  /** Rim diameter in inches from a fitment such as '19 x 9.5J ET12'; null when it cannot be read. */
+  private static inchesFrom(fitment: string | undefined): number | null {
+    const m = fitment?.match(/(\d{2})\s*x/);
+    return m ? Number(m[1]) : null;
   }
 
   public setRideHeight(dropMeters: number) {
@@ -2109,6 +2511,8 @@ export class CarConfiguratorEngine {
   // ----------------------------------------------------
   public setCameraPreset(view: CameraViewPreset, opts: { instant?: boolean; aspect?: number } = {}) {
     if (this.renderedBody) opts = { instant: true, aspect: CarConfiguratorEngine.RENDER_ASPECT };
+    this.presetView = view;
+    this.syncFramesDepth();
     // Whole-car views back off on narrow screens (or when UI covers part of it) so the car always fits.
     // `aspect` frames for a fixed picture (the summary stills) instead of the screen.
     const w = this.container.clientWidth || 1;
@@ -2129,6 +2533,12 @@ export class CarConfiguratorEngine {
       case 'frontThreeQuarter':
         this.targetLookAt.set(0, 0.5, 0.2);
         this.targetCameraPos.set(4.1 * fit, 1.3, 4.0 * fit);
+        break;
+
+      case 'front':
+        // Straight on, at headlight height (the viewer's "Front" chip)
+        this.targetLookAt.set(0, 0.55, 0.3);
+        this.targetCameraPos.set(0.0, 1.15, 6.4 * fit);
         break;
 
       case 'side':
@@ -2213,6 +2623,33 @@ export class CarConfiguratorEngine {
   })();
   private static DEPTH_ONLY = new THREE.MeshBasicMaterial({ colorWrite: false });
   private renderedBody = false;
+  // Frames-only cars (services/renderedBody.ts FramesLayout): the body exists only as images, so there is no GLB to
+  // place the wheels or to mask the far-side wheels. The wheels come from the manifest; the mask is the view's depth
+  // image (render_car.py --depth), drawn first as a depth-only quad over the frame (syncFramesDepth).
+  private framesCars: Record<string, FramesLayout> = {};
+  private framesCarId: string | null = null;
+  private presetView: CameraViewPreset | null = null;
+  private framesDepth = new Map<string, Promise<THREE.Texture | null>>();
+  private framesDepthReady = new Map<string, THREE.Texture | null>();
+  private depthOccluder: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> | null = null;
+  /** Metres covered by depth.png's 16 bits (render_car.py DEPTH_RANGE); 65535 = nothing there. */
+  static FRAMES_DEPTH_RANGE = 40;
+  static RENDER_FOV = 38; // the camera's vertical field of view, as export-scene.cjs hands it to Blender
+  // The stage look (setLook): the viewer's dome, floor, pool and reflection coves are built on first use and stay in the scene, hidden when the softbox studio is on
+  private lookWanted: StageLook = 'studio';
+  private look: StageLook = 'studio';
+  private viewer: {
+    dome: THREE.Mesh;
+    floor: THREE.Mesh<THREE.CircleGeometry, THREE.MeshStandardMaterial>;
+    pool: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+    gloss: THREE.WebGLRenderTarget | null;
+    soft: THREE.WebGLRenderTarget | null;
+    /** The stage look's black dome, lit floor and reflection cove (built on first use) */
+    stageDome: THREE.Mesh | null;
+    stageFloor: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null;
+    stage: THREE.WebGLRenderTarget | null;
+  } | null = null;
+  private carFootprint = { halfL: 2.4, halfW: 1.32 };
   private renderEnvTarget: THREE.WebGLRenderTarget | null = null;
   private renderEnvLoading: Promise<THREE.WebGLRenderTarget | null> | null = null;
   private liveEnv: { env: THREE.Texture | null; intensity: number; rotation: THREE.Euler } | null = null;
@@ -2220,7 +2657,9 @@ export class CarConfiguratorEngine {
     if (on === this.renderedBody) return;
     this.renderedBody = on;
     this.syncRenderedBody();
+    if (on) this.applyLook(); // the viewer dome and coves stand down before the render studio takes over
     this.applyRenderedEnvironment(on);
+    if (!on) this.applyLook(); // and come back once the live studio is restored
     if (on) this.isAutoRotate = false;
     if (!on && this.shadowStale) {
       this.shadowStale = false;
@@ -2235,6 +2674,7 @@ export class CarConfiguratorEngine {
         this.scene.environmentIntensity = this.liveEnv.intensity;
         this.scene.environmentRotation.copy(this.liveEnv.rotation);
         this.liveEnv = null;
+        this.syncBoundEnvironment();
       }
       return;
     }
@@ -2270,10 +2710,13 @@ export class CarConfiguratorEngine {
   }
   private syncRenderedBody() {
     const on = this.renderedBody;
-    // The body stays as an invisible depth mask, so the far-side wheels hide behind the rendered car
+    // The body stays as an invisible depth mask, so the far-side wheels hide behind the rendered car.
+    // The placeholder plates are not part of that mask: the Blender frames carry the bumpers, so the plates
+    // simply hide with the live body and come back with it (also for the summary and PDF captures)
+    this.plates.forEach((plate) => (plate.visible = !on));
     this.bodyMeshGroup.traverse((o) => {
       const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh) return;
+      if (!mesh.isMesh || mesh.userData.isPlate) return;
       if (on && !mesh.userData.liveMaterial) {
         mesh.userData.liveMaterial = mesh.material;
         mesh.material = CarConfiguratorEngine.DEPTH_ONLY;
@@ -2288,6 +2731,311 @@ export class CarConfiguratorEngine {
     this.wheelAssemblies.forEach((a) => {
       if (on) a.caliper.visible = true;
     });
+    this.syncFramesDepth();
+  }
+
+  /** The depth image of a frames-only car's view (cached; null when it is missing or fails). */
+  private loadFramesDepth(carId: string, view: CameraViewPreset): Promise<THREE.Texture | null> {
+    const key = `${carId}/${view}`;
+    let p = this.framesDepth.get(key);
+    if (!p) {
+      p = new THREE.TextureLoader()
+        .loadAsync(`/renders/${carId}/${view}/depth.png`)
+        .then((tex) => {
+          // Data, not colour: no colour conversion, no filtering between depths, no mipmaps
+          tex.colorSpace = THREE.NoColorSpace;
+          tex.minFilter = tex.magFilter = THREE.NearestFilter;
+          tex.generateMipmaps = false;
+          tex.needsUpdate = true;
+          return tex;
+        })
+        .catch((err) => {
+          console.warn(`No depth image for ${key}: the far-side wheels will show through the body.`, err);
+          return null;
+        })
+        .then((tex) => {
+          this.framesDepthReady.set(key, tex);
+          return tex;
+        });
+      this.framesDepth.set(key, p);
+    }
+    return p;
+  }
+
+  /**
+   * A quad just in front of the camera, covering exactly what the Blender camera saw (RENDER_FOV, RENDER_ASPECT), that
+   * writes the frame's depth and no colour. Drawn first, it hides whatever of the live wheels the rendered body covers,
+   * as the GLB depth mask does for the other cars. Placed from the camera at draw time, so a view offset or a canvas
+   * that is not exactly 1.6:1 still lines it up with the frame.
+   */
+  private ensureDepthOccluder() {
+    if (this.depthOccluder) return this.depthOccluder;
+    const material = new THREE.ShaderMaterial({
+      uniforms: { depthMap: { value: null }, range: { value: CarConfiguratorEngine.FRAMES_DEPTH_RANGE } },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform mat4 projectionMatrix; // three.js declares it for the vertex stage only; it fills both
+        uniform sampler2D depthMap;
+        uniform float range;
+        varying vec2 vUv;
+        void main() {
+          vec4 t = texture2D(depthMap, vUv);
+          float code = floor(t.r * 255.0 + 0.5) * 256.0 + floor(t.g * 255.0 + 0.5);
+          if (code >= 65535.0) {
+            gl_FragDepth = 1.0; // no body here: the wheels draw
+          } else {
+            float d = code / 65534.0 * range; // metres along the view axis
+            vec4 clip = projectionMatrix * vec4(0.0, 0.0, -d, 1.0);
+            gl_FragDepth = clamp(clip.z / clip.w * 0.5 + 0.5, 0.0, 1.0);
+          }
+          gl_FragColor = vec4(0.0);
+        }`,
+      depthTest: true,
+      depthWrite: true,
+      depthFunc: THREE.AlwaysDepth,
+      colorWrite: false,
+    });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
+    quad.frustumCulled = false;
+    quad.matrixAutoUpdate = false;
+    quad.renderOrder = -10;
+    quad.visible = false;
+    const dist = 0.2; // past the camera's near plane (0.1)
+    const halfH = dist * Math.tan(THREE.MathUtils.degToRad(CarConfiguratorEngine.RENDER_FOV / 2));
+    const local = new THREE.Matrix4().makeTranslation(0, 0, -dist).multiply(new THREE.Matrix4().makeScale(2 * halfH * CarConfiguratorEngine.RENDER_ASPECT, 2 * halfH, 1));
+    quad.onBeforeRender = (_r, _s, camera) => {
+      quad.matrixWorld.multiplyMatrices(camera.matrixWorld, local);
+    };
+    this.scene.add(quad);
+    return (this.depthOccluder = quad);
+  }
+
+  /** Shows the depth quad for a frames-only car in rendered mode, once the view's depth image is in. */
+  private syncFramesDepth() {
+    const carId = this.framesCarId, view = this.presetView;
+    if (!this.renderedBody || !carId || !view) {
+      if (this.depthOccluder) this.depthOccluder.visible = false;
+      return;
+    }
+    const key = `${carId}/${view}`;
+    const quad = this.ensureDepthOccluder();
+    if (this.framesDepthReady.has(key)) {
+      const tex = this.framesDepthReady.get(key) ?? null;
+      quad.material.uniforms.depthMap.value = tex;
+      quad.visible = !!tex;
+      return;
+    }
+    quad.visible = false; // until it loads: never mask with another view's depth
+    this.loadFramesDepth(carId, view).then(() => {
+      if (this.isDisposed) return;
+      if (this.framesCarId === carId && this.presetView === view) {
+        this.syncFramesDepth();
+        this.requestRender();
+      }
+    });
+  }
+
+  // ----------------------------------------------------
+  // STAGE LOOK: the scene a live car stands in (services/viewerStudio.ts); the configurator screen uses 'stage'
+  // ----------------------------------------------------
+  /**
+   * 'stage' is the look App.tsx sets on the configurator screen (and behind the welcome's stills): the Cycles
+   * stills' black backdrop, a pool of light on a pale floor and the stage cove. 'viewer' puts the car in the
+   * four-car viewer's gradient dome and reflection coves; the configurator showed it before the stage look and
+   * it is kept for comparison. Both use Neutral tone mapping and an exposure by paint. 'studio' is the softbox
+   * studio over the page backdrop. While a pre-rendered body is shown the stage stays 'studio' and the wanted
+   * look returns when rendered mode ends.
+   */
+  public setLook(look: StageLook) {
+    this.lookWanted = look;
+    this.applyLook();
+  }
+  private applyLook(force = false) {
+    const want = this.renderedBody ? 'studio' : this.lookWanted;
+    if (want === this.look && !force) return; // force: the same look again (after a WebGL context restore)
+    this.look = want;
+    if (want !== 'studio') {
+      if (!this.viewer) {
+        const dome = buildDome(), floor = buildFloor(), pool = buildPool(this.carFootprint.halfL, this.carFootprint.halfW);
+        this.scene.add(dome, floor, pool);
+        this.viewer = { dome, floor, pool, gloss: null, soft: null, stageDome: null, stageFloor: null, stage: null };
+      }
+      const stage = want === 'stage';
+      if (stage && !this.viewer.stageDome) {
+        this.viewer.stageDome = buildStageDome();
+        this.viewer.stageFloor = buildStageFloor();
+        this.scene.add(this.viewer.stageDome, this.viewer.stageFloor);
+      }
+      // The viewer's grey dome and floor, or the stage's black dome and lit floor; the shadow pool serves both
+      this.viewer.dome.visible = this.viewer.floor.visible = !stage;
+      if (this.viewer.stageDome) this.viewer.stageDome.visible = stage;
+      if (this.viewer.stageFloor) this.viewer.stageFloor.visible = stage;
+      this.viewer.pool.visible = true;
+      this.studioLightsGroup.visible = false; // the coves light the car on their own, as in the viewer
+      // The viewer's floor melts into the dome's horizon; the stage floor fades out on its own
+      this.scene.fog = stage ? null : new THREE.Fog(DOME_HORIZON, 7, 24);
+      this.renderer.toneMapping = THREE.NeutralToneMapping;
+      this.scene.environmentRotation.set(0, 0, 0);
+      this.scene.environmentIntensity = 1.0;
+    } else {
+      if (this.viewer) {
+        this.viewer.dome.visible = this.viewer.floor.visible = this.viewer.pool.visible = false;
+        if (this.viewer.stageDome) this.viewer.stageDome.visible = false;
+        if (this.viewer.stageFloor) this.viewer.stageFloor.visible = false;
+      }
+      this.studioLightsGroup.visible = true;
+      this.scene.fog = null;
+      this.setGlassForCove(null);
+      const tone = CarConfiguratorEngine.TONE;
+      this.renderer.toneMapping = tone === 'agx' ? THREE.AgXToneMapping : tone === 'neutral' ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = CarConfiguratorEngine.EXPOSURE ?? (tone === 'agx' ? 1.25 : tone === 'neutral' ? 0.95 : 1.08);
+      if (this.environmentTarget) {
+        this.scene.environment = this.environmentTarget.texture;
+        this.scene.environmentIntensity = CarConfiguratorEngine.STUDIO === 'softbox' ? CarConfiguratorEngine.SOFTBOX_INTENSITY : 1.0;
+        this.scene.environmentRotation.set(0, CarConfiguratorEngine.STUDIO === 'softbox' ? 0 : Math.PI * 0.35, 0);
+      }
+      this.syncBoundEnvironment(); // glass, chrome, trim and lamps back on the studio
+    }
+    // The tone mapping is compiled into every material
+    this.scene.traverse((o) => {
+      const mats = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!mats) return;
+      (Array.isArray(mats) ? mats : [mats]).forEach((m) => (m.needsUpdate = true));
+    });
+    this.syncWheelEnvironment(); // ADR-001: the wheels keep the softbox studio on the stage
+    if (this.currentPaint) this.applyPaintColor(this.currentPaint); // cove, exposure and body reflectivity follow the look
+    this.markShadowDirty();
+    this.requestRender();
+  }
+  /**
+   * The cove, exposure and floor colour for a paint in the viewer and stage looks: glossy paints get the gloss cove
+   * (the stage cove on the stage), Frozen the soft one.
+   */
+  private applyViewerPaint(paint: PaintColor) {
+    if (this.look === 'studio' || !this.viewer) return;
+    const gloss = isGlossPaint(paint);
+    const kind = !gloss ? 'soft' : this.look === 'stage' ? 'stage' : 'gloss';
+    if (!this.viewer[kind]) {
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const env = kind === 'soft' ? buildSoftCove() : kind === 'stage' ? buildStageCove() : buildGlossCove();
+      const target = kind === 'soft' ? pmrem.fromScene(env, 0.02) : pmrem.fromScene(env, 0.0, 0.1, 100, { size: 512 });
+      disposeCove(env);
+      pmrem.dispose();
+      this.viewer[kind] = target;
+    }
+    this.scene.environment = this.viewer[kind]!.texture;
+    const exposure = studioExposure(paint) * (this.look === 'stage' ? STAGE.exposure : 1);
+    this.renderer.toneMappingExposure = exposure;
+    this.viewer.floor.material.color.copy(floorColorFor(gloss, exposure));
+    this.setGlassForCove(gloss);
+    this.syncBoundEnvironment(); // the non-paint parts mirror the same cove as the body
+  }
+
+  /** The softbox studio's reflection map and strength: what the parts pass's materials are bound to. */
+  private studioEnvironment(): { map: THREE.Texture | null; intensity: number } {
+    if (this.environmentTarget) {
+      return { map: this.environmentTarget.texture, intensity: CarConfiguratorEngine.STUDIO === 'softbox' ? CarConfiguratorEngine.SOFTBOX_INTENSITY : 1.0 };
+    }
+    // before the HDRI arrives (?studio=hdri): the procedural room; in rendered-body mode the live studio is parked in liveEnv
+    const live = this.liveEnv;
+    return live ? { map: live.env, intensity: live.intensity } : { map: this.scene.environment, intensity: this.scene.environmentIntensity };
+  }
+
+  /**
+   * Pins a non-paint material to the studio (carMaterials.bindEnvironment: a part's own envMapIntensity only
+   * counts on a material that carries the map itself) and remembers the part's own strength, so
+   * syncBoundEnvironment can move it between the studio and the viewer's coves. Once per material.
+   */
+  private bindToStudio(material: THREE.Material | THREE.Material[]) {
+    const studio = this.studioEnvironment();
+    bindEnvironment(material, studio.map, studio.intensity);
+    for (const m of Array.isArray(material) ? material : [material]) {
+      const std = m as THREE.MeshStandardMaterial;
+      if (!std.isMeshStandardMaterial || !std.userData.envBound || std.userData.envOwn !== undefined) continue;
+      std.userData.envOwn = studio.intensity > 0 ? std.envMapIntensity / studio.intensity : std.envMapIntensity;
+    }
+  }
+
+  /**
+   * ADR-001: on the stage and viewer looks the wheels (spokes or GLB rim, barrel, image faces) reflect the softbox
+   * studio built at start, not the body's cove; on the softbox studio look (and before the studio exists) they follow
+   * scene.environment as before. The barrel keeps its own share (0.45: deep inside the wheel).
+   */
+  private syncWheelEnvironment() {
+    const map = this.look !== 'studio' && this.environmentTarget ? this.environmentTarget.texture : null;
+    const strength = map ? CarConfiguratorEngine.WHEEL_ENV : 1;
+    const set = (m: THREE.MeshStandardMaterial, share: number) => {
+      if (m.envMap !== map) {
+        m.envMap = map;
+        m.needsUpdate = true;
+      }
+      m.envMapIntensity = strength * share;
+    };
+    set(this.wheelMaterial, 1);
+    set(this.barrelMaterial, 0.45);
+    this.customFaceMaterials.forEach((m) => set(m, 1));
+  }
+
+  /**
+   * Points the bound non-paint materials (glass, chrome, trim, lamps and the glass overlay) at the reflections
+   * the body uses: the active cove in the viewer look, the studio otherwise. A material's own envMap overrides
+   * scene.environment, so without this they kept mirroring the softbox studio inside the viewer's coves.
+   */
+  private syncBoundEnvironment() {
+    const studio = this.studioEnvironment();
+    const viewer = this.look !== 'studio'; // the viewer and stage looks: the active cove
+    const map = viewer ? this.scene.environment : studio.map;
+    // On the stage the mirror-like parts take a share of the cove (STAGE.parts), or they clip to white
+    const intensity = viewer ? this.scene.environmentIntensity * (this.look === 'stage' ? STAGE.parts : 1) : studio.intensity;
+    if (!map) return;
+    const seen = new Set<THREE.Material>();
+    this.bodyMeshGroup.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const mats = (mesh.userData.liveMaterial ?? mesh.material) as THREE.Material | THREE.Material[]; // depth-masked in rendered mode
+      for (const m of Array.isArray(mats) ? mats : [mats]) {
+        const std = m as THREE.MeshStandardMaterial;
+        if (!std?.isMeshStandardMaterial || std.userData.envOwn === undefined || seen.has(std)) continue;
+        seen.add(std);
+        if (std.envMap !== map) {
+          std.envMap = map;
+          std.needsUpdate = true;
+        }
+        std.envMapIntensity = (std.userData.envOwn as number) * intensity;
+      }
+    });
+  }
+  /**
+   * Window glass mirrored the gloss cove's overhead box as a hard white arc (the viewer's finding): in that cove the
+   * glass gets a little roughness and a weaker specular; the soft cove and the softbox studio get the materials pass's own values.
+   */
+  private setGlassForCove(gloss: boolean | null) {
+    this.bodyMeshGroup.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        const g = m as THREE.MeshPhysicalMaterial;
+        if (!g || g.userData.partKind !== 'glass' || !('specularIntensity' in g)) continue;
+        if (!g.userData.studioGlass) g.userData.studioGlass = { specularIntensity: g.specularIntensity, roughness: g.roughness };
+        const base = g.userData.studioGlass as { specularIntensity: number; roughness: number };
+        g.specularIntensity = gloss ? GLOSS_COVE.glass : base.specularIntensity;
+        g.roughness = gloss ? GLOSS_COVE.glassRough : base.roughness;
+      }
+    });
+  }
+  /** The pool of shadow sized to the car on screen (mountCarModel). */
+  private setCarFootprint(halfL: number, halfW: number) {
+    this.carFootprint = { halfL, halfW };
+    if (!this.viewer) return;
+    const old = this.viewer.pool.material.alphaMap;
+    this.viewer.pool.material.alphaMap = poolTexture(halfL, halfW);
+    this.viewer.pool.material.needsUpdate = true;
+    old?.dispose();
   }
 
   public setViewInset(right: number, bottom = 0) {
@@ -2327,6 +3075,9 @@ export class CarConfiguratorEngine {
     // The stills are always 16:9 (the summary page and the PDF lay them out that way), whatever the
     // screen: a phone's portrait canvas used to be cropped into a 16:9 frame, cutting the car off.
     const outW = 1600, outH = 900;
+    // A frames-only car has no 3D body: a live still would be four wheels in the air. Its stills come from
+    // renderedStills only; the summary shows empty frames rather than that.
+    if (this.framesCarId) return [];
     const wasRendered = this.renderedBody; // stills need the 3D body
     if (wasRendered) {
       this.renderedBody = false;
@@ -2404,6 +3155,9 @@ export class CarConfiguratorEngine {
   public async captureWheelLayers(views: CameraViewPreset[], width = 1440): Promise<HTMLCanvasElement[]> {
     const target = await this.loadRenderEnv();
     if (!target || this.isDisposed) return [];
+    const framesCarId = this.framesCarId;
+    if (framesCarId) await Promise.all(views.map((v) => this.loadFramesDepth(framesCarId, v)));
+    if (this.isDisposed) return [];
     const outW = width, outH = Math.round(width / CarConfiguratorEngine.RENDER_ASPECT);
     const wasRendered = this.renderedBody;
     const saved = {
@@ -2422,6 +3176,7 @@ export class CarConfiguratorEngine {
     if (!wasRendered) {
       this.renderedBody = true;
       this.syncRenderedBody();
+      this.applyLook(); // the viewer's dome, floor, fog and tone mapping stand down: the layers go over the Blender body
       this.applyRenderedEnvironment(true); // the HDR is loaded: lit at once
     }
     this.viewInset = { right: 0, bottom: 0 };
@@ -2445,6 +3200,7 @@ export class CarConfiguratorEngine {
       this.renderedBody = false;
       this.syncRenderedBody();
       this.applyRenderedEnvironment(false);
+      this.applyLook(); // and the wanted look comes back
     }
     this.camera.aspect = saved.aspect;
     this.camera.updateProjectionMatrix();
@@ -2463,7 +3219,7 @@ export class CarConfiguratorEngine {
   }
 
   public setAutoRotate(enabled: boolean) {
-    if (this.renderedBody) enabled = false;
+    if (this.renderedBody || this.framesCarId) enabled = false; // a frames-only car has no body to turn
     this.isAutoRotate = enabled;
     this.requestRender();
   }
@@ -2631,6 +3387,20 @@ export class CarConfiguratorEngine {
   // CLEANUP
   // ----------------------------------------------------
   public cleanup() {
+    if (this.viewer) {
+      this.viewer.gloss?.dispose();
+      this.viewer.soft?.dispose();
+      this.viewer.stage?.dispose();
+      const stageMeshes = [this.viewer.stageDome, this.viewer.stageFloor].filter((m): m is THREE.Mesh => !!m);
+      for (const m of [this.viewer.dome, this.viewer.floor, this.viewer.pool, ...stageMeshes]) {
+        m.geometry.dispose();
+        const mat = m.material as THREE.MeshBasicMaterial;
+        mat.map?.dispose();
+        mat.alphaMap?.dispose();
+        mat.dispose();
+      }
+      this.viewer = null;
+    }
     this.isDisposed = true;
     this.drive?.resolve();
     this.drive = null;
@@ -2681,6 +3451,9 @@ export class CarConfiguratorEngine {
     // rim shells, the kit's materials and the paint copies
     this.rimFaceCache.forEach((p) => p.then((f) => { f?.front.dispose(); f?.rear.dispose(); }).catch(() => {}));
     this.rimFaceCache.clear();
+    // GLB rim templates (their geometry is shared by the mounted clones, which go with the renderer)
+    this.rimModelCache.forEach((p) => p.then((s) => CarConfiguratorEngine.disposeScene(s)).catch(() => {}));
+    this.rimModelCache.clear();
     this.disposeWheelShells();
     this.retiredMaterials.forEach((m) => m.dispose());
     this.customFaceMaterials.forEach((m) => m.dispose());
@@ -2688,6 +3461,7 @@ export class CarConfiguratorEngine {
     this.barrelMaterial?.dispose();
     this.wheelMaterial?.dispose();
     this.carBodyMaterial?.dispose();
+    this.disposePlates();
     this.paintVariants.forEach((m) => m.dispose());
     this.environmentTarget?.dispose();
     this.renderEnvTarget?.dispose();

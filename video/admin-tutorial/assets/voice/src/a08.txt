@@ -1,0 +1,1 @@
+Untick Visible to hide a car without deleting it. Delete is permanent, so it asks you to confirm first. And Save publishes your changes to the configurator.

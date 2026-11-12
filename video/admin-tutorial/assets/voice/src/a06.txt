@@ -1,0 +1,1 @@
+Tick the factory paints this car is offered in. Tick none, and it offers every visible paint.

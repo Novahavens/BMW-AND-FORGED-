@@ -26,12 +26,14 @@ A photo has no depth: complex or concave designs need CAD. The template is anoth
 ## One command (any design, no measuring)
 `scripts/rim3d/convert.sh <photo.png> <wheelId>` (dev server running): trace with the engine's cleaning → build → pack → preview, ~20 s. Then add the wheel with `model_url /models/rims/<wheelId>.glb`.
 
-## Rim detail page = pre-rendered spin
-`turntable.py full.glb public/renders/rims/<id>` (or `convert.sh … --spin`) renders 36 frames × 4 finishes; `spin-manifest.py` updates the manifest; `RimSpinView.tsx` shows it, live engine as fallback. The car view is untouched by this.
+## Rim detail page = the wheel studio (same GLB as the car)
+`/rims/<id>` draws the wheel's `modelUrl` file live in the wheel studio ported from the FORGED website (`shared/wheel-viewer/WheelStudio.tsx`, lazy chunk; `components/WheelStage.tsx` picks the studio for a wheel with a `modelUrl` and the wheel's photo for one without; `shared/wheel-viewer/wheelStudioParts.ts`). It loads the same files as the car (`public/models/rims/`, `rearModelUrl` behind a Front / Rear switch) and draws finishes with `services/wheelFinish.ts`, so a finish is the same on the rim page and on the car. Views Face / 3/4 / Side / Back / Top; Show toggles Orbit, Spin wheel, Exploded, Wireframe, Bolts, Cap, and Brake check when the model has brake meshes. Parts are found by node name (`classifyStudioPart`: `Rim_Barrel`, `Rim_Face_Spokes`, `Hardware_Bolts`, `Center_Cap`, `Brake_Rotor`, `Brake_Caliper`, or the short names; anything else counts as face), so after any new rim file open its rim page as well as the car.
+
+Legacy: the pre-rendered spin (`turntable.py full.glb public/renders/rims/<id>`, `convert.sh … --spin`, `spin-manifest.py`) is no longer part of the app. `components/RimSpinView.tsx` and `public/renders/rims/manifest.json` are removed; the scripts still exist but nothing in the app uses their output.
 
 ## Matching the car (spec keys of build_rim.py, used for FSA-06/08/12/13)
 `{"face_front": 0.408, "face_thick": 0.13, "dish": 0.137, "dish_curve": "parabola", "subdivide": 0.03, "bolts": 0, "bore": 0, "nuts": true, "cap": {"text": "FSA"}, "lip": "mono"|"two"|"three"}`
-gives the spin the engine's own hub kit: dished face, spoke ends 10 mm behind the lip, five lug nuts, black cap with gold ring and
+gives the spin (legacy, see above) the engine's own hub kit: dished face, spoke ends 10 mm behind the lip, five lug nuts, black cap with gold ring and
 lettering, polished bolted lip (30 / 40 bolts) for two / three-piece. `turntable.py` keeps those parts in their own material in every
 finish (by object name: cap, capring, captext, lugnut, lip, shelf, bolt) and takes `--threads N` for a shared box. Cap lettering on the
 car is `RIM_CAP_TEXT` in `services/rimFaces.ts`. Render with `--resmooth --weighted`.

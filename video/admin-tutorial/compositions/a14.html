@@ -1,0 +1,44 @@
+<template>
+  <style>
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-500.woff2') format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-700.woff2') format('woff2'); font-weight: 700; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/satoshi-900.woff2') format('woff2'); font-weight: 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; }
+    #root .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #root .ring { position: absolute; border: 4px solid #CF9F52; border-radius: 14px; opacity: 0; box-shadow: 0 0 0 2px rgba(11,11,12,.55); box-sizing: border-box; }
+    #root .click { position: absolute; width: 120px; height: 120px; border: 4px solid #CF9F52; border-radius: 50%; opacity: 0; }
+    #root .cur { position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.5)); }
+    #root .card-host { position: absolute; width: 560px; }
+    #root .card { background: #0b0b0c; border-left: 10px solid #CF9F52; border-radius: 6px; padding: 22px 28px 26px 26px; box-shadow: 0 24px 60px rgba(0,0,0,.45); font-family: 'Satoshi', sans-serif; }
+    #root .eye { color: #CF9F52; font-weight: 700; font-size: 28px; letter-spacing: .16em; }
+    #root .line { margin-top: 10px; color: #fff; font-weight: 900; font-size: 48px; line-height: 1.06; letter-spacing: -.015em; }
+  </style>
+  <div id="root" data-composition-id="a14" data-width="1920" data-height="1080">
+    <div id="a14-cam" class="clip" data-start="0" data-duration="12.27" data-track-index="0"><div id="a14-cami" class="cam"><img id="a14-img-0" class="shot" src="assets/shots/16-finishes-edit.png" alt="" style="opacity:1"><img id="a14-img-1" class="shot" src="assets/shots/17-paints-edit.png" alt="" style="opacity:0"><div id="a14-ring-0" class="ring" style="left:608px;top:287px;width:1161px;height:111px"></div><div id="a14-ring-1" class="ring" style="left:608px;top:398px;width:1161px;height:111px"></div><div id="a14-ring-2" class="ring" style="left:608px;top:666px;width:1161px;height:110px"></div><svg id="a14-cur" class="cur" viewBox="0 0 24 24" width="40" height="40"><path d="M3 2 L3 19 L8 14.5 L11.2 21.5 L14 20.3 L10.9 13.4 L17.5 13 Z" fill="#fff" stroke="#0b0b0c" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div><div id="a14-card-0" class="clip card-host" data-start="3.27" data-duration="1.75" data-track-index="2" style="left:72px;top:818px"><div id="a14-cardi-0" class="card"><div class="eye">FINISHES</div><div class="line">Colour and reflection</div></div></div><div id="a14-card-1" class="clip card-host" data-start="4.97" data-duration="3.68" data-track-index="2" style="left:72px;top:818px"><div id="a14-cardi-1" class="card"><div class="eye">METAL, ROUGH, GLOSS</div><div class="line">Matches the real coating</div></div></div><div id="a14-card-2" class="clip card-host" data-start="8.60" data-duration="3.42" data-track-index="2" style="left:72px;top:818px"><div id="a14-cardi-2" class="card"><div class="eye">PAINTS TOO</div><div class="line">Same fields, for factory colours</div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    gsap.set("#a14-cami",{transformOrigin:"970px 540px"});
+    tl.fromTo("#a14-cami",{scale:1},{scale:1.025,duration:12.27,ease:"sine.inOut"},0);
+    gsap.set("#a14-cur",{x:960,y:1140,opacity:0});
+    tl.to("#a14-cur",{x:1189,y:343,opacity:1,duration:0.8,ease:"power3.inOut"},3.02);
+    tl.fromTo("#a14-ring-0",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},3.52);
+    tl.to("#a14-ring-0",{opacity:0,duration:0.25,ease:"power2.in"},4.52);
+    tl.to("#a14-cur",{x:1189,y:454,opacity:1,duration:0.8,ease:"power3.inOut"},4.72);
+    tl.fromTo("#a14-ring-1",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},5.22);
+    tl.to("#a14-ring-1",{opacity:0,duration:0.25,ease:"power2.in"},6.92);
+    tl.to("#a14-cur",{x:1189,y:721,opacity:1,duration:0.8,ease:"power3.inOut"},8.35);
+    tl.fromTo("#a14-ring-2",{opacity:0,scale:1.12},{opacity:1,scale:1,duration:0.25,ease:"power4.out"},8.85);
+    tl.to("#a14-ring-2",{opacity:0,duration:0.25,ease:"power2.in"},10.25);
+    tl.set("#a14-img-1",{opacity:1},9.27);
+    tl.set("#a14-img-0",{opacity:0},9.27);
+    tl.fromTo("#a14-cardi-0",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},3.32);
+    tl.to("#a14-cardi-0",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},4.78);
+    tl.fromTo("#a14-cardi-1",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},5.02);
+    tl.to("#a14-cardi-1",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},8.41);
+    tl.fromTo("#a14-cardi-2",{opacity:0,x:-24},{opacity:1,x:0,duration:0.33,ease:"power4.out"},8.65);
+    tl.to("#a14-cardi-2",{opacity:0,x:-10,duration:0.2,ease:"power2.in"},11.78);
+    window.__timelines["a14"] = tl;
+  </script>
+</template>

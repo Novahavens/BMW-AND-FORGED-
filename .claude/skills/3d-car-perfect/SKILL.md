@@ -10,6 +10,12 @@ renders. The reasoning and numbers are in [`docs/PHOTOREAL_METHOD.md`](../../../
 and the sources in [`docs/research/`](../../../docs/research/). Work through the steps in order and
 render after each one.
 
+**What is live now (Nov 2026):** four prepared car GLBs drawn live in the stage look (M2 CS, M4 CS,
+M5, M5 Touring; `services/viewerStudio.ts`, `engine.setLook('stage')`) and six stock-sheet wheels that
+are rim GLBs (`modelUrl`; `scripts/ingest-rim.mjs`). The five cars and nine photo wheels this process
+was built on are hidden (`active: false`). Step 2's softbox studio and step 4's photo-to-spokes route
+still apply to those hidden items and to any wheel without a model; do not apply step 4 to a stock rim.
+
 ## 0. Set up the render loop first
 
 ```bash
@@ -19,15 +25,21 @@ rm -rf node_modules/.vite
 node scripts/render/shoot.cjs "$SCRATCH/out" shots.json "$SCRATCH/rims"   # ~1 min per shot
 ```
 
-- **Shot lists:** JSON objects `{name, car, paint, wheel, finish, size, view, q, cam}`. Indexes
-  come from `data/configuratorData.ts`. Views are `frontThreeQuarter`, `rearThreeQuarter`,
-  `frontWheel`, `side` and `hero`.
-- **Rim photos:** cache them locally first, e.g. `curl` every `imageUrl` into `$SCRATCH/rims`.
-  The sandbox browser can't reach Supabase storage.
+- **Shot lists:** JSON objects `{name, car, paint, wheel, finish, size, view, q, cam}`. `wheel` is a
+  wheel id (`"forged_fsa002"`; an index counts the hidden designs too, so `0` is the hidden FSA-01).
+  `car` and `paint` are indexes into `data/configuratorData.ts`; `car` counts the hidden cars, the
+  live ones are 1 (M4 CS), 5 (M2 CS), 7 (M5), 8 (M5 Touring). `"q": "&look=stage"` renders the look
+  /configure uses for the live cars (`&look=viewer` is the older grey viewer dome, for comparison only).
+  Views are `frontThreeQuarter`, `rearThreeQuarter`,
+  `frontWheel`, `side`, `front` and `hero`.
+- **Rim photos** (hidden photo wheels only): cache them locally first, e.g. `curl` every `imageUrl`
+  into `$SCRATCH/rims`. The sandbox browser can't reach Supabase storage. Stock GLB rims are served
+  from `public/models/rims/` and need no cache.
 - **App pages:** `/rims/<id>` and the other app routes are styled offline (Tailwind is built by
   Vite); a page that renders unstyled means `index.css` isn't imported, not a network problem.
 - **Slow first loads:** use `waitUntil: 'domcontentloaded'` and a 240 s goto timeout. The dev server
   re-optimises dependencies on first load, and that used to hang `load`.
+- **No GPU here:** the cloud container renders with SwiftShader on CPU, about 50 s a shot.
 - **Edits mid-run:** the dev server serves new code on the next navigation, so stop a batch
   before comparing versions.
 - **Compare like for like:** crop full-size PNGs, same view, paint and viewport. Contact sheets via
@@ -44,6 +56,17 @@ node scripts/render/shoot.cjs "$SCRATCH/out" shots.json "$SCRATCH/rims"   # ~1 m
 
 ## 2. Studio light: shape, not brightness
 
+- **Which studio shows where:** /configure draws the live prepared cars in the **stage look**
+  (`services/viewerStudio.ts`: `STAGE`, `buildStageDome`, `buildStageFloor`, `buildStageCove`;
+  `engine.setLook('stage')`). It is modelled on the Cycles hero stills: a black backdrop, a pool of
+  light on a pale floor that fades to black with a pool shadow, a black reflection cove with one
+  overhead softbox (Frozen paints keep the soft cove), Neutral tone mapping, "FORGED" plates. Tune
+  that to change what customers see, and verify with `?look=stage`; the numbers and the tuning notes
+  are in `forgedsa-paint-and-lighting`. `?look=viewer` still draws the older grey viewer dome, for
+  comparison only. The softbox studio below is the `look=studio` default of the bare engine and the
+  look of the hidden Blender-era cars.
+- **Its limit:** the stage is still the live WebGL car. It does not have the stills' path-traced
+  reflections and soft shadows.
 - **Studio:** `services/studioSoftbox.ts`. Large feathered diffuser panels (overhead softbox, long
   side strips, low strips, kickers, a dim floor bounce) in a dark room, built with
   `PMREMGenerator.fromScene(..., { size: 512 })`.
@@ -60,6 +83,12 @@ node scripts/render/shoot.cjs "$SCRATCH/out" shots.json "$SCRATCH/rims"   # ~1 m
   glitter). About 0.7 mm cells, strength ≤ 0.07, fading out below about 0.4 px.
 
 ## 4. Wheels, tyres, brakes (`services/wheelKit.ts`)
+
+**Stock wheels are rim GLBs:** when `modelUrl` is set, `applyWheelDesign` mounts the file (mode
+`model`; `rearModelUrl` for the staggered FSA001) and the spoke-face steps 1-2 below are skipped.
+All six stocked wheels (FSA001-004, FF-1, FF-3) are GLBs from `scripts/ingest-rim.mjs`; the wheel kit
+still builds their tyre, disc, caliper, lugs and cap (step 3), and the finish still applies (step 5).
+Steps 1-2 are the route for a wheel **without** a model: today the hidden legacy photo wheels.
 
 Never use the photo as the face texture, and never extrude the whole photo. Instead:
 
@@ -92,7 +121,8 @@ Never use the photo as the face texture, and never extrude the whole photo. Inst
    - barrel at 40% brightness with a profile AO map and envMapIntensity 0.45;
    - inner parts at envMapIntensity 0.45–0.75;
    - `installWheelShading` arch shade on everything under the fender;
-   - switched off in the showcase.
+   - switched off in the engine's rim showcase (the `showcase` constructor option, which the app no
+     longer uses: the rim page is the wheel studio, `shared/wheel-viewer/WheelStudio.tsx`).
 5. **Finishes** are layered coatings read from the admin numbers (`services/wheelFinish.ts`):
    polished metal, gloss paint (Black Gloss is a non-metal), satin metallic (Bronze Matte's clear
    coat is rough) and metallic paint (Silver), with flop and flake. See `forgedsa-rim-finishes`.
@@ -142,8 +172,8 @@ spoke), then `scripts/render/qa-matrix.py` on the car. Look for:
 ## 6. Ship it
 
 1. `bun run lint` and `bun run build`. Heavy libraries stay in their own lazy chunks.
-2. **Smoke-test the app:** `/rims/<id>` and the welcome page. Only sandbox network errors are
-   allowed.
+2. **Smoke-test the app:** `/rims/<id>` (the wheel studio: it loads the same rim file as the car)
+   and the welcome page. Only sandbox network errors are allowed.
 3. Commit with before/after evidence described in the message, push, update the PR, and deploy a
    Vercel **preview**. Production only when the owner says so.
 4. Update `docs/PHOTOREAL_METHOD.md` and this skill with anything new you learned. Every pitfall
@@ -154,6 +184,7 @@ spoke), then `scripts/render/qa-matrix.py` on the car. Look for:
 - **Real AO:** N8AO behind a flag, which needs the composer and an opaque canvas.
 - **Rest-frame TAA:** for thin spokes and lettering.
 - **Shadow-casting key light.**
-- **Manufacturer CAD:** for the wheels from angled photos (FSA-01, FSA-07).
+- **Manufacturer CAD:** for the hidden legacy wheels traced from angled photos (FSA-01, FSA-07);
+  the six stocked wheels already are GLBs.
 - **Licensed premium car files.**
 - **Real-GPU and phone check.**

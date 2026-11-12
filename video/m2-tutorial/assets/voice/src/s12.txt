@@ -1,0 +1,1 @@
+Every wheel also has its own page, with a 3D viewer, so you can spin it and see it in each finish. And back in the configurator, the three dots hold your region, a place to load a saved code, and your account and garage.

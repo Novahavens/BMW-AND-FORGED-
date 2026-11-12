@@ -1,0 +1,11 @@
+{
+  "sha256": "6e7abb08e9514f3a069abb6152f04c946f68829c03146b6ceb7c86946a419bf0",
+  "files": [
+    "README.md",
+    "WheelStudio.tsx",
+    "index.ts",
+    "paint.ts",
+    "wheel-viewer.css",
+    "wheelStudioParts.ts"
+  ]
+}

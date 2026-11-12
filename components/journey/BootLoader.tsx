@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { BRAND } from '../../config/brand';
-import { Logo, cx } from './ui';
+import { cx } from './ui';
 
 /**
  * First paint: a wheel drawn in fine line while the studio, the lighting and the first car load.
@@ -48,7 +48,12 @@ export const BootLoader: React.FC<{ progress: number; ready: boolean }> = ({ pro
       </svg>
 
       <div className="mt-10 flex flex-col items-center gap-3 animate-rise delay-300">
-        <Logo size="md" />
+        <img
+          src={BRAND.logoSvgUrl || BRAND.logoUrl}
+          alt={BRAND.name}
+          draggable={false}
+          className="h-auto w-[min(72vw,400px)] select-none"
+        />
         <div className="text-[10px] font-medium uppercase tracking-[0.34em] text-mute">{BRAND.descriptor}</div>
       </div>
 

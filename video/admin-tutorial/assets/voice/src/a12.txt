@@ -1,0 +1,1 @@
+Next, choose which finishes this wheel comes in. And if a finish costs more, like Polished Face or Liquid Metal, set its price underneath. Leave it blank and it costs the same as the rest.

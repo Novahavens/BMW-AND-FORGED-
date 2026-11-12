@@ -1,0 +1,1 @@
+For the best quality, upload the manufacturer's 3D file. If it's a STEP, IGES, S T L or O B J, it's converted in the browser first. Staggered set? There's a separate rear file too.

@@ -5,8 +5,45 @@ description: Tune car paint, reflections and studio lighting in the FORGEDSA Thr
 
 # Paint and lighting tuning
 
-Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `public.paints`
+Everything lives in `services/CarConfiguratorEngine.ts`, except the look customers see on `/configure`:
+the **stage look** in `services/viewerStudio.ts` (next section). Paint rows are in `public.paints`
 (mirrored in `data/configuratorData.ts`).
+
+## The stage look: what /configure draws (since 2026-11-11)
+
+`/configure` draws live cars with `engine.setLook('stage')`, defined in `services/viewerStudio.ts`
+(`STAGE`, `buildStageDome`, `buildStageFloor`, `buildStageCove`). It is modelled on the Cycles hero
+stills (`public/hero/`): a black backdrop, a pool of light on a pale floor that fades to black, and a
+black reflection cove with one overhead softbox. The softbox studio values further down are the
+`look=studio` default of the bare engine, not what customers see.
+
+| `STAGE` key | Default | URL override | What it is |
+|---|---|---|---|
+| `peak` | 0.97 | `?stagePeak=` | floor brightness at the centre of the pool |
+| `rx`, `rz` | 2.2 m, 3.4 m | `?stageRx=`, `?stageRz=` | pool sigma across the car and along it |
+| `overhead` | 12 | `?stageOver=` | the overhead softbox in the cove |
+| `rails` | 6 | `?stageRails=` | the two light rails |
+| `ring` | 1 | `?stageRing=` | the wrap ring |
+| `floorEnv` | 0.5 | `?stageFloorEnv=` | the lit floor as the paint sees it in the cove |
+| `exposure` | 1.2 | `?stageExp=` | multiplies the paint's exposure |
+| `parts` | 0.35 | `?stageParts=` | the share of the cove that glass, carbon, chrome, trim and lamps mirror |
+
+- Frozen paints keep the soft cove. The paint finish table (`VIEWER_FINISH`) is shared with the viewer
+  look: on the stage a paint's metalness, roughness and clear coat come from that table by paint type
+  (Uni 0 / 0.3 / 1 / 0.02, Metallic 0.75 / 0.34 / 1 / 0.03, Pearl 0.45 / 0.3 / 1 / 0.03 with iridescence
+  0.5, Frozen 0.55 / 0.52 / 0.35 / 0.55), not from the paint rows in the table below, which the softbox
+  studio uses.
+- In the render harness `?look=stage` is what /configure draws. `?look=viewer` still exists and draws
+  the older grey viewer dome, for comparison only. `?look=studio` is the softbox studio. The URL
+  overrides above are for comparison renders.
+- Tuning notes (chosen against `public/hero/m2_g87-1600.webp`, the M2 CS in Portimao Blue):
+  - Overhead 12, 18 and 32 look the same from the front three-quarter, but from above 18 and 32 wash
+    the bonnet and roof paint out. Check a change from above as well as at the front three-quarter.
+  - A wrap ring above about 2 flattens the body.
+  - Mirror-like parts need the reduced share (`parts`), or the windscreen and carbon roof clip to
+    white.
+- It is still the live WebGL car: it does not have the stills' path-traced reflections and soft
+  shadows.
 
 ## Current tuned values (chosen from side-by-side renders on the M235 and M5)
 
@@ -49,7 +86,8 @@ Everything lives in `services/CarConfiguratorEngine.ts`. Paint rows are in `publ
 
 ## Method
 
-1. Fix a baseline: same car, paint, view and viewport. Use `forgedsa-render-verification`.
+1. Fix a baseline: same car, paint, view and viewport. Use `forgedsa-render-verification`, with
+   `"q": "&look=stage"` for anything customers see on `/configure`.
 2. Change **one** parameter per round and render before and after side by side.
 3. Check a bright metallic, black, white and a frozen paint. Black and white expose clearcoat and
    exposure problems fastest.
